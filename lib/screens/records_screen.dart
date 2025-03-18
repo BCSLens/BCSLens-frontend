@@ -27,7 +27,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         'weight': '8 kg',
         'age': '3 years old',
         'bcs': 5,
-        'image': 'assets/images/corgi.jpg',
+        'image': 'assets/images/bcs_lens_logo.jpg',
         'isFavorite': true,
       },
       {
@@ -35,7 +35,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         'weight': '8 kg',
         'age': '3 years old',
         'bcs': 5,
-        'image': 'assets/images/corgi.jpg',
+        'image': 'assets/images/bcs_lens_logo.jpg',
         'isFavorite': true,
       },
     ],
@@ -379,7 +379,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         _buildPetGroupCard(
           groupName,
           groupPets.length,
-          'assets/images/pet_icon.png',
+          'assets/images/bcs_lens_logo.png',
           _expandedGroups[groupName] ?? false,
         ),
       );
