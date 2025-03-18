@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/bottom_nav_bar.dart';
 
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({Key? key}) : super(key: key);
@@ -8,22 +9,18 @@ class RecordsScreen extends StatefulWidget {
 }
 
 class _RecordsScreenState extends State<RecordsScreen> {
-  bool _showAddPetForm = false;
   int _selectedIndex = 0;
+  bool _showAddGroupForm = false;
   String _selectedPetType = 'Cats';
   final TextEditingController _petNameController = TextEditingController();
+  final TextEditingController _groupNameController = TextEditingController();
 
   // Expanded state for groups
-  final Map<String, bool> _expandedGroups = {
-    'Cats': false,
-    'Dogs': false, 
-  };
+  final Map<String, bool> _expandedGroups = {'Cats': false, 'Dogs': false};
 
   // Sample data
   final Map<String, List<Map<String, dynamic>>> _pets = {
-    'Cats': [
-      // Empty for now, will show count (2)
-    ],
+    'Cats': [],
     'Dogs': [
       {
         'name': 'Max',
@@ -41,30 +38,78 @@ class _RecordsScreenState extends State<RecordsScreen> {
         'image': 'assets/images/corgi.jpg',
         'isFavorite': true,
       },
-      {
-        'name': 'Max',
-        'weight': '8 kg',
-        'age': '3 years old',
-        'bcs': 5,
-        'image': 'assets/images/corgi.jpg',
-        'isFavorite': true,
-      },
-      {
-        'name': 'Max',
-        'weight': '8 kg',
-        'age': '3 years old',
-        'bcs': 5,
-        'image': 'assets/images/corgi.jpg',
-        'isFavorite': true,
-      },
     ],
   };
+
+
+  void _onItemTapped(int index) {
+    if (index == 1) {
+      Navigator.pushReplacementNamed(context, '/add-record');
+    } else if (index == 2) {
+      Navigator.pushReplacementNamed(context, '/special-care');
+    }
+  }
+
+  void _handleAddRecordsTap() {
+    Navigator.pushNamed(context, '/add-record');
+  }
 
   @override
   void dispose() {
     _petNameController.dispose();
+    _groupNameController.dispose();
     super.dispose();
   }
+
+  void _showAddGroupDialog() {
+    setState(() {
+      _showAddGroupForm = true;
+    });
+  }
+
+  void _addNewGroup() {
+    if (_groupNameController.text.isNotEmpty) {
+      setState(() {
+        // Check if group doesn't already exist
+        String newGroupName = _groupNameController.text;
+        if (!_pets.containsKey(newGroupName)) {
+          // Add new group to pets map
+          _pets[newGroupName] = [];
+          // Set initial expansion state for new group
+          _expandedGroups[newGroupName] = false;
+          // Clear the group name controller
+          _groupNameController.clear();
+          // Hide the group creation form
+          _showAddGroupForm = false;
+        } else {
+          // Optional: Show a snackbar if group already exists
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Group already exists')));
+        }
+      });
+    }
+  }
+
+  // void _addNewPet() {
+  //   if (_petNameController.text.isNotEmpty) {
+  //     setState(() {
+  //       // Add new pet to the selected group
+  //       _pets[_selectedPetType]?.add({
+  //         'name': _petNameController.text,
+  //         'weight': 'N/A',
+  //         'age': 'N/A',
+  //         'bcs': 0,
+  //         'image': 'assets/images/placeholder.jpg', // Add a placeholder image
+  //         'isFavorite': false,
+  //       });
+
+  //       // Reset form
+  //       _petNameController.clear();
+  //       // _showAddPetForm = false;
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +130,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         actions: [
           IconButton(
             icon: const Icon(
-              Icons.upload_outlined, 
+              Icons.upload_outlined,
               color: Color(0xFF7B8EB5),
               size: 24,
             ),
@@ -93,134 +138,221 @@ class _RecordsScreenState extends State<RecordsScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F7F9),
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 16),
-                  const Icon(
-                    Icons.search,
-                    color: Color(0xFFACACAC),
-                    size: 24,
+          Column(
+            children: [
+              // Search bar
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F7F9),
+                    borderRadius: BorderRadius.circular(25),
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Search',
-                    style: TextStyle(
-                      color: Color(0xFFACACAC),
-                      fontSize: 17,
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 16),
+                      const Icon(
+                        Icons.search,
+                        color: Color(0xFFACACAC),
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Search',
+                        style: TextStyle(
+                          color: Color(0xFFACACAC),
+                          fontSize: 17,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Icon(
+                        Icons.tune,
+                        color: Color(0xFFACACAC),
+                        size: 24,
+                      ),
+                      const SizedBox(width: 16),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Group header
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Group',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: _showAddGroupDialog,
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFF5F5F5),
+                          border: Border.all(
+                            color: const Color(0xFF7B8EB5),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          color: Color(0xFF7B8EB5),
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Pet groups and list
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [..._buildAllPetGroups()],
+                ),
+              ),
+            ],
+          ),
+
+          // Group creation overlay
+          if (_showAddGroupForm)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black54,
+                child: Center(
+                  child: Container(
+                    width: 300,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Add New Group',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF7B8EB5),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: TextField(
+                            controller: _groupNameController,
+                            decoration: const InputDecoration(
+                              hintText: 'Group Name',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            OutlinedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _showAddGroupForm = false;
+                                  _groupNameController.clear();
+                                });
+                              },
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(
+                                  color: Color(0xFF7B8EB5),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 30,
+                                  vertical: 12,
+                                ),
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(color: Color(0xFF7B8EB5)),
+                              ),
+                            ),
+                            ElevatedButton(
+                              onPressed: _addNewGroup,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF7B8EB5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 30,
+                                  vertical: 12,
+                                ),
+                              ),
+                              child: const Text('Confirm'),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.tune,
-                    color: Color(0xFFACACAC),
-                    size: 24,
-                  ),
-                  const SizedBox(width: 16),
-                ],
+                ),
               ),
             ),
-          ),
-          
-          // Divider line under search
-          Divider(
-            color: Colors.grey.withOpacity(0.2),
-            thickness: 1,
-            height: 1,
-          ),
-          
-          // Group header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Group',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333),
-                  ),
-                ),
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0xFFF5F5F5),
-                  ),
-                  child: const Icon(
-                    Icons.add,
-                    color: Color(0xFF7B8EB5),
-                    size: 20,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Pet groups and list
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                ..._buildAllPetGroups(),
-              ],
-            ),
-          ),
-          
-          // Bottom nav bar - direct implementation
-          if (_showAddPetForm)
-            _buildAddPetForm(),
+
+          // Rest of the existing code for _showAddPetForm overlay remains the same
         ],
       ),
-      bottomNavigationBar: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 5,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(Icons.folder_outlined, 'Records', true),
-            _buildNavItem(Icons.add_circle_outline, 'Add Records', false, onTap: () {
-              setState(() {
-                _showAddPetForm = true;
-              });
-            }),
-            _buildNavItem(Icons.star_border, 'Special Care', false),
-          ],
-        ),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
+
+        onAddRecordsTap: () {
+          Navigator.pushReplacementNamed(context, '/add-record');
+        },
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, bool isActive, {VoidCallback? onTap}) {
+  Widget _buildNavItem(
+    IconData icon,
+    String label,
+    bool isActive, {
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            icon, 
+            icon,
             color: isActive ? const Color(0xFF7B8EB5) : const Color(0xFFACACAC),
             size: 24,
           ),
@@ -228,7 +360,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: isActive ? const Color(0xFF7B8EB5) : const Color(0xFFACACAC),
+              color:
+                  isActive ? const Color(0xFF7B8EB5) : const Color(0xFFACACAC),
               fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -239,30 +372,36 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   List<Widget> _buildAllPetGroups() {
     List<Widget> result = [];
-    
-    // Add Cats group
-    result.add(_buildPetGroupCard('Cats', 2, 'assets/images/cat_icon.png', _expandedGroups['Cats'] ?? false));
-    
-    // If Cats group is expanded, show its pets (empty in this case but keeps space for UI)
-    if (_expandedGroups['Cats'] ?? false) {
+
+    // Dynamically build groups
+    _pets.forEach((groupName, groupPets) {
+      result.add(
+        _buildPetGroupCard(
+          groupName,
+          groupPets.length,
+          'assets/images/pet_icon.png',
+          _expandedGroups[groupName] ?? false,
+        ),
+      );
+
+      // If group is expanded, show its pets
+      if (_expandedGroups[groupName] ?? false) {
+        final petsList = _buildExpandedPets(groupPets);
+        result.addAll(petsList);
+      }
+
       result.add(const SizedBox(height: 8));
-    }
-    
-    result.add(const SizedBox(height: 8));
-    
-    // Add Dogs group
-    result.add(_buildPetGroupCard('Dogs', 4, 'assets/images/dog_icon.png', _expandedGroups['Dogs'] ?? false));
-    
-    // If Dogs group is expanded, show its pets
-    if (_expandedGroups['Dogs'] ?? false) {
-      final dogsList = _buildExpandedPets(_pets['Dogs']!);
-      result.addAll(dogsList);
-    }
-    
+    });
+
     return result;
   }
 
-  Widget _buildPetGroupCard(String type, int count, String iconAsset, bool isExpanded) {
+  Widget _buildPetGroupCard(
+    String type,
+    int count,
+    String iconAsset,
+    bool isExpanded,
+  ) {
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -286,15 +425,13 @@ class _RecordsScreenState extends State<RecordsScreen> {
           children: [
             const SizedBox(width: 12),
             Icon(
-              isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+              isExpanded
+                  ? Icons.keyboard_arrow_down
+                  : Icons.keyboard_arrow_right,
               color: const Color(0xFFACACAC),
             ),
             const SizedBox(width: 8),
-            Icon(
-              type == 'Cats' ? Icons.pets : Icons.pets,
-              color: const Color(0xFF7B8EB5),
-              size: 24,
-            ),
+            Icon(Icons.pets, color: const Color(0xFF7B8EB5), size: 24),
             const SizedBox(width: 12),
             Text(
               '$type ($count)',
@@ -306,15 +443,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
             const Spacer(),
             IconButton(
-              icon: const Icon(
-                Icons.add,
-                color: Color(0xFFACACAC),
-                size: 20,
-              ),
+              icon: const Icon(Icons.add, color: Color(0xFFACACAC), size: 20),
               onPressed: () {
                 setState(() {
                   _selectedPetType = type;
-                  _showAddPetForm = true;
                 });
               },
             ),
@@ -326,12 +458,12 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   List<Widget> _buildExpandedPets(List<Map<String, dynamic>> pets) {
     List<Widget> petWidgets = [];
-    
+
     for (var pet in pets) {
       petWidgets.add(const SizedBox(height: 8));
       petWidgets.add(_buildPetCard(pet));
     }
-    
+
     return petWidgets;
   }
 
@@ -371,7 +503,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
               ),
             ),
             const SizedBox(width: 16),
-            
+
             // Pet details
             Expanded(
               child: Column(
@@ -390,7 +522,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       const Spacer(),
                       Icon(
                         Icons.star,
-                        color: pet['isFavorite'] ? Colors.amber : Colors.grey[300],
+                        color:
+                            pet['isFavorite'] ? Colors.amber : Colors.grey[300],
                         size: 24,
                       ),
                     ],
@@ -476,151 +609,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildAddPetForm() {
-    return Container(
-      color: Colors.white.withOpacity(0.95),
-      child: Column(
-        children: [
-          const Spacer(),
-          const Center(
-            child: Text(
-              'Add New Pet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF7B8EB5),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          
-          // Pet Name input
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.pets, color: Colors.grey),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _petNameController,
-                    decoration: const InputDecoration(
-                      hintText: 'Pet Name',
-                      border: InputBorder.none,
-                      hintStyle: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Pet Type selection
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  _selectedPetType == 'Cats' ? Icons.pets : Icons.pets, 
-                  color: Colors.grey
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedPetType,
-                      isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-                      items: ['Cats', 'Dogs'].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            _selectedPetType = newValue;
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 20),
-          
-          // Action buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // Cancel button
-              SizedBox(
-                width: 150,
-                child: OutlinedButton(
-                  onPressed: () {
-                    setState(() {
-                      _showAddPetForm = false;
-                      _petNameController.clear();
-                    });
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF7B8EB5)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Color(0xFF7B8EB5)),
-                  ),
-                ),
-              ),
-              
-              // Confirm button
-              SizedBox(
-                width: 150,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Add pet logic here
-                    setState(() {
-                      _showAddPetForm = false;
-                      _petNameController.clear();
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7B8EB5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text('Confirm'),
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 100), // Space for the nav bar plus some extra
-        ],
       ),
     );
   }

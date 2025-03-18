@@ -9,11 +9,17 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
+  // Configuration for splash screen
+  static const Duration _splashDuration = Duration(seconds: 2);
+  
   @override
   void initState() {
     super.initState();
-    // Set timer to navigate to login page after 2 seconds
-    Timer(const Duration(seconds: 2), () {
+    _navigateToLogin();
+  }
+
+  void _navigateToLogin() {
+    Timer(_splashDuration, () {
       Navigator.pushReplacementNamed(context, '/login');
     });
   }
@@ -27,6 +33,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           'assets/images/bcs_lens_logo.png',
           width: 200,
           height: 200,
+          fit: BoxFit.contain,
         ),
       ),
     );

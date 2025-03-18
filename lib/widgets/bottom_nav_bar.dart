@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
-  final Function(int) onItemTapped;
-  final bool showAddPetForm;
+  final Function(int)? onItemTapped;
   final VoidCallback onAddRecordsTap;
 
   const BottomNavBar({
     Key? key,
     required this.selectedIndex,
-    required this.onItemTapped,
-    this.showAddPetForm = false,
+    this.onItemTapped,
     required this.onAddRecordsTap,
   }) : super(key: key);
+
+  static const _activeColor = Color(0xFF7B8EB5);
+  static const _inactiveColor = Colors.grey;
 
   @override
   Widget build(BuildContext context) {
@@ -30,74 +31,70 @@ class BottomNavBar extends StatelessWidget {
         ],
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Records - left item
-          Expanded(
-            flex: 3,
-            child: _bottomNavItem(
-              icon: Icons.folder_outlined,
-              label: 'Records',
-              isSelected: selectedIndex == 0,
-              onTap: () => onItemTapped(0),
-            ),
+          _buildNavItem(
+            icon: Icons.folder_outlined,
+            label: 'Records',
+            isSelected: selectedIndex == 0,
+            onTap: () {
+              if (onItemTapped != null) {
+                onItemTapped!(0);
+              } else {
+                Navigator.pushReplacementNamed(context, '/records');
+              }
+            },
           ),
-          
-          // Add Records - center item with right shift
-          Expanded(
-            flex: 4,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 12.0),
-              child: _bottomNavItem(
-                icon: Icons.add_circle_outline,
-                label: 'Add Records',
-                isSelected: showAddPetForm,
-                onTap: onAddRecordsTap,
-              ),
-            ),
+          _buildNavItem(
+            icon: Icons.add_circle_outline,
+            label: 'Add Records',
+            isSelected: selectedIndex == 1,
+            onTap: onAddRecordsTap,
           ),
-          
-          // Special Care - right item
-          Expanded(
-            flex: 3,
-            child: _bottomNavItem(
-              icon: Icons.star_border,
-              label: 'Special Care',
-              isSelected: selectedIndex == 2,
-              onTap: () => onItemTapped(2),
-            ),
+          _buildNavItem(
+            icon: Icons.star_border,
+            label: 'Special Care',
+            isSelected: selectedIndex == 2,
+            onTap: () {
+              if (onItemTapped != null) {
+                onItemTapped!(2);
+              } else {
+                Navigator.pushReplacementNamed(context, '/special-care');
+              }
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _bottomNavItem({
+  Widget _buildNavItem({
     required IconData icon,
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isSelected ? const Color(0xFF7B8EB5) : Colors.grey,
-            size: 24,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: isSelected ? const Color(0xFF7B8EB5) : Colors.grey,
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? _activeColor : _inactiveColor,
+              size: 24,
             ),
-          ),
-        ],
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isSelected ? _activeColor : _inactiveColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
