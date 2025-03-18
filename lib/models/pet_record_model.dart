@@ -1,4 +1,34 @@
+// lib/models/pet_record_model.dart
 class PetRecord {
+  // Create a singleton instance
+  static final PetRecord _instance = PetRecord._internal();
+
+  // Factory constructor returns the singleton instance
+  factory PetRecord({
+    String? frontViewImagePath,
+    String? topViewImagePath,
+    String? leftViewImagePath,
+    String? rightViewImagePath,
+  }) {
+    // Update paths if provided
+    if (frontViewImagePath != null) {
+      _instance.frontViewImagePath = frontViewImagePath;
+    }
+    if (topViewImagePath != null) {
+      _instance.topViewImagePath = topViewImagePath;
+    }
+    if (leftViewImagePath != null) {
+      _instance.leftViewImagePath = leftViewImagePath;
+    }
+    if (rightViewImagePath != null) {
+      _instance.rightViewImagePath = rightViewImagePath;
+    }
+    return _instance;
+  }
+
+  // Private constructor
+  PetRecord._internal();
+
   // Image paths for different views
   String? frontViewImagePath;
   String? topViewImagePath;
@@ -8,25 +38,28 @@ class PetRecord {
   // Pet details
   String? name;
   String? age;
-  String? breed; // พันธ์
+  String? breed;
   String? weight;
-  int? bcs; // Body Condition Score
-
-  // Additional optional fields
+  int? bcs;
   String? species;
   String? category;
+  String? gender;
+  bool? isSterilized;
 
-  PetRecord({
-    this.frontViewImagePath,
-    this.topViewImagePath,
-    this.leftViewImagePath,
-    this.rightViewImagePath,
-    this.name,
-    this.age,
-    this.breed,
-    this.weight,
-    this.bcs,
-    this.species,
-    this.category,
-  });
+  // Method to reset record (useful when starting a new record)
+  void reset() {
+    frontViewImagePath = null;
+    topViewImagePath = null;
+    leftViewImagePath = null;
+    rightViewImagePath = null;
+    name = null;
+    age = null;
+    breed = null;
+    weight = null;
+    bcs = null;
+    species = null;
+    category = null;
+    gender = null;
+    isSterilized = null;
+  }
 }

@@ -7,6 +7,8 @@ import 'screens/records_screen.dart';
 import 'screens/add_record_screen.dart';
 import 'screens/special_care_screen.dart';
 import 'screens/top_side_view_screen.dart';
+import 'screens/bcs_evaluation_screen.dart';
+import 'screens/pet_detail_screen.dart';
 
 import 'models/pet_record_model.dart';
 
@@ -37,10 +39,21 @@ class BCSLensApp extends StatelessWidget {
       '/add-record': (context) => const AddRecordScreen(),
       '/special-care': (context) => const SpecialCareScreen(),
       '/top-side-view': (context) {
-      // Extract the PetRecord from route settings
-      final petRecord = ModalRoute.of(context)!.settings.arguments as PetRecord;
-      return TopSideViewScreen(petRecord: petRecord);
-    },
+        // Extract the PetRecord from route settings
+        final petRecord =
+            ModalRoute.of(context)!.settings.arguments as PetRecord;
+        return TopSideViewScreen(petRecord: petRecord);
+      },
+      '/bcs-evaluation': (context) {
+        final petRecord =
+            ModalRoute.of(context)!.settings.arguments as PetRecord;
+        return BcsEvaluationScreen(petRecord: petRecord);
+      },
+      '/pet-details': (context) {
+        final petRecord =
+            ModalRoute.of(context)!.settings.arguments as PetRecord;
+        return PetDetailsScreen(petRecord: petRecord);
+      },
     };
   }
 }

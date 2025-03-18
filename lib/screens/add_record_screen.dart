@@ -46,20 +46,24 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     }
   }
 
-  void _goToNextStep() {
-    if (_frontViewImagePath != null) {
-      // Create a new PetRecord and populate the front view image
-      PetRecord petRecord = PetRecord(frontViewImagePath: _frontViewImagePath);
-
-      // Navigate to the Top Side View Screen
-      Navigator.pushNamed(context, '/top-side-view', arguments: petRecord);
-    } else {
-      // Show an error if no front view photo is taken
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please take a front view photo')),
-      );
-    }
+void _goToNextStep() {
+  if (_frontViewImagePath != null) {
+    // Update the shared PetRecord instance with front view
+    final petRecord = PetRecord(frontViewImagePath: _frontViewImagePath);
+    
+    // Navigate to the next screen - no need to handle returns now
+    Navigator.pushNamed(
+      context, 
+      '/top-side-view', 
+      arguments: petRecord
+    );
+  } else {
+    // Show error if no front view photo is taken
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please take a front view photo')),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
