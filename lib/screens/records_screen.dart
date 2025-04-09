@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_nav_bar.dart';
+import 'history_screen.dart';
 
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({Key? key}) : super(key: key);
@@ -11,6 +12,7 @@ class RecordsScreen extends StatefulWidget {
 class _RecordsScreenState extends State<RecordsScreen> {
   int _selectedIndex = 0;
   bool _showAddGroupForm = false;
+  bool _showAddPetForm = false;
   String _selectedPetType = 'Cats';
   final TextEditingController _petNameController = TextEditingController();
   final TextEditingController _groupNameController = TextEditingController();
@@ -31,7 +33,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
         'isFavorite': true,
       },
       {
-        'name': 'Max',
+        'name': 'SAN',
         'weight': '8 kg',
         'age': '3 years old',
         'bcs': 5,
@@ -40,7 +42,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
       },
     ],
   };
-
 
   void _onItemTapped(int index) {
     if (index == 1) {
@@ -91,25 +92,32 @@ class _RecordsScreenState extends State<RecordsScreen> {
     }
   }
 
-  // void _addNewPet() {
-  //   if (_petNameController.text.isNotEmpty) {
-  //     setState(() {
-  //       // Add new pet to the selected group
-  //       _pets[_selectedPetType]?.add({
-  //         'name': _petNameController.text,
-  //         'weight': 'N/A',
-  //         'age': 'N/A',
-  //         'bcs': 0,
-  //         'image': 'assets/images/placeholder.jpg', // Add a placeholder image
-  //         'isFavorite': false,
-  //       });
+  void _showAddPetDialog(String groupName) {
+    setState(() {
+      _selectedPetType = groupName;
+      _showAddPetForm = true;
+    });
+  }
 
-  //       // Reset form
-  //       _petNameController.clear();
-  //       // _showAddPetForm = false;
-  //     });
-  //   }
-  // }
+  void _addNewPet() {
+    if (_petNameController.text.isNotEmpty) {
+      setState(() {
+        // Add new pet to the selected group
+        _pets[_selectedPetType]?.add({
+          'name': _petNameController.text,
+          'weight': 'N/A',
+          'age': 'N/A',
+          'bcs': 0,
+          'image': 'assets/images/default_pet.png', // Add a placeholder image
+          'isFavorite': false,
+        });
+
+        // Reset form
+        _petNameController.clear();
+        _showAddPetForm = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +126,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: const Text(
           'Records',
           style: TextStyle(
@@ -237,27 +246,28 @@ class _RecordsScreenState extends State<RecordsScreen> {
           if (_showAddGroupForm)
             Positioned.fill(
               child: Container(
-                color: Colors.black54,
+                color: Colors.black.withOpacity(0.5),
                 child: Center(
                   child: Container(
-                    width: 300,
-                    padding: const EdgeInsets.all(20),
+                    width: MediaQuery.of(context).size.width * 0.85,
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const Text(
                           'Add New Group',
                           style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             color: Color(0xFF7B8EB5),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         Container(
                           decoration: BoxDecoration(
                             color: const Color(0xFFF5F5F5),
@@ -270,52 +280,64 @@ class _RecordsScreenState extends State<RecordsScreen> {
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 16,
-                                vertical: 12,
+                                vertical: 14,
                               ),
                             ),
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            OutlinedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _showAddGroupForm = false;
-                                  _groupNameController.clear();
-                                });
-                              },
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(
-                                  color: Color(0xFF7B8EB5),
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _showAddGroupForm = false;
+                                    _groupNameController.clear();
+                                  });
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Color(0xFF7B8EB5),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
+                                child: const Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    color: Color(0xFF7B8EB5),
+                                    fontSize: 16,
+                                  ),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 30,
-                                  vertical: 12,
-                                ),
-                              ),
-                              child: const Text(
-                                'Cancel',
-                                style: TextStyle(color: Color(0xFF7B8EB5)),
                               ),
                             ),
-                            ElevatedButton(
-                              onPressed: _addNewGroup,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF7B8EB5),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _addNewGroup,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF7B8EB5),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 30,
-                                  vertical: 12,
+                                child: const Text(
+                                  'Confirm',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
                                 ),
                               ),
-                              child: const Text('Confirm'),
                             ),
                           ],
                         ),
@@ -326,46 +348,173 @@ class _RecordsScreenState extends State<RecordsScreen> {
               ),
             ),
 
-          // Rest of the existing code for _showAddPetForm overlay remains the same
+          // Add Pet overlay
+          if (_showAddPetForm)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.85,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Add New Pet',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF7B8EB5),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Pet Name Field
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: TextField(
+                            controller: _petNameController,
+                            decoration: const InputDecoration(
+                              hintText: 'Pet Name',
+                              prefixIcon: Icon(
+                                Icons.pets,
+                                color: Color(0xFF7B8EB5),
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                            ),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Group Selection
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedPetType,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.pets,
+                                color: Color(0xFF7B8EB5),
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
+                              ),
+                            ),
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                            style: const TextStyle(
+                              color: Colors.black87,
+                              fontSize: 16,
+                            ),
+                            onChanged: (String? value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedPetType = value;
+                                });
+                              }
+                            },
+                            items:
+                                _pets.keys.map<DropdownMenuItem<String>>((
+                                  String value,
+                                ) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  );
+                                }).toList(),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _showAddPetForm = false;
+                                    _petNameController.clear();
+                                  });
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Color(0xFF7B8EB5),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    color: Color(0xFF7B8EB5),
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _addNewPet,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF7B8EB5),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Confirm',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
-
         onAddRecordsTap: () {
           Navigator.pushReplacementNamed(context, '/add-record');
         },
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    bool isActive, {
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? const Color(0xFF7B8EB5) : const Color(0xFFACACAC),
-            size: 24,
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color:
-                  isActive ? const Color(0xFF7B8EB5) : const Color(0xFFACACAC),
-              fontWeight: isActive ? FontWeight.w500 : FontWeight.normal,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -431,7 +580,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
               color: const Color(0xFFACACAC),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.pets, color: const Color(0xFF7B8EB5), size: 24),
+            Icon(
+              type == 'Cats' ? Icons.pets : Icons.pets,
+              color: const Color(0xFF7B8EB5),
+              size: 24,
+            ),
             const SizedBox(width: 12),
             Text(
               '$type ($count)',
@@ -444,11 +597,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.add, color: Color(0xFFACACAC), size: 20),
-              onPressed: () {
-                setState(() {
-                  _selectedPetType = type;
-                });
-              },
+              onPressed: () => _showAddPetDialog(type),
             ),
           ],
         ),
@@ -599,7 +748,18 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => HistoryScreen(
+                                      pet: pet,
+                                      groupName: _selectedPetType,
+                                    ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],

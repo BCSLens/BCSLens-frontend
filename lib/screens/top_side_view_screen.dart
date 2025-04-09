@@ -39,7 +39,7 @@ class _TopSideViewScreenState extends State<TopSideViewScreen> {
 
   void _onItemTapped(int index) {
     if (index == 0) {
-      Navigator.pushReplacementNamed(context, '/records');
+      Navigator.pushNamedAndRemoveUntil(context, '/records', (route) => false);
     } else if (index == 2) {
       Navigator.pushReplacementNamed(context, '/special-care');
     }

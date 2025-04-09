@@ -15,9 +15,18 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
   String? _frontViewImagePath;
   bool _isPhotoLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+
+    // ล้างข้อมูลเก่าทั้งหมดเมื่อเริ่มบันทึกใหม่
+    PetRecord().reset();
+    _frontViewImagePath = null;
+  }
+
   void _onItemTapped(int index) {
     if (index == 0) {
-      Navigator.pushReplacementNamed(context, '/records');
+      Navigator.pushNamedAndRemoveUntil(context, '/records', (route) => false);
     } else if (index == 2) {
       Navigator.pushReplacementNamed(context, '/special-care');
     }
@@ -46,24 +55,20 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
     }
   }
 
-void _goToNextStep() {
-  if (_frontViewImagePath != null) {
-    // Update the shared PetRecord instance with front view
-    final petRecord = PetRecord(frontViewImagePath: _frontViewImagePath);
-    
-    // Navigate to the next screen - no need to handle returns now
-    Navigator.pushNamed(
-      context, 
-      '/top-side-view', 
-      arguments: petRecord
-    );
-  } else {
-    // Show error if no front view photo is taken
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please take a front view photo')),
-    );
+  void _goToNextStep() {
+    if (_frontViewImagePath != null) {
+      // Update the shared PetRecord instance with front view
+      final petRecord = PetRecord(frontViewImagePath: _frontViewImagePath);
+
+      // Navigate to the next screen - no need to handle returns now
+      Navigator.pushNamed(context, '/top-side-view', arguments: petRecord);
+    } else {
+      // Show error if no front view photo is taken
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please take a front view photo')),
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {

@@ -93,7 +93,7 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> {
 
   void _onItemTapped(int index) {
     if (index == 0) {
-      Navigator.pushReplacementNamed(context, '/records');
+      Navigator.pushNamedAndRemoveUntil(context, '/records', (route) => false);
     } else if (index == 2) {
       Navigator.pushReplacementNamed(context, '/special-care');
     }

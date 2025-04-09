@@ -45,6 +45,7 @@ class PetRecord {
   String? category;
   String? gender;
   bool? isSterilized;
+  String? additionalNotes;
 
   // Method to reset record (useful when starting a new record)
   void reset() {
@@ -61,5 +62,6 @@ class PetRecord {
     category = null;
     gender = null;
     isSterilized = null;
+    additionalNotes = null;
   }
 }

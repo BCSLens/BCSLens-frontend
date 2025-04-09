@@ -9,6 +9,7 @@ import 'screens/special_care_screen.dart';
 import 'screens/top_side_view_screen.dart';
 import 'screens/bcs_evaluation_screen.dart';
 import 'screens/pet_detail_screen.dart';
+import 'screens/review_add_screen.dart';
 
 import 'models/pet_record_model.dart';
 
@@ -53,6 +54,11 @@ class BCSLensApp extends StatelessWidget {
         final petRecord =
             ModalRoute.of(context)!.settings.arguments as PetRecord;
         return PetDetailsScreen(petRecord: petRecord);
+      },
+      '/review-details': (context) {
+        final petRecord =
+            ModalRoute.of(context)!.settings.arguments as PetRecord;
+        return BcsReviewScreen(petRecord: petRecord);
       },
     };
   }
