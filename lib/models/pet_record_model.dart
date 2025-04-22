@@ -9,6 +9,8 @@ class PetRecord {
     String? topViewImagePath,
     String? leftViewImagePath,
     String? rightViewImagePath,
+    String? predictedAnimal,
+    double? predictionConfidence,
   }) {
     // Update paths if provided
     if (frontViewImagePath != null) {
@@ -22,6 +24,12 @@ class PetRecord {
     }
     if (rightViewImagePath != null) {
       _instance.rightViewImagePath = rightViewImagePath;
+    }
+    if (predictedAnimal != null) {
+      _instance.predictedAnimal = predictedAnimal;
+    }
+    if (predictionConfidence != null) {
+      _instance.predictionConfidence = predictionConfidence;
     }
     return _instance;
   }
@@ -46,6 +54,11 @@ class PetRecord {
   String? gender;
   bool? isSterilized;
   String? additionalNotes;
+  
+  // Prediction details
+  String? predictedAnimal; // The predicted animal type (dog, cat, etc.)
+  double? predictionConfidence; // Confidence score from the API (e.g., 0.813)
+  int? predictedClassId; // Optional: store the class_id if needed
 
   // Method to reset record (useful when starting a new record)
   void reset() {
@@ -63,5 +76,8 @@ class PetRecord {
     gender = null;
     isSterilized = null;
     additionalNotes = null;
+    predictedAnimal = null;
+    predictionConfidence = null;
+    predictedClassId = null;
   }
 }

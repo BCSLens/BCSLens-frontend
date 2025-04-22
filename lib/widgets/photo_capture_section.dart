@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'dart:io'; // Add this import
+import 'dart:io';
 
 class PhotoCaptureSection extends StatelessWidget {
   final String label;
   final String? imagePath;
   final VoidCallback onTakePhoto;
   final bool isLoading;
+  final bool isPredicting; // New parameter for prediction loading state
 
   const PhotoCaptureSection({
     Key? key,
@@ -13,6 +14,7 @@ class PhotoCaptureSection extends StatelessWidget {
     required this.imagePath,
     required this.onTakePhoto,
     this.isLoading = false,
+    this.isPredicting = false, // Default to false
   }) : super(key: key);
 
   @override
@@ -33,7 +35,8 @@ class PhotoCaptureSection extends StatelessWidget {
               ),
             ),
             ElevatedButton(
-              onPressed: onTakePhoto,
+              // Only disable the button during prediction, not during loading
+              onPressed: isPredicting ? null : onTakePhoto,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFE0F2F1),
                 elevation: 0,
@@ -44,6 +47,8 @@ class PhotoCaptureSection extends StatelessWidget {
                   horizontal: 12,
                   vertical: 8,
                 ),
+                // Disable button when predicting
+                disabledBackgroundColor: Colors.grey[300],
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -76,9 +81,10 @@ class PhotoCaptureSection extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             color: Colors.white,
           ),
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : (imagePath == null
+          child: Stack(
+            children: [
+              // Image or placeholder
+              (imagePath == null)
                   ? Center(
                       child: Icon(
                         Icons.camera_alt_outlined,
@@ -89,7 +95,50 @@ class PhotoCaptureSection extends StatelessWidget {
                   : ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: _buildImageWidget(imagePath!),
-                    )),
+                    ),
+              
+              // Show loading overlay when taking a photo
+              if (isLoading)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              
+              // Show prediction overlay if needed
+              if (isPredicting && imagePath != null)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        CircularProgressIndicator(
+                          color: Colors.white,
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'Analyzing image...',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ],
     );
