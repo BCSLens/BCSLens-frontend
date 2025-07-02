@@ -1,7 +1,5 @@
-FROM dart:3.7.2 AS dart-env
-
-# หรือ Flutter ที่ตรงเวอร์ชัน:
-FROM cirrusci/flutter:3.19.2
+# ✅ ใช้ official Flutter image จาก Google
+FROM ghcr.io/cirruslabs/flutter:3.19.2
 
 WORKDIR /app
 
