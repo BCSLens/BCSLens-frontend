@@ -1,5 +1,4 @@
-# ✅ ใช้ Flutter 3.22.0 ซึ่งมาพร้อม Dart 3.7.2
-FROM ghcr.io/cirruslabs/flutter:3.22.0
+FROM ghcr.io/cirruslabs/flutter:3.22.1
 
 WORKDIR /app
 
