@@ -1,20 +1,15 @@
-# Use the official Flutter base image
-FROM cirrusci/flutter:latest
+FROM dart:3.7.2 AS dart-env
 
-# Set the working directory inside the container
+# หรือ Flutter ที่ตรงเวอร์ชัน:
+FROM cirrusci/flutter:3.19.2
+
 WORKDIR /app
 
-# Copy the Flutter project into the container
 COPY . .
 
-# Enable Flutter web (if needed)
 RUN flutter config --enable-web
-
-# Get dependencies
 RUN flutter pub get
 
-# Expose the necessary port (if running a web app)
 EXPOSE 8080
 
-# Default command to run the app (adjust for your target platform)
 CMD ["flutter", "run", "-d", "web-server", "--web-port=8080", "--web-hostname=0.0.0.0"]
