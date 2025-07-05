@@ -1,3 +1,4 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'config/app_theme.dart';
 import 'screens/welcome_screen.dart';
@@ -10,10 +11,21 @@ import 'screens/top_side_view_screen.dart';
 import 'screens/bcs_evaluation_screen.dart';
 import 'screens/pet_detail_screen.dart';
 import 'screens/review_add_screen.dart';
+import 'services/auth_service.dart';
 
 import 'models/pet_record_model.dart';
+import 'screens/profile_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+void main() async {
+  // Ensure Flutter is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize auth service
+  final authService = AuthService();
+  await dotenv.load(fileName: ".env");
+  await authService.initialize();
+
   runApp(const BCSLensApp());
 }
 
@@ -26,19 +38,37 @@ class BCSLensApp extends StatelessWidget {
       title: 'BCSLens',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: '/',
+      home: FutureBuilder(
+        future: AuthService().initialize(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          // Check if user is authenticated
+          final authService = AuthService();
+          if (authService.isAuthenticated) {
+            return const RecordsScreen();
+          } else {
+            return const WelcomeScreen();
+          }
+        },
+      ),
       routes: _defineRoutes(),
     );
   }
 
   Map<String, WidgetBuilder> _defineRoutes() {
     return {
-      '/': (context) => const WelcomeScreen(),
+      '/welcome': (context) => const WelcomeScreen(),
       '/login': (context) => const LoginScreen(),
       '/signup': (context) => const SignUpScreen(),
       '/records': (context) => const RecordsScreen(),
       '/add-record': (context) => const AddRecordScreen(),
       '/special-care': (context) => const SpecialCareScreen(),
+      '/profile': (context) => const ProfileScreen(),
       '/top-side-view': (context) {
         // Extract the PetRecord from route settings
         final petRecord =

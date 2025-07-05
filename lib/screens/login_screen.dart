@@ -1,5 +1,7 @@
+// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -11,12 +13,56 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _handleLogin() async {
+    // Clear previous errors
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+    
+    // Validate inputs
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter both email and password';
+        _isLoading = false;
+      });
+      return;
+    }
+    
+    try {
+      final authService = AuthService();
+      final success = await authService.signIn(
+        _emailController.text,
+        _passwordController.text
+      );
+      
+      if (success) {
+        // Navigate to records screen
+        Navigator.pushReplacementNamed(context, "/records");
+      } else {
+        setState(() {
+          _errorMessage = 'Invalid email or password';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -43,19 +89,28 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
 
                 // Space to ensure "Login to your account" is at 261px from top
-                // 261 - 176 - 45 = 40px
                 SizedBox(height: 40),
 
                 // "Login to your account" text
-                Align(
+                const Align(
                   alignment: Alignment.centerLeft,
-                  child: const Text(
+                  child: Text(
                     'Login to your account',
                     style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 16),
                   ),
                 ),
+                
+                // Error message if any
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(color: Colors.red, fontSize: 14),
+                    ),
+                  ),
+                
                 // Space to ensure email field is at 299px from top
-                // 299 - 261 - 16 = 22px
                 SizedBox(height: 22),
 
                 // Email field - with lighter background and rounded corners
@@ -81,7 +136,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 15),
 
                 // Password field
-                // This positioning ensures "Forgot Password" will be at 419px from top
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F5F5),
@@ -127,9 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, "/records");
-                    },
+                    onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF6B85C9),
                       foregroundColor: Colors.white,
@@ -138,15 +190,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text('Log In', style: TextStyle(fontSize: 16)),
+                    child: _isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('Log In', style: TextStyle(fontSize: 16)),
                   ),
                 ),
 
                 const SizedBox(height: 20),
                 // Or login with
-                Align(
+                const Align(
                   alignment: Alignment.center,
-                  child: const Text(
+                  child: Text(
                     'or login with',
                     style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 14),
                   ),

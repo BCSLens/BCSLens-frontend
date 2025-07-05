@@ -9,8 +9,10 @@ class PetRecord {
     String? topViewImagePath,
     String? leftViewImagePath,
     String? rightViewImagePath,
+    String? backViewImagePath,
     String? predictedAnimal,
     double? predictionConfidence,
+    String? id,
   }) {
     // Update paths if provided
     if (frontViewImagePath != null) {
@@ -24,6 +26,9 @@ class PetRecord {
     }
     if (rightViewImagePath != null) {
       _instance.rightViewImagePath = rightViewImagePath;
+    }
+    if (backViewImagePath != null) {
+      _instance.backViewImagePath = backViewImagePath;
     }
     if (predictedAnimal != null) {
       _instance.predictedAnimal = predictedAnimal;
@@ -42,6 +47,10 @@ class PetRecord {
   String? topViewImagePath;
   String? leftViewImagePath;
   String? rightViewImagePath;
+  String? backViewImagePath;
+
+  // View classifications
+  Map<String, String> viewClassifications = {};
 
   // Pet details
   String? name;
@@ -54,11 +63,12 @@ class PetRecord {
   String? gender;
   bool? isSterilized;
   String? additionalNotes;
+  String? groupId;  // Add groupId for API integration
   
   // Prediction details
-  String? predictedAnimal; // The predicted animal type (dog, cat, etc.)
-  double? predictionConfidence; // Confidence score from the API (e.g., 0.813)
-  int? predictedClassId; // Optional: store the class_id if needed
+  String? predictedAnimal; 
+  double? predictionConfidence; 
+  int? predictedClassId;
 
   // Method to reset record (useful when starting a new record)
   void reset() {
@@ -66,6 +76,8 @@ class PetRecord {
     topViewImagePath = null;
     leftViewImagePath = null;
     rightViewImagePath = null;
+    backViewImagePath = null;
+    viewClassifications = {};
     name = null;
     age = null;
     breed = null;
@@ -79,5 +91,6 @@ class PetRecord {
     predictedAnimal = null;
     predictionConfidence = null;
     predictedClassId = null;
+    groupId = null;
   }
 }

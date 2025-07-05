@@ -1,18 +1,63 @@
+// Enhanced version of PetDetailsScreen with breed autocomplete, better age handling, and unit displays
+
 import 'package:flutter/material.dart';
-import 'package:http_parser/http_parser.dart';
+import 'package:flutter/services.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/pet_record_model.dart';
+import '../services/pet_service.dart';
+import '../services/group_service.dart';
 import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:mime/mime.dart';
+
+// Lists of common dog and cat breeds for autocomplete
+final List<String> _dogBreeds = [
+  'Labrador Retriever',
+  'German Shepherd',
+  'Golden Retriever',
+  'Bulldog',
+  'Beagle',
+  'Poodle',
+  'Rottweiler',
+  'Yorkshire Terrier',
+  'Boxer',
+  'Dachshund',
+  'Siberian Husky',
+  'Great Dane',
+  'Doberman Pinscher',
+  'Shih Tzu',
+  'Pomeranian',
+  'Chihuahua',
+  'Border Collie',
+  'Pug',
+  'Corgi',
+  'Dalmatian',
+];
+
+final List<String> _catBreeds = [
+  'Persian',
+  'Maine Coon',
+  'Siamese',
+  'Ragdoll',
+  'Bengal',
+  'Abyssinian',
+  'Birman',
+  'Scottish Fold',
+  'Sphynx',
+  'British Shorthair',
+  'Devon Rex',
+  'American Shorthair',
+  'Himalayan',
+  'Russian Blue',
+  'Norwegian Forest Cat',
+  'Burmese',
+  'Manx',
+  'Egyptian Mau',
+  'Tonkinese',
+];
 
 class PetDetailsScreen extends StatefulWidget {
   final PetRecord petRecord;
 
-  const PetDetailsScreen({
-    Key? key,
-    required this.petRecord,
-  }) : super(key: key);
+  const PetDetailsScreen({Key? key, required this.petRecord}) : super(key: key);
 
   @override
   State<PetDetailsScreen> createState() => _PetDetailsScreenState();
@@ -21,19 +66,35 @@ class PetDetailsScreen extends StatefulWidget {
 class _PetDetailsScreenState extends State<PetDetailsScreen> {
   int _selectedIndex = 1;
   String _recordType = 'Add a New Pet';
-  
+
   // Controllers for text fields
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _breedController = TextEditingController();
+
+  // Age related variables
+  final TextEditingController _ageYearsController = TextEditingController();
+  final TextEditingController _ageMonthsController = TextEditingController();
+
+  // Weight related variables
   final TextEditingController _weightController = TextEditingController();
-  
+
   // Other state variables
   String _selectedGender = 'Male';
   bool _isSterilized = false;
-  String _selectedCategory = 'Dogs';
-  
-  // Available categories (groups)
-  final List<String> _categories = ['Dogs', 'Cats'];
+  String _selectedGroup = '';
+
+  // Autocomplete variables
+  List<String> _breedSuggestions = [];
+  bool _showBreedSuggestions = false;
+  FocusNode _breedFocusNode = FocusNode();
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
+  final GlobalKey _breedFieldKey = GlobalKey(); // Add this key for positioning
+
+  // Available groups
+  List<Map<String, dynamic>> _groups = [];
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -42,22 +103,255 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     if (widget.petRecord.name != null) {
       _nameController.text = widget.petRecord.name!;
     }
+    if (widget.petRecord.breed != null) {
+      _breedController.text = widget.petRecord.breed!;
+    }
     if (widget.petRecord.age != null) {
-      _ageController.text = widget.petRecord.age!;
+      // Parse age value which might be in format "X years" or "X months"
+      String age = widget.petRecord.age!;
+      if (age.contains('year')) {
+        _ageYearsController.text = age.split(' ')[0];
+        _ageMonthsController.text = '0';
+      } else if (age.contains('month')) {
+        _ageYearsController.text = '0';
+        _ageMonthsController.text = age.split(' ')[0];
+      } else {
+        // Try to parse as a number (years)
+        try {
+          _ageYearsController.text = age;
+          _ageMonthsController.text = '0';
+        } catch (e) {
+          _ageYearsController.text = '0';
+          _ageMonthsController.text = '0';
+        }
+      }
     }
     if (widget.petRecord.weight != null) {
-      _weightController.text = widget.petRecord.weight!;
+      // Remove 'kg' suffix if present
+      String weight = widget.petRecord.weight!;
+      if (weight.toLowerCase().contains('kg')) {
+        _weightController.text =
+            weight.toLowerCase().replaceAll('kg', '').trim();
+      } else {
+        _weightController.text = weight;
+      }
     }
-    if (widget.petRecord.category != null) {
-      _selectedCategory = widget.petRecord.category!;
+    if (widget.petRecord.gender != null) {
+      _selectedGender = widget.petRecord.gender!;
+    }
+    if (widget.petRecord.isSterilized != null) {
+      _isSterilized = widget.petRecord.isSterilized!;
+    }
+
+    // Initialize autocomplete
+    _breedController.addListener(_onBreedTextChanged);
+    _breedFocusNode.addListener(_onBreedFocusChanged);
+
+    // Load groups
+    _loadGroups();
+  }
+
+  void _onBreedFocusChanged() {
+    if (_breedFocusNode.hasFocus) {
+      // When focus is gained, show suggestions if there's text
+      if (_breedController.text.isNotEmpty) {
+        _onBreedTextChanged();
+      }
+    } else {
+      // When focus is lost, hide suggestions with a small delay
+      Future.delayed(Duration(milliseconds: 150), () {
+        if (mounted) {
+          _hideBreedOverlay();
+          setState(() {
+            _showBreedSuggestions = false;
+          });
+        }
+      });
+    }
+  }
+
+  void _onBreedTextChanged() {
+    final String query = _breedController.text.toLowerCase().trim();
+
+    print('Breed text changed: "$query"'); // Debug print
+
+    if (query.isEmpty) {
+      setState(() {
+        _breedSuggestions = [];
+        _showBreedSuggestions = false;
+      });
+      _hideBreedOverlay();
+      return;
+    }
+
+    // Choose breed list based on predicted animal
+    List<String> breeds =
+        widget.petRecord.predictedAnimal == 'cat' ? _catBreeds : _dogBreeds;
+
+    print(
+      'Using breeds for: ${widget.petRecord.predictedAnimal}',
+    ); // Debug print
+    print('Available breeds: ${breeds.take(5).toList()}'); // Debug print
+
+    // Filter breeds that match the query (case insensitive)
+    List<String> filteredBreeds =
+        breeds
+            .where((breed) => breed.toLowerCase().contains(query))
+            .take(5) // Limit to 5 suggestions
+            .toList();
+
+    print('Filtered breeds: $filteredBreeds'); // Debug print
+
+    setState(() {
+      _breedSuggestions = filteredBreeds;
+      _showBreedSuggestions =
+          filteredBreeds.isNotEmpty && _breedFocusNode.hasFocus;
+    });
+
+    if (_showBreedSuggestions) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showBreedOverlay();
+      });
+    } else {
+      _hideBreedOverlay();
+    }
+  }
+
+  void _showBreedOverlay() {
+    _hideBreedOverlay(); // Remove any existing overlay
+
+    if (_breedSuggestions.isEmpty || !_breedFocusNode.hasFocus) {
+      return;
+    }
+
+    final RenderBox? renderBox =
+        _breedFieldKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        renderBox.localToGlobal(Offset.zero, ancestor: overlay),
+        renderBox.localToGlobal(
+          renderBox.size.bottomRight(Offset.zero),
+          ancestor: overlay,
+        ),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    _overlayEntry = OverlayEntry(
+      builder:
+          (context) => Positioned(
+            left: position.left + 24, // Account for screen padding
+            top: position.bottom + 4,
+            width: renderBox.size.width,
+            child: Material(
+              elevation: 8.0,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                constraints: BoxConstraints(maxHeight: 200),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: _breedSuggestions.length,
+                  separatorBuilder:
+                      (context, index) =>
+                          Divider(height: 1, color: Colors.grey[200]),
+                  itemBuilder: (context, index) {
+                    return InkWell(
+                      onTap: () {
+                        print(
+                          'Selected breed: ${_breedSuggestions[index]}',
+                        ); // Debug print
+                        _breedController.text = _breedSuggestions[index];
+                        _hideBreedOverlay();
+                        _breedFocusNode.unfocus();
+                        setState(() {
+                          _showBreedSuggestions = false;
+                        });
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.pets, size: 16, color: Colors.grey[600]),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _breedSuggestions[index],
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideBreedOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  Future<void> _loadGroups() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Load groups
+      final groupService = GroupService();
+      final groups = await groupService.getGroups();
+
+      setState(() {
+        _groups = groups;
+
+        // Set default group if available
+        if (groups.isNotEmpty) {
+          _selectedGroup = groups[0]['_id'];
+        }
+
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error loading groups: $e';
+        _isLoading = false;
+      });
     }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _ageController.dispose();
+    _breedController.dispose();
+    _ageYearsController.dispose();
+    _ageMonthsController.dispose();
     _weightController.dispose();
+    _breedFocusNode.dispose();
+    _hideBreedOverlay();
     super.dispose();
   }
 
@@ -73,476 +367,678 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     Navigator.pop(context);
   }
 
-Future<void> _submitRecord() async {
-  // Validate inputs
-  if (_nameController.text.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please enter a name for your pet')),
-    );
-    return;
+  String _formatAgeForSubmission() {
+    final int years = int.tryParse(_ageYearsController.text) ?? 0;
+    final int months = int.tryParse(_ageMonthsController.text) ?? 0;
+
+    if (years > 0 && months > 0) {
+      return '$years years $months months';
+    } else if (years > 0) {
+      return years == 1 ? '1 year' : '$years years';
+    } else if (months > 0) {
+      return months == 1 ? '1 month' : '$months months';
+    } else {
+      return '0';
+    }
   }
-  
-  // Update pet record with form data
-  widget.petRecord.name = _nameController.text;
-  widget.petRecord.age = _ageController.text;
-  widget.petRecord.weight = _weightController.text;
-  widget.petRecord.category = _selectedCategory;
-  // Add additional fields - you'll need to update your PetRecord model
-  // widget.petRecord.gender = _selectedGender;
-  // widget.petRecord.isSterilized = _isSterilized;
-  
-  // Save to database (implementation depends on your backend)
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Record saved successfully!')),
-  );
 
-  String imageUrl = 'http://13.250.95.13:3000/upload/1743474742257.jpeg';
-  fetchImage(imageUrl);
+  String _formatWeightForSubmission() {
+    final weight =
+        double.tryParse(_weightController.text.replaceAll(',', '.')) ?? 0;
+    return '${weight.toStringAsFixed(1)} kg';
+  }
 
-  // Retrieve Image Paths
-  String? frontImage = widget.petRecord.frontViewImagePath;
-  String? topImage = widget.petRecord.topViewImagePath;
-  String? rightImage = widget.petRecord.rightViewImagePath;
-  String? leftImage = widget.petRecord.leftViewImagePath;
+  Future<void> _submitRecord() async {
+    // Validate inputs
+    if (_nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a name for your pet')),
+      );
+      return;
+    }
 
-  // Upload images: front, top, right, left
-  if (frontImage != null) await uploadImage(frontImage);
-  if (topImage != null) await uploadImage(topImage);
-  if (rightImage != null) await uploadImage(rightImage);
-  if (leftImage != null) await uploadImage(leftImage);
+    if (_selectedGroup.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a group for your pet')),
+      );
+      return;
+    }
 
-  // Add record
-  
-  // Navigate to review page instead of records page
-  Navigator.pushReplacementNamed(
-    context, 
-    '/review-details',
-    arguments: widget.petRecord,
-  );
-}
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Update pet record with form data
+      widget.petRecord.name = _nameController.text;
+      widget.petRecord.age = _formatAgeForSubmission();
+      widget.petRecord.weight = _formatWeightForSubmission();
+      widget.petRecord.breed = _breedController.text;
+      widget.petRecord.gender = _selectedGender;
+      widget.petRecord.isSterilized = _isSterilized;
+      widget.petRecord.groupId = _selectedGroup;
+      widget.petRecord.category =
+          widget.petRecord.predictedAnimal == 'cat' ? 'Cats' : 'Dogs';
+
+      // Create pet in database
+      final petService = PetService();
+      final result = await petService.createPet(widget.petRecord);
+
+      // Navigate to review page
+      Navigator.pushReplacementNamed(
+        context,
+        '/review-details',
+        arguments: widget.petRecord,
+      );
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error: $e';
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error creating pet: $e')));
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Add Records at top
-              const SizedBox(height: 46),
-              Center(
-                child: Text(
-                  'Add Records',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    color: Color(0xFF7B8EB5),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Add Records at top
+                  const SizedBox(height: 46),
+                  Center(
+                    child: Text(
+                      'Add Records',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Color(0xFF7B8EB5),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              
-              // Line separator
-              const SizedBox(height: 40),
-              Container(height: 1, color: Colors.grey[300]),
-              
-              // Main Content
-              const SizedBox(height: 27),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Step Indicator
-                    Text(
-                      'Step 4 of 4',
-                      style: TextStyle(
-                        fontFamily: 'Inter', 
-                        color: Color(0xFF7B8EB5),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 6),
-                    
-                    // Step Description
-                    Text(
-                      'Provide details about your pet',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF333333),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Record Type Question
-                    Text(
-                      'How would you like to add this record?',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF333333),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    // Record Type Dropdown
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: ButtonTheme(
-                          alignedDropdown: true,
-                          child: DropdownButton<String>(
-                            value: _recordType,
-                            icon: const Icon(Icons.keyboard_arrow_down),
-                            isExpanded: true,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              color: Color(0xFF333333),
-                              fontSize: 15,
-                            ),
-                            onChanged: (String? value) {
-                              if (value != null) {
-                                setState(() {
-                                  _recordType = value;
-                                });
-                              }
-                            },
-                            items: <String>[
-                              'Add a New Pet',
-                              'Add to Existing Pet'
-                            ].map<DropdownMenuItem<String>>((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(value),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Pet Detail Heading
-                    Text(
-                      'Pet Detail',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF7B8EB5),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Name Field
-                    Text(
-                      'Name',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF333333),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    TextField(
-                      controller: _nameController,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Color(0xFF6B86C9)),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Age Field
-                    Text(
-                      'Age',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF333333),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    TextField(
-                      controller: _ageController,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Color(0xFF6B86C9)),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        hintText: 'e.g., 3 years',
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Weight Field
-                    Text(
-                      'Weight',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF333333),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    TextField(
-                      controller: _weightController,
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Color(0xFF6B86C9)),
-                        ),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        hintText: 'e.g., 8.5 kg',
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Gender selection
-                    Text(
-                      'Gender',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF333333),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    Row(
+
+                  // Line separator
+                  const SizedBox(height: 40),
+                  Container(height: 1, color: Colors.grey[300]),
+
+                  // Main Content
+                  const SizedBox(height: 27),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: RadioListTile<String>(
-                            title: const Text('Male'),
-                            value: 'Male',
-                            groupValue: _selectedGender,
-                            activeColor: Color(0xFF6B86C9),
-                            contentPadding: EdgeInsets.zero,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedGender = value!;
-                              });
-                            },
+                        // Step Indicator
+                        Text(
+                          'Step 4 of 4',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: Color(0xFF7B8EB5),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        Expanded(
-                          child: RadioListTile<String>(
-                            title: const Text('Female'),
-                            value: 'Female',
-                            groupValue: _selectedGender,
-                            activeColor: Color(0xFF6B86C9),
-                            contentPadding: EdgeInsets.zero,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedGender = value!;
-                              });
-                            },
+
+                        const SizedBox(height: 6),
+
+                        // Step Description
+                        Text(
+                          'Provide details about your pet',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: Color(0xFF333333),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Sterilized checkbox
-                    CheckboxListTile(
-                      title: const Text(
-                        'Sterilized',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          color: Color(0xFF333333),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+
+                        // Error message if any
+                        // if (_errorMessage != null)
+                        //   Padding(
+                        //     padding: const EdgeInsets.only(top: 8.0),
+                        //     child: Text(
+                        //       _errorMessage!,
+                        //       style: TextStyle(color: Colors.red, fontSize: 14),
+                        //     ),
+                        //   ),
+
+                        const SizedBox(height: 24),
+
+                        // Pet Detail Heading
+                        Text(
+                          'Pet Detail',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: Color(0xFF7B8EB5),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      value: _isSterilized,
-                      activeColor: Color(0xFF6B86C9),
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      onChanged: (bool? value) {
-                        setState(() {
-                          _isSterilized = value!;
-                        });
-                      },
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Category Field
-                    Text(
-                      'Category',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF333333),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: ButtonTheme(
-                          alignedDropdown: true,
-                          child: DropdownButton<String>(
-                            value: _selectedCategory,
-                            icon: const Icon(Icons.keyboard_arrow_down),
-                            isExpanded: true,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              color: Color(0xFF333333),
-                              fontSize: 15,
+
+                        const SizedBox(height: 16),
+
+                        // Name Field
+                        Text(
+                          'Name',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: Color(0xFF333333),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        TextField(
+                          controller: _nameController,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
                             ),
-                            onChanged: (String? value) {
-                              if (value != null) {
-                                setState(() {
-                                  _selectedCategory = value;
-                                });
-                              }
-                            },
-                            items: _categories.map<DropdownMenuItem<String>>((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      value == 'Dogs' ? Icons.pets : Icons.emoji_nature,
-                                      color: Color(0xFF7B8EB5),
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(value),
-                                  ],
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: Color(0xFF6B86C9)),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Breed Field with Autocomplete
+                        Text(
+                          'Breed',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: Color(0xFF333333),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        CompositedTransformTarget(
+                          link: _layerLink,
+                          child: Container(
+                            key: _breedFieldKey, // Add key here
+                            child: TextField(
+                              controller: _breedController,
+                              focusNode: _breedFocusNode,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
                                 ),
-                              );
-                            }).toList(),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: Color(0xFF6B86C9),
+                                  ),
+                                ),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                hintText: 'e.g., Labrador Retriever',
+                                suffixIcon:
+                                    _breedController.text.isNotEmpty
+                                        ? IconButton(
+                                          icon: Icon(Icons.clear),
+                                          onPressed: () {
+                                            _breedController.clear();
+                                            _hideBreedOverlay();
+                                            setState(() {
+                                              _showBreedSuggestions = false;
+                                            });
+                                          },
+                                        )
+                                        : Icon(
+                                          Icons.pets,
+                                          color: Colors.grey[400],
+                                        ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Navigation Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: _goBack,
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Color(0xFF6B86C9)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
-                              ),
-                              padding: EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: const Text(
-                              'Back',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                color: Color(0xFF6B86C9),
-                                fontSize: 16,
-                              ),
-                            ),
+
+                        const SizedBox(height: 16),
+
+                        // Age Field with Years and Months
+                        Text(
+                          'Age',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: Color(0xFF333333),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _submitRecord,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF6B86C9),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(25),
+
+                        const SizedBox(height: 8),
+
+                        Row(
+                          children: [
+                            // Years input
+                            Expanded(
+                              child: TextField(
+                                controller: _ageYearsController,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Color(0xFF6B86C9),
+                                    ),
+                                  ),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  hintText: '0',
+                                  suffixText: 'years',
+                                ),
                               ),
-                              padding: EdgeInsets.symmetric(vertical: 12),
                             ),
-                            child: const Text(
-                              'Submit',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 16,
+                            const SizedBox(width: 12),
+                            // Months input
+                            Expanded(
+                              child: TextField(
+                                controller: _ageMonthsController,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  TextInputFormatter.withFunction((
+                                    oldValue,
+                                    newValue,
+                                  ) {
+                                    // Limit months to 0-11
+                                    final int? value = int.tryParse(
+                                      newValue.text,
+                                    );
+                                    if (value == null) return newValue;
+                                    if (value > 11) return oldValue;
+                                    return newValue;
+                                  }),
+                                ],
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey[300]!,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Color(0xFF6B86C9),
+                                    ),
+                                  ),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  hintText: '0',
+                                  suffixText: 'months',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Weight Field with kg suffix
+                        Text(
+                          'Weight',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: Color(0xFF333333),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        TextField(
+                          controller: _weightController,
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            // Allow decimal numbers
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*\.?\d*'),
+                            ),
+                          ],
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: Color(0xFF6B86C9)),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            hintText: '0.0',
+                            suffixText: 'kg',
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Gender selection
+                        Text(
+                          'Gender',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: Color(0xFF333333),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: const Text('Male'),
+                                value: 'Male',
+                                groupValue: _selectedGender,
+                                activeColor: Color(0xFF6B86C9),
+                                contentPadding: EdgeInsets.zero,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedGender = value!;
+                                  });
+                                },
+                              ),
+                            ),
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: const Text('Female'),
+                                value: 'Female',
+                                groupValue: _selectedGender,
+                                activeColor: Color(0xFF6B86C9),
+                                contentPadding: EdgeInsets.zero,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedGender = value!;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Sterilized checkbox (with more clear terminology)
+                        CheckboxListTile(
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _selectedGender == 'Male'
+                                    ? 'Neutered'
+                                    : 'Spayed',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  color: Color(0xFF333333),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Text(
+                                _selectedGender == 'Male'
+                                    ? '(Has been castrated)'
+                                    : '(Has had ovaries removed)',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          value: _isSterilized,
+                          activeColor: Color(0xFF6B86C9),
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              _isSterilized = value!;
+                            });
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Group Selection
+                        Text(
+                          'Group',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: Color(0xFF333333),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        _isLoading
+                            ? Center(child: CircularProgressIndicator())
+                            : Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
                                 color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child:
+                                  _groups.isEmpty
+                                      ? Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Center(
+                                          child: Text(
+                                            'No groups available. Please create a group first.',
+                                            style: TextStyle(color: Colors.red),
+                                          ),
+                                        ),
+                                      )
+                                      : DropdownButtonHideUnderline(
+                                        child: ButtonTheme(
+                                          alignedDropdown: true,
+                                          child: DropdownButton<String>(
+                                            value:
+                                                _selectedGroup.isEmpty
+                                                    ? _groups[0]['_id']
+                                                    : _selectedGroup,
+                                            icon: const Icon(
+                                              Icons.keyboard_arrow_down,
+                                            ),
+                                            isExpanded: true,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                            ),
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              color: Color(0xFF333333),
+                                              fontSize: 15,
+                                            ),
+                                            onChanged: (String? value) {
+                                              if (value != null) {
+                                                setState(() {
+                                                  _selectedGroup = value;
+                                                });
+                                              }
+                                            },
+                                            items:
+                                                _groups.map<
+                                                  DropdownMenuItem<String>
+                                                >((group) {
+                                                  return DropdownMenuItem<
+                                                    String
+                                                  >(
+                                                    value: group['_id'],
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(
+                                                          Icons.pets,
+                                                          color: Color(
+                                                            0xFF7B8EB5,
+                                                          ),
+                                                          size: 20,
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 12,
+                                                        ),
+                                                        Text(
+                                                          group['group_name'],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                          ),
+                                        ),
+                                      ),
+                            ),
+
+                        const SizedBox(height: 32),
+
+                        // Navigation Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: _goBack,
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Color(0xFF6B86C9),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child: const Text(
+                                  'Back',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    color: Color(0xFF6B86C9),
+                                    fontSize: 16,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _submitRecord,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF6B86C9),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child:
+                                    _isLoading
+                                        ? CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                        : const Text(
+                                          'Submit',
+                                          style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            fontSize: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+
+            // Loading indicator
+            if (_isLoading)
+              Container(
+                color: Colors.black.withOpacity(0.3),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+          ],
         ),
       ),
       bottomNavigationBar: BottomNavBar(
@@ -553,64 +1049,5 @@ Future<void> _submitRecord() async {
         },
       ),
     );
-  }
-}
-
-Future<void> uploadImage(String imagePath) async {
-  var uri = Uri.parse('http://13.250.95.13:3000/upload');
-  var request = http.MultipartRequest('POST', uri);
-
-  File imageFile = File(imagePath);
-  if (!imageFile.existsSync()) {
-    print('File not found: $imagePath');
-    return;
-  }
-
-  // Detect MIME type
-  String? mimeType = lookupMimeType(imagePath);
-
-  // Attach file
-  request.files.add(
-    await http.MultipartFile.fromPath(
-      'image',
-      imagePath,
-      contentType: mimeType != null ? MediaType.parse(mimeType) : null,
-    ),
-  );
-
-  try {
-    var response = await request.send();
-    var responseBody = await response.stream.bytesToString();
-    print(responseBody);
-    if (response.statusCode == 200) {
-      print('Upload successful: $imagePath');
-    } else {
-      print('Upload failed: ${response.statusCode}');
-    }
-  } catch (e) {
-    print('Upload error: $e');
-  }
-
-}
-
-Future<void> fetchImage(String imageUrl) async {
-  try {
-    // Send GET request
-    var response = await http.get(Uri.parse(imageUrl));
-
-    if (response.statusCode == 200) {
-      print('Image fetched successfully');
-
-      // Optionally save the image to local storage
-      var filePath = './upload/1743474742257.jpeg';  // Set the path where you want to save the image
-      File file = File(filePath);
-      await file.writeAsBytes(response.bodyBytes);
-
-      print('Image saved at $filePath');
-    } else {
-      print('Failed to fetch image. Status code: ${response.statusCode}');
-    }
-  } catch (e) {
-    print('Error fetching image: $e');
   }
 }

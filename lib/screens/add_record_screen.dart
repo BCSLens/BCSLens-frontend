@@ -3,15 +3,11 @@ import '../widgets/bottom_nav_bar.dart';
 import '../widgets/photo_capture_section.dart';
 import '../models/pet_record_model.dart';
 import '../services/camera_service.dart';
-import 'package:http/http.dart' as http;
-import 'dart:io';
-import 'package:mime/mime.dart';
-import 'dart:convert';
-import 'package:http_parser/http_parser.dart';
-import 'dart:async';
-
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
+import '../services/pet_detection_service.dart';
+import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AddRecordScreen extends StatefulWidget {
   const AddRecordScreen({Key? key}) : super(key: key);
@@ -104,7 +100,7 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
         });
 
         // After taking the photo, predict the pet type
-        _predictPetType(photoPath);
+        await _predictPetType(photoPath);
       }
     } catch (e) {
       ScaffoldMessenger.of(
@@ -124,110 +120,40 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
       _apiError = false;
     });
 
-    // await Future.delayed(Duration(seconds: 2)); // Simulate network delay
-    // setState(() {
-    //   _predictedAnimal = 'dog'; // Simulate dog detection
-    //   _predictionConfidence = 0.95;
-    //   _predictionHandled = true;
-    //   _apiError = false;
-    //   _isPredicting = false;
-    // });
-    // Future.microtask(() => _showPetConfirmationDialog(false));
-    // return;
-
     try {
       print("Starting pet prediction...");
-      var uri = Uri.parse('http://10.0.2.2:5000/yolo');
-      print("Using API endpoint: $uri");
 
-      var request = http.MultipartRequest('POST', uri);
+      // ใช้ PetDetectionService แทนการเรียก API เอง
+      var prediction = await AIService.predictPetType(imagePath);
+      print("Prediction result: $prediction");
 
-      // Check if the file exists
-      File imageFile = File(imagePath);
-      if (!imageFile.existsSync()) {
-        print("File not found: $imagePath");
-        throw Exception('File not found: $imagePath');
-      }
-      print("File exists: $imagePath");
+      if (prediction != null) {
+        print("First prediction: $prediction");
 
-      // Detect MIME type
-      String? mimeType = lookupMimeType(imagePath);
-      print("Detected MIME type: $mimeType");
+        setState(() {
+          _predictedAnimal = prediction['class_name'];
+          _predictionConfidence = prediction['confidence'];
+          _predictionHandled = true;
+          _apiError = false;
+        });
+        print(
+          "Set predicted animal to: $_predictedAnimal with confidence $_predictionConfidence",
+        );
 
-      // Attach file
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'image',
-          imagePath,
-          contentType: mimeType != null ? MediaType.parse(mimeType) : null,
-        ),
-      );
-      print("File attached to request");
-
-      // Send the request
-      print("Sending request...");
-
-      // Add a timeout to the request to handle server connectivity issues
-      var streamedResponse = await request.send().timeout(
-        Duration(seconds: 10),
-        onTimeout: () {
-          print("Request timed out");
-          throw TimeoutException('Request timed out after 10 seconds');
-        },
-      );
-
-      var response = await http.Response.fromStream(streamedResponse);
-      print("Response status code: ${response.statusCode}");
-      print("Response body: ${response.body}");
-
-      if (response.statusCode == 200) {
-        // Parse the JSON response
-        Map<String, dynamic> predictionData = jsonDecode(response.body);
-        print("Prediction data: $predictionData");
-
-        // Check if there are predictions
-        if (predictionData['predictions'] != null &&
-            predictionData['predictions'].isNotEmpty) {
-          // Get the first prediction
-          var prediction = predictionData['predictions'][0];
-          print("First prediction: $prediction");
-
-          setState(() {
-            _predictedAnimal = prediction['class_name'];
-            _predictionConfidence = prediction['confidence'];
-            _predictionHandled = true;
-            _apiError = false;
-          });
-          print(
-            "Set predicted animal to: $_predictedAnimal with confidence $_predictionConfidence",
-          );
-
-          Future.microtask(() => _showPetConfirmationDialog(false));
-        } else {
-          print("No predictions found in response");
-          // API worked but couldn't detect animal
-          setState(() {
-            _apiError = true;
-            _predictionHandled = false;
-          });
-          // Show dialog with "Can't detect animal" message
-          Future.microtask(
-            () => _showPetConfirmationDialog(
-              true,
-              errorMsg: "We couldn't detect the animal type",
-            ),
-          );
-        }
+        Future.microtask(() => _showPetConfirmationDialog(false));
       } else {
-        print("API call failed with status: ${response.statusCode}");
-        // API error
+        print("No predictions found in response");
+        // API worked but couldn't detect animal
         setState(() {
           _apiError = true;
           _predictionHandled = false;
         });
-        // Show dialog with connection error message
+        // Show dialog with "Can't detect animal" message
         Future.microtask(
-          () => _showPetConfirmationDialog(true, errorMsg: "Connection error"),
+          () => _showPetConfirmationDialog(
+            true,
+            errorMsg: "We couldn't detect the animal type",
+          ),
         );
       }
     } catch (e) {
@@ -572,18 +498,17 @@ class _AddRecordScreenState extends State<AddRecordScreen> {
 
                   const SizedBox(height: 39),
 
-                  // Add this just before the Next button
+                  // Test image button
                   ElevatedButton(
                     onPressed: _useTestImage,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Colors.amber, // Different color to distinguish
+                      backgroundColor: Colors.amber,
                       padding: EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: Text('Use Test Image'),
                   ),
-                  const SizedBox(height: 16), // Add spacing
-                  
+                  const SizedBox(height: 16),
+
                   // Next Button - Only enabled if we have a photo and no API error
                   SizedBox(
                     width: double.infinity,
