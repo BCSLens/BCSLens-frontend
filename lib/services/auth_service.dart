@@ -7,9 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
-  
+
   // ใช้ .env แทน hardcode
-  static String get apiBaseUrl => dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:3000/api';
+  static String get apiBaseUrl =>
+      dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:3000/api';
 
   factory AuthService() {
     return _instance;
@@ -141,6 +142,27 @@ class AuthService {
     }
   }
 
+  // ใน auth_service.dart เพิ่ม method นี้
+  Future<http.Response> authenticatedPatch(
+    String endpoint,
+    Map<String, dynamic> data,
+  ) async {
+    if (token == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final response = await http.patch(
+      Uri.parse('$apiBaseUrl$endpoint'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(data),
+    );
+
+    return response;
+  }
+
   // Sign in and set role
   Future<bool> signIn(String email, String password) async {
     try {
@@ -148,7 +170,7 @@ class AuthService {
       print('📧 Email: $email');
       print('🔐 Password: $password');
       print('🌐 API URL: $apiBaseUrl/users/login');
-      
+
       final requestBody = {'email': email, 'password': password};
       print('📤 Request body: ${jsonEncode(requestBody)}');
 

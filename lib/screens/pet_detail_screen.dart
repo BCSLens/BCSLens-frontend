@@ -403,6 +403,11 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
       );
       return;
     }
+    print('🔍 Debug age input:');
+    print('  Years controller: "${_ageYearsController.text}"');
+    print('  Months controller: "${_ageMonthsController.text}"');
+    final formattedAge = _formatAgeForSubmission();
+    print('  Formatted age: "$formattedAge"');
 
     setState(() {
       _isLoading = true;
@@ -515,7 +520,6 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                         //       style: TextStyle(color: Colors.red, fontSize: 14),
                         //     ),
                         //   ),
-
                         const SizedBox(height: 24),
 
                         // Pet Detail Heading

@@ -263,38 +263,529 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Records',
-          style: TextStyle(
-            color: Color(0xFF7B8EB5),
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-          ),
+      backgroundColor: Color(
+        0xFFF8FAFC,
+      ), // ✅ เปลี่ยนเป็น background เดียวกับหน้าอื่น
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ✅ Modern Header แบบเดียวกับหน้าอื่น
+            _buildModernHeader(),
+
+            // ✅ Content ทั้งหมด
+            Expanded(
+              child:
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _errorMessage != null
+                      ? Center(child: Text(_errorMessage!))
+                      : Stack(
+                        children: [
+                          Column(
+                            children: [
+                              // Search bar
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                child: Container(
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF5F7F9),
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const SizedBox(width: 16),
+                                      const Icon(
+                                        Icons.search,
+                                        color: Color(0xFFACACAC),
+                                        size: 24,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _searchController,
+                                          decoration: InputDecoration(
+                                            hintText: 'Search',
+                                            hintStyle: TextStyle(
+                                              color: Color(0xFFACACAC),
+                                              fontSize: 17,
+                                            ),
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                          ),
+                                          style: TextStyle(
+                                            fontSize: 17,
+                                            color: Color(0xFF333333),
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.tune,
+                                          color:
+                                              _showFilterOptions
+                                                  ? Color(0xFF7B8EB5)
+                                                  : Color(0xFFACACAC),
+                                          size: 24,
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _showFilterOptions =
+                                                !_showFilterOptions;
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              // Filter options - shown when filter icon is tapped
+                              if (_showFilterOptions)
+                                Container(
+                                  margin: EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  padding: EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.grey.withOpacity(0.1),
+                                        spreadRadius: 1,
+                                        blurRadius: 8,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                    border: Border.all(
+                                      color: Color(0xFFEEEEEE),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Filter by BCS Score',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF333333),
+                                        ),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            '${_bcsScoreRange.start.round()}',
+                                            style: TextStyle(
+                                              color: Color(0xFF7B8EB5),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: RangeSlider(
+                                              values: _bcsScoreRange,
+                                              min: 1,
+                                              max: 9,
+                                              divisions: 8,
+                                              activeColor: Color(0xFF7BC67E),
+                                              inactiveColor: Color(0xFFE6F0EB),
+                                              labels: RangeLabels(
+                                                _bcsScoreRange.start
+                                                    .round()
+                                                    .toString(),
+                                                _bcsScoreRange.end
+                                                    .round()
+                                                    .toString(),
+                                              ),
+                                              onChanged: (RangeValues values) {
+                                                setState(() {
+                                                  _bcsScoreRange = values;
+                                                  _applyFilters();
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                          Text(
+                                            '${_bcsScoreRange.end.round()}',
+                                            style: TextStyle(
+                                              color: Color(0xFF7B8EB5),
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      SizedBox(height: 16),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          TextButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                _bcsScoreRange = RangeValues(
+                                                  1,
+                                                  9,
+                                                );
+                                                _searchController.clear();
+                                                _applyFilters();
+                                              });
+                                            },
+                                            child: Text(
+                                              'Reset',
+                                              style: TextStyle(
+                                                color: Color(0xFF7B8EB5),
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(width: 16),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                _showFilterOptions = false;
+                                              });
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Color(
+                                                0xFF7B8EB5,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'Apply',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                              // Group header
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Group',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF333333),
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: _showAddGroupDialog,
+                                      child: Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: const Color(0xFFF5F5F5),
+                                          border: Border.all(
+                                            color: const Color(0xFF7B8EB5),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.add,
+                                          color: Color(0xFF7B8EB5),
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Pet groups and list
+                              Expanded(
+                                child:
+                                    _filteredGroups.isEmpty
+                                        ? _buildEmptyState()
+                                        : ListView.builder(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                          ),
+                                          itemCount: _filteredGroups.length,
+                                          itemBuilder: (context, index) {
+                                            final group =
+                                                _filteredGroups[index];
+                                            final groupId = group['_id'];
+                                            final groupName =
+                                                group['group_name'];
+                                            final isExpanded =
+                                                _expandedGroups[groupId] ??
+                                                false;
+                                            final pets =
+                                                _filteredGroupPets[groupId] ??
+                                                [];
+
+                                            return Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                // Group card
+                                                _buildPetGroupCard(
+                                                  groupId,
+                                                  groupName,
+                                                  pets.length,
+                                                  isExpanded,
+                                                ),
+
+                                                // Show pets if group is expanded
+                                                if (isExpanded)
+                                                  ...pets
+                                                      .map(
+                                                        (pet) => Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                top: 8.0,
+                                                              ),
+                                                          child: _buildPetCard(
+                                                            pet,
+                                                            groupName,
+                                                          ),
+                                                        ),
+                                                      )
+                                                      .toList(),
+
+                                                const SizedBox(height: 8),
+                                              ],
+                                            );
+                                          },
+                                        ),
+                              ),
+                            ],
+                          ),
+
+                          // Group creation overlay
+                          if (_showAddGroupForm)
+                            Positioned.fill(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _showAddGroupForm = false;
+                                    _groupNameController.clear();
+                                  });
+                                },
+                                child: Container(
+                                  color: Colors.black.withOpacity(0.5),
+                                  child: Center(
+                                    child: GestureDetector(
+                                      onTap:
+                                          () {}, // Prevent taps from closing the form
+                                      child: Container(
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                            0.85,
+                                        padding: const EdgeInsets.all(24),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            const Text(
+                                              'Add New Group',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF7B8EB5),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 24),
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF5F5F5),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: TextField(
+                                                controller:
+                                                    _groupNameController,
+                                                decoration:
+                                                    const InputDecoration(
+                                                      hintText: 'Group Name',
+                                                      border: InputBorder.none,
+                                                      contentPadding:
+                                                          EdgeInsets.symmetric(
+                                                            horizontal: 16,
+                                                            vertical: 14,
+                                                          ),
+                                                    ),
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 24),
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: OutlinedButton(
+                                                    onPressed: () {
+                                                      setState(() {
+                                                        _showAddGroupForm =
+                                                            false;
+                                                        _groupNameController
+                                                            .clear();
+                                                      });
+                                                    },
+                                                    style: OutlinedButton.styleFrom(
+                                                      side: const BorderSide(
+                                                        color: Color(
+                                                          0xFF7B8EB5,
+                                                        ),
+                                                      ),
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              25,
+                                                            ),
+                                                      ),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 12,
+                                                          ),
+                                                    ),
+                                                    child: const Text(
+                                                      'Cancel',
+                                                      style: TextStyle(
+                                                        color: Color(
+                                                          0xFF7B8EB5,
+                                                        ),
+                                                        fontSize: 16,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 16),
+                                                Expanded(
+                                                  child: ElevatedButton(
+                                                    onPressed: _addNewGroup,
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor:
+                                                          const Color(
+                                                            0xFF7B8EB5,
+                                                          ),
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              25,
+                                                            ),
+                                                      ),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 12,
+                                                          ),
+                                                    ),
+                                                    child: const Text(
+                                                      'Confirm',
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 16,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+            ),
+          ],
         ),
-        centerTitle: true,
-        actions: [
-          // Profile icon instead of role badge
-          Container(
-            margin: EdgeInsets.only(right: 16),
-            child: GestureDetector(
+      ),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
+        onAddRecordsTap: () {
+          Navigator.pushReplacementNamed(context, '/add-record');
+        },
+      ),
+    );
+  }
+
+  // ✅ เพิ่ม Modern Header แบบเดียวกับหน้าอื่น
+  Widget _buildModernHeader() {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24),
+        child: Row(
+          children: [
+            // ✅ ไม่มี back button เพราะเป็นหน้าหลัก
+            Expanded(
+              child: Center(
+                child: Text(
+                  'Records',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: Color(0xFF7B8EB5),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            // ✅ Profile button แบบเดียวกับเดิม แต่ดี design ขึ้น
+            GestureDetector(
               onTap: () {
-                // Navigate to profile screen
                 Navigator.pushNamed(context, '/profile');
               },
               child: Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
                   color:
                       AuthService().isExpert
                           ? Color(0xFFFFF4E0)
                           : Color(0xFFE6F0EB),
+                  shape: BoxShape.circle,
                   border: Border.all(
                     color:
                         AuthService().isExpert
@@ -302,445 +793,24 @@ class _RecordsScreenState extends State<RecordsScreen> {
                             : Color(0xFF7BC67E),
                     width: 2,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
-                child: Center(
-                  child: Icon(
-                    Icons.person,
-                    size: 22,
-                    color:
-                        AuthService().isExpert
-                            ? Colors.amber
-                            : Color(0xFF7BC67E),
-                  ),
+                child: Icon(
+                  Icons.person,
+                  size: 20,
+                  color:
+                      AuthService().isExpert ? Colors.amber : Color(0xFF7BC67E),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _errorMessage != null
-              ? Center(child: Text(_errorMessage!))
-              : Stack(
-                children: [
-                  Column(
-                    children: [
-                      // Top divider line
-                      Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Color(0xFFEEEEEE),
-                      ),
-
-                      // Search bar
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        child: Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F7F9),
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 16),
-                              const Icon(
-                                Icons.search,
-                                color: Color(0xFFACACAC),
-                                size: 24,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextField(
-                                  controller: _searchController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Search',
-                                    hintStyle: TextStyle(
-                                      color: Color(0xFFACACAC),
-                                      fontSize: 17,
-                                    ),
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                  style: TextStyle(
-                                    fontSize: 17,
-                                    color: Color(0xFF333333),
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.tune,
-                                  color:
-                                      _showFilterOptions
-                                          ? Color(0xFF7B8EB5)
-                                          : Color(0xFFACACAC),
-                                  size: 24,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _showFilterOptions = !_showFilterOptions;
-                                  });
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // Filter options - shown when filter icon is tapped
-                      if (_showFilterOptions)
-                        Container(
-                          margin: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          padding: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                spreadRadius: 1,
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                            border: Border.all(
-                              color: Color(0xFFEEEEEE),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Filter by BCS Score',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF333333),
-                                ),
-                              ),
-                              SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Text(
-                                    '${_bcsScoreRange.start.round()}',
-                                    style: TextStyle(
-                                      color: Color(0xFF7B8EB5),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: RangeSlider(
-                                      values: _bcsScoreRange,
-                                      min: 1,
-                                      max: 9,
-                                      divisions: 8,
-                                      activeColor: Color(0xFF7BC67E),
-                                      inactiveColor: Color(0xFFE6F0EB),
-                                      labels: RangeLabels(
-                                        _bcsScoreRange.start.round().toString(),
-                                        _bcsScoreRange.end.round().toString(),
-                                      ),
-                                      onChanged: (RangeValues values) {
-                                        setState(() {
-                                          _bcsScoreRange = values;
-                                          _applyFilters();
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  Text(
-                                    '${_bcsScoreRange.end.round()}',
-                                    style: TextStyle(
-                                      color: Color(0xFF7B8EB5),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  TextButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _bcsScoreRange = RangeValues(1, 9);
-                                        _searchController.clear();
-                                        _applyFilters();
-                                      });
-                                    },
-                                    child: Text(
-                                      'Reset',
-                                      style: TextStyle(
-                                        color: Color(0xFF7B8EB5),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 16),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _showFilterOptions = false;
-                                      });
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Color(0xFF7B8EB5),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Apply',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      // Group header
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Group',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF333333),
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: _showAddGroupDialog,
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFFF5F5F5),
-                                  border: Border.all(
-                                    color: const Color(0xFF7B8EB5),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.add,
-                                  color: Color(0xFF7B8EB5),
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Pet groups and list
-                      Expanded(
-                        child:
-                            _filteredGroups.isEmpty
-                                ? _buildEmptyState()
-                                : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  itemCount: _filteredGroups.length,
-                                  itemBuilder: (context, index) {
-                                    final group = _filteredGroups[index];
-                                    final groupId = group['_id'];
-                                    final groupName = group['group_name'];
-                                    final isExpanded =
-                                        _expandedGroups[groupId] ?? false;
-                                    final pets =
-                                        _filteredGroupPets[groupId] ?? [];
-
-                                    return Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        // Group card
-                                        _buildPetGroupCard(
-                                          groupId,
-                                          groupName,
-                                          pets.length,
-                                          isExpanded,
-                                        ),
-
-                                        // Show pets if group is expanded
-                                        if (isExpanded)
-                                          ...pets
-                                              .map(
-                                                (pet) => Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        top: 8.0,
-                                                      ),
-                                                  child: _buildPetCard(
-                                                    pet,
-                                                    groupName,
-                                                  ),
-                                                ),
-                                              )
-                                              .toList(),
-
-                                        const SizedBox(height: 8),
-                                      ],
-                                    );
-                                  },
-                                ),
-                      ),
-                    ],
-                  ),
-
-                  // Group creation overlay
-                  if (_showAddGroupForm)
-                    Positioned.fill(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _showAddGroupForm = false;
-                            _groupNameController.clear();
-                          });
-                        },
-                        child: Container(
-                          color: Colors.black.withOpacity(0.5),
-                          child: Center(
-                            child: GestureDetector(
-                              onTap:
-                                  () {}, // Prevent taps from closing the form
-                              child: Container(
-                                width: MediaQuery.of(context).size.width * 0.85,
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    const Text(
-                                      'Add New Group',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF7B8EB5),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF5F5F5),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: TextField(
-                                        controller: _groupNameController,
-                                        decoration: const InputDecoration(
-                                          hintText: 'Group Name',
-                                          border: InputBorder.none,
-                                          contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 14,
-                                          ),
-                                        ),
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 24),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: OutlinedButton(
-                                            onPressed: () {
-                                              setState(() {
-                                                _showAddGroupForm = false;
-                                                _groupNameController.clear();
-                                              });
-                                            },
-                                            style: OutlinedButton.styleFrom(
-                                              side: const BorderSide(
-                                                color: Color(0xFF7B8EB5),
-                                              ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(25),
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 12,
-                                                  ),
-                                            ),
-                                            child: const Text(
-                                              'Cancel',
-                                              style: TextStyle(
-                                                color: Color(0xFF7B8EB5),
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: ElevatedButton(
-                                            onPressed: _addNewGroup,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(
-                                                0xFF7B8EB5,
-                                              ),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(25),
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 12,
-                                                  ),
-                                            ),
-                                            child: const Text(
-                                              'Confirm',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
-        onAddRecordsTap: () {
-          Navigator.pushReplacementNamed(context, '/add-record');
-        },
+          ],
+        ),
       ),
     );
   }
@@ -943,8 +1013,35 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
-  Widget _buildPetCard(Map<String, dynamic> pet, String groupName) {
-    final imageUrl = pet['image_url'] ?? '';
+ Widget _buildPetCard(Map<String, dynamic> pet, String groupName) {
+    // ✅ เพิ่ม debug logs
+    print('🔍 Building pet card for: ${pet['name']}');
+    print('🔍 Pet data: $pet');
+    
+    String imageUrl = '';
+
+    if (pet['records'] != null && (pet['records'] as List).isNotEmpty) {
+      final latestRecord = (pet['records'] as List).last;
+      final frontImageUrl = latestRecord['front_image_url'];
+      
+      print('🔍 Latest record: $latestRecord');
+      print('🔍 Front image URL from record: $frontImageUrl');
+
+      if (frontImageUrl != null && frontImageUrl.toString().isNotEmpty) {
+        if (frontImageUrl.toString().startsWith('http')) {
+          imageUrl = frontImageUrl.toString();
+          print('✅ Using full URL: $imageUrl');
+        } else {
+          imageUrl = '${PetService.uploadBaseUrl}/uploads/$frontImageUrl';
+          print('✅ Constructed URL: $imageUrl');
+          print('🔍 Upload base URL: ${PetService.uploadBaseUrl}');
+        }
+      } else {
+        print('❌ No front_image_url in latest record');
+      }
+    } else {
+      print('❌ No records found for pet');
+    }
 
     // Get weight from the latest record if available
     String weightDisplay = 'N/A kg';
@@ -971,31 +1068,48 @@ class _RecordsScreenState extends State<RecordsScreen> {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            // Pet image
+            // Pet image with enhanced debugging
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child:
-                  imageUrl.isNotEmpty
-                      ? Image.network(
-                        imageUrl,
-                        width: 70,
-                        height: 70,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            width: 70,
-                            height: 70,
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.pets, color: Colors.white),
-                          );
-                        },
-                      )
-                      : Container(
-                        width: 70,
-                        height: 70,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.pets, color: Colors.white),
-                      ),
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                      imageUrl,
+                      width: 70,
+                      height: 70,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) {
+                          print('✅ Image loaded successfully: $imageUrl');
+                          return child;
+                        }
+                        print('⏳ Loading image: $imageUrl');
+                        return Container(
+                          width: 70,
+                          height: 70,
+                          color: Colors.grey[200],
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF6B86C9),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        print('❌ Image load error for URL: $imageUrl');
+                        print('❌ Error: $error');
+                        
+                        // ✅ แสดง error info ใน debug mode
+                        if (imageUrl.isNotEmpty) {
+                          print('💡 Try opening this URL in browser: $imageUrl');
+                        }
+                        
+                        return _buildPlaceholderImage();
+                      },
+                    )
+                  : _buildPlaceholderImage(),
             ),
             const SizedBox(width: 16),
 
@@ -1017,10 +1131,9 @@ class _RecordsScreenState extends State<RecordsScreen> {
                       const Spacer(),
                       Icon(
                         Icons.star,
-                        color:
-                            pet['favorite'] == true
-                                ? Colors.amber
-                                : Colors.grey[300],
+                        color: pet['favorite'] == true
+                            ? Colors.amber
+                            : Colors.grey[300],
                         size: 24,
                       ),
                     ],
@@ -1032,7 +1145,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Age ${pet['age'] ?? 'N/A'} years',
+                    'Age ${pet['age_years'] ?? 0}y ${pet['age_months'] ?? 0}m',
                     style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                   const SizedBox(height: 8),
@@ -1078,7 +1191,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           onPressed: () {
-                            // Navigate to BCS evaluation screen for this pet
                             Navigator.pushNamed(context, '/add-record');
                           },
                         ),
@@ -1103,11 +1215,10 @@ class _RecordsScreenState extends State<RecordsScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (context) => HistoryScreen(
-                                      pet: pet,
-                                      groupName: groupName,
-                                    ),
+                                builder: (context) => HistoryScreen(
+                                  pet: pet,
+                                  groupName: groupName,
+                                ),
                               ),
                             );
                           },
@@ -1120,6 +1231,34 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ✅ เพิ่ม placeholder image ที่สวยขึ้น
+  Widget _buildPlaceholderImage() {
+    return Container(
+      width: 70,
+      height: 70,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF6B86C9), Color(0xFF8B5CF6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF6B86C9).withOpacity(0.3),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Icon(
+        Icons.pets,
+        color: Colors.white,
+        size: 30,
       ),
     );
   }

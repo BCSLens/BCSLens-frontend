@@ -158,7 +158,7 @@ class PhotoCaptureSection extends StatelessWidget {
       // It's a file path
       return Image.file(
         File(path),
-        fit: BoxFit.cover,
+        fit: BoxFit.contain,
         width: double.infinity,
         height: double.infinity,
         errorBuilder: (context, error, stackTrace) {

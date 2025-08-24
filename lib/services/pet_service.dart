@@ -4,212 +4,453 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/auth_service.dart';
 import '../models/pet_record_model.dart';
 
 class PetService {
   final AuthService _authService = AuthService();
-  static const String baseUrl =
-      'http://10.0.2.2:3000/api'; // For Android emulator
 
-  // Get all pets
-  Future<List<Map<String, dynamic>>> getPets() async {
+  // Use environment variable or fallback to production URL
+  static String get baseUrl {
+    final envUrl = dotenv.env['API_BASE_URL'];
+    if (envUrl != null && envUrl.isNotEmpty) {
+      return envUrl;
+    }
+    // Fallback to production URL
+    return 'http://35.240.210.10:3000/api';
+  }
+
+  static String get uploadBaseUrl {
+    final envUrl = dotenv.env['UPLOAD_BASE_URL'];
+    if (envUrl != null && envUrl.isNotEmpty) {
+      return envUrl;
+    }
+    // Fallback to production URL
+    return 'http://35.240.210.10:3000';
+  }
+
+  // Create a new pet - FIXED VERSION
+  Future<Map<String, dynamic>> createPet(PetRecord pet) async {
     try {
-      // Instead of trying to directly get pets, we'll get groups which contain pets
-      final response = await _authService.authenticatedGet('/groups');
+      print('🐕 Creating pet with data...');
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final List<dynamic> groups = data['groups'] as List;
+      // Validate required fields
+      if (pet.name == null || pet.name!.isEmpty) {
+        throw Exception('Pet name is required');
+      }
 
-        // Extract all pets from all groups
-        List<Map<String, dynamic>> allPets = [];
+      if (pet.groupId == null || pet.groupId!.isEmpty) {
+        throw Exception('Group ID is required');
+      }
 
-        for (var group in groups) {
-          final List<dynamic> pets = group['pets'] as List;
-          for (var pet in pets) {
-            allPets.add(pet as Map<String, dynamic>);
+      // Parse age to years and months
+      int ageYears = _parseAgeYears(pet.age ?? '0');
+      int ageMonths = _parseAgeMonths(pet.age ?? '0');
+      int totalMonths = (ageYears * 12) + ageMonths;
+
+      // Convert weight string to number (remove 'kg' and parse)
+      double weightInKg = _parseWeight(pet.weight ?? '0');
+
+      // Convert boolean to boolean (not string) ✅ แก้ไขแล้ว
+      bool spayNeuterStatus = pet.isSterilized ?? false;
+
+      // Map category/predictedAnimal to species
+      String species = pet.predictedAnimal ?? 'dog';
+
+      final requestBody = {
+        'name': pet.name!,
+        'breed': pet.breed ?? 'Mixed',
+        'age': totalMonths,           // Total months for backward compatibility
+        'age_years': ageYears,        // ✅ เพิ่มใหม่
+        'age_months': ageMonths,      // ✅ เพิ่มใหม่
+        'gender': pet.gender ?? 'Male',
+        'spay_neuter_status': spayNeuterStatus, // ✅ เป็น boolean แล้ว
+        'group_id': pet.groupId!,
+        'species': species,
+      };
+
+      print('📤 Request body: $requestBody');
+      print('🔗 URL: $baseUrl/pets');
+
+      // Create pet in database
+      final responseData = await _authService.authenticatedPost('/pets', requestBody);
+
+      print('📥 Response data: $responseData');
+
+      if (responseData != null) {
+        if (responseData is Map<String, dynamic>) {
+          print('✅ Pet created successfully');
+
+          // Extract pet ID for creating initial record
+          String? petId;
+          if (responseData.containsKey('pet') && responseData['pet'] is Map) {
+            petId = responseData['pet']['_id'];
+          } else if (responseData.containsKey('_id')) {
+            petId = responseData['_id'];
           }
-        }
 
-        return allPets;
+          if (petId != null) {
+            print('✅ Pet created with ID: $petId');
+            
+            // ✅ สร้าง record แรกพร้อมรูป (แทนที่การอัพโหลดรูปใน Pet)
+            await _createInitialRecord(petId, pet);
+          }
+
+          return responseData;
+        } else {
+          throw Exception('Unexpected response format');
+        }
       } else {
-        throw Exception('Failed to load pets: ${response.statusCode}');
+        throw Exception('No response data received');
       }
     } catch (e) {
-      print('Error getting pets: $e');
+      print('❌ Error creating pet: $e');
+      if (e.toString().contains('Authentication failed')) {
+        throw Exception('Please log in again to create a pet');
+      }
       rethrow;
     }
   }
 
-  // Create a new pet
-  Future<Map<String, dynamic>> createPet(PetRecord pet) async {
+  // ✅ ฟังก์ชันใหม่: สร้าง record แรกพร้อมรูป
+  Future<void> _createInitialRecord(String petId, PetRecord pet) async {
     try {
-      // First upload images
+      print('📸 Creating initial record with images for pet: $petId');
+
+      // ✅ เพิ่ม debug ตรวจสอบ paths
+      print('🔍 Debug image paths:');
+      print('  Front: ${pet.frontViewImagePath}');
+      print('  Back: ${pet.backViewImagePath}');
+      print('  Left: ${pet.leftViewImagePath}');
+      print('  Right: ${pet.rightViewImagePath}');
+      print('  Top: ${pet.topViewImagePath}');
+
+      // ตรวจสอบไฟล์มีอยู่จริงไหม
+      if (pet.frontViewImagePath != null) {
+        print('  Front file exists: ${File(pet.frontViewImagePath!).existsSync()}');
+      }
+
+      // อัพโหลดรูปทั้งหมด
       final imageUrls = await _uploadPetImages(pet);
 
-      // Create pet with image URLs
-      final response = await _authService.authenticatedPost('/pets', {
-        'name': pet.name,
-        'breed': pet.breed,
-        'age': int.tryParse(pet.age ?? '0') ?? 0,
-        'weight': double.tryParse(pet.weight ?? '0') ?? 0.0,
-        'gender': pet.gender,
-        'spay_neuter_status': pet.isSterilized ?? false,
-        'species': pet.category == 'Cats' ? 'Cat' : 'Dog',
-        'group_id':
-            pet.groupId, // Make sure this is set from the selected group
-        'front_image_url': imageUrls['front'],
-        'back_image_url': imageUrls['back'],
-        'left_image_url': imageUrls['left'],
-        'right_image_url': imageUrls['right'],
-        'top_image_url': imageUrls['top'],
-        'image_url': imageUrls['front'], // Use front as default image
-      });
+      print('🔍 Upload results: $imageUrls');
+      print('🔍 Number of uploaded images: ${imageUrls.length}');
 
-      if (response.statusCode == 201) {
-        return jsonDecode(response.body);
+      // สร้าง record data
+      final recordData = {
+        'date': DateTime.now().toIso8601String(),
+        'score': pet.bcs ?? 5,
+        'weight': _parseWeight(pet.weight ?? '0'),
+        ...imageUrls, // รูปทั้งหมดไปใน record
+        'notes': pet.additionalNotes ?? '',
+      };
+
+      print('🔍 Record data to send: $recordData');
+
+      // สร้าง record แรกพร้อมรูป
+      final recordResponse = await _authService.authenticatedPost('/pets/$petId/records', recordData);
+      
+      print('✅ Initial record created successfully');
+      print('📥 Record response: $recordResponse');
+      
+      if (imageUrls.isNotEmpty) {
+        print('✅ Images included: ${imageUrls.keys.join(', ')}');
       } else {
-        final error = jsonDecode(response.body);
-        throw Exception('Failed to create pet: ${error['error']}');
+        print('⚠️ No images were uploaded');
       }
     } catch (e) {
-      print('Error creating pet: $e');
-      rethrow;
+      print('❌ Error creating initial record: $e');
+      print('❌ Error details: ${e.toString()}');
+      // ไม่ throw error - pet ถูกสร้างแล้ว
+    }
+  }
+
+  // ✅ Helper functions สำหรับ parse age - FIXED VERSION
+  int _parseAgeYears(String ageString) {
+    try {
+      print('🔍 Parsing age years from: "$ageString"');
+      
+      if (ageString.contains('years') && ageString.contains('months')) {
+        // Format: "2 years 6 months"
+        final yearsPart = ageString.split(' years')[0];
+        final result = int.tryParse(yearsPart) ?? 0;
+        print('✅ Parsed years: $result');
+        return result;
+      } else if (ageString.contains('year')) {
+        // Format: "2 years" or "1 year"
+        final yearsPart = ageString.split(' ')[0];
+        final result = int.tryParse(yearsPart) ?? 0;
+        print('✅ Parsed years: $result');
+        return result;
+      }
+      print('⚠️ No years found in age string');
+      return 0;
+    } catch (e) {
+      print('❌ Error parsing years: $e');
+      return 0;
+    }
+  }
+
+  int _parseAgeMonths(String ageString) {
+    try {
+      print('🔍 Parsing age months from: "$ageString"');
+      
+      if (ageString.contains('months')) {
+        if (ageString.contains('years') || ageString.contains('year')) {
+          // Format: "2 years 6 months" or "1 year 0 months"
+          final parts = ageString.split(RegExp(r'years? '));
+          if (parts.length > 1) {
+            final monthsPart = parts[1].split(' months')[0];
+            final result = int.tryParse(monthsPart) ?? 0;
+            print('✅ Parsed months: $result');
+            return result;
+          }
+        } else {
+          // Format: "6 months"
+          final monthsPart = ageString.split(' ')[0];
+          final result = int.tryParse(monthsPart) ?? 0;
+          print('✅ Parsed months: $result');
+          return result;
+        }
+      }
+      print('⚠️ No months found in age string');
+      return 0;
+    } catch (e) {
+      print('❌ Error parsing months: $e');
+      return 0;
+    }
+  }
+
+  // Helper method to parse weight string to double
+  double _parseWeight(String weightString) {
+    try {
+      // Remove 'kg' and other text, keep only numbers and decimal point
+      String numericPart = weightString.replaceAll(RegExp(r'[^0-9.]'), '');
+      return double.tryParse(numericPart) ?? 0.0;
+    } catch (e) {
+      return 0.0;
+    }
+  }
+
+  // Helper method to map category to species
+  String _mapToSpecies(String? category) {
+    if (category == null) return 'dog';
+
+    switch (category.toLowerCase()) {
+      case 'cats':
+      case 'cat':
+        return 'cat';
+      case 'dogs':
+      case 'dog':
+        return 'dog';
+      default:
+        return 'dog';
     }
   }
 
   // Upload images for a pet
   Future<Map<String, String>> _uploadPetImages(PetRecord pet) async {
-    Map<String, String> imageUrls = {
-      'front': '',
-      'back': '',
-      'left': '',
-      'right': '',
-      'top': '',
-    };
+    Map<String, String> imageUrls = {};
 
     try {
+      print('🔍 Starting image upload process...');
+      
       if (pet.frontViewImagePath != null) {
-        imageUrls['front'] = await _uploadImage(pet.frontViewImagePath!);
+        print('📤 Uploading front image: ${pet.frontViewImagePath}');
+        final url = await _uploadImage(pet.frontViewImagePath!);
+        if (url.isNotEmpty) {
+          imageUrls['front_image_url'] = url;
+          print('✅ Front image uploaded: $url');
+        } else {
+          print('❌ Front image upload failed');
+        }
+      } else {
+        print('⚠️ No front image path provided');
       }
 
       if (pet.backViewImagePath != null) {
-        imageUrls['back'] = await _uploadImage(pet.backViewImagePath!);
+        print('📤 Uploading back image: ${pet.backViewImagePath}');
+        final url = await _uploadImage(pet.backViewImagePath!);
+        if (url.isNotEmpty) {
+          imageUrls['back_image_url'] = url;
+          print('✅ Back image uploaded: $url');
+        }
       }
 
       if (pet.leftViewImagePath != null) {
-        imageUrls['left'] = await _uploadImage(pet.leftViewImagePath!);
+        print('📤 Uploading left image: ${pet.leftViewImagePath}');
+        final url = await _uploadImage(pet.leftViewImagePath!);
+        if (url.isNotEmpty) {
+          imageUrls['left_image_url'] = url;
+          print('✅ Left image uploaded: $url');
+        }
       }
 
       if (pet.rightViewImagePath != null) {
-        imageUrls['right'] = await _uploadImage(pet.rightViewImagePath!);
+        print('📤 Uploading right image: ${pet.rightViewImagePath}');
+        final url = await _uploadImage(pet.rightViewImagePath!);
+        if (url.isNotEmpty) {
+          imageUrls['right_image_url'] = url;
+          print('✅ Right image uploaded: $url');
+        }
       }
 
       if (pet.topViewImagePath != null) {
-        imageUrls['top'] = await _uploadImage(pet.topViewImagePath!);
+        print('📤 Uploading top image: ${pet.topViewImagePath}');
+        final url = await _uploadImage(pet.topViewImagePath!);
+        if (url.isNotEmpty) {
+          imageUrls['top_image_url'] = url;
+          print('✅ Top image uploaded: $url');
+        }
       }
 
+      print('🔍 Final image URLs: $imageUrls');
       return imageUrls;
     } catch (e) {
-      print('Error uploading images: $e');
-      rethrow;
-    }
-  }
-
-  // In pet_service.dart, add this method
-  Future<Map<String, dynamic>> addBcsRecord(String petId, PetRecord pet) async {
-    try {
-      final response = await _authService
-          .authenticatedPost('/pets/$petId/records', {
-            'score': pet.bcs ?? 5,
-            'date': DateTime.now().toIso8601String(),
-            'weight': double.tryParse(pet.weight ?? '0') ?? 0.0,
-            'front_image_url':
-                pet.frontViewImagePath != null
-                    ? await _uploadImage(pet.frontViewImagePath!)
-                    : '',
-            'back_image_url':
-                pet.backViewImagePath != null
-                    ? await _uploadImage(pet.backViewImagePath!)
-                    : '',
-            'left_image_url':
-                pet.leftViewImagePath != null
-                    ? await _uploadImage(pet.leftViewImagePath!)
-                    : '',
-            'right_image_url':
-                pet.rightViewImagePath != null
-                    ? await _uploadImage(pet.rightViewImagePath!)
-                    : '',
-            'top_image_url':
-                pet.topViewImagePath != null
-                    ? await _uploadImage(pet.topViewImagePath!)
-                    : '',
-            'notes': pet.additionalNotes ?? '',
-          });
-
-      if (response.statusCode == 201) {
-        return jsonDecode(response.body);
-      } else {
-        final error = jsonDecode(response.body);
-        throw Exception('Failed to add BCS record: ${error['error']}');
-      }
-    } catch (e) {
-      print('Error adding BCS record: $e');
-      rethrow;
+      print('❌ Error uploading images: $e');
+      return {};
     }
   }
 
   // Upload a single image
   Future<String> _uploadImage(String imagePath) async {
     try {
-      // Check if file exists
       final File file = File(imagePath);
       if (!file.existsSync()) {
-        throw Exception('File not found: $imagePath');
+        print('❌ File not found: $imagePath');
+        return '';
       }
 
-      // Get token from auth service
       final token = _authService.token;
       if (token == null) {
-        throw Exception('Not authenticated');
+        print('❌ Not authenticated for image upload');
+        return '';
       }
 
-      // Create multipart request
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/upload'),
+        Uri.parse('$uploadBaseUrl/upload'),
       );
 
-      // Add auth header
       request.headers['Authorization'] = 'Bearer $token';
 
-      // Detect mime type
       String? mimeType = lookupMimeType(imagePath);
 
-      // Add file
       request.files.add(
         await http.MultipartFile.fromPath(
-          'image',
+          'image', // Make sure this matches backend expectation
           imagePath,
           contentType: mimeType != null ? MediaType.parse(mimeType) : null,
         ),
       );
 
-      // Send request
+      print('📤 Uploading image: $imagePath');
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
+      print('📥 Upload response: ${response.statusCode}');
+      print('📥 Upload body: ${response.body}');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['url'] ?? '';
+        
+        // ✅ แก้ไขการดึง URL ตาม response format ของ backend
+        String url = '';
+        
+        if (data['url'] != null) {
+          url = data['url'];
+        } else if (data['file_url'] != null) {
+          url = data['file_url'];
+        } else if (data['filename'] != null) {
+          // ✅ สร้าง URL จาก filename
+          url = '$uploadBaseUrl/uploads/${data['filename']}';
+        } else {
+          print('❌ No URL found in response: $data');
+          return '';
+        }
+        
+        print('✅ Image uploaded successfully: $url');
+        return url;
       } else {
-        throw Exception('Failed to upload image: ${response.statusCode}');
+        print('❌ Upload failed: ${response.statusCode} - ${response.body}');
+        return '';
       }
     } catch (e) {
-      print('Error uploading image: $e');
-      // Return empty string if upload fails
+      print('❌ Error uploading image: $e');
       return '';
+    }
+  }
+
+  // Get all pets - CORRECTED VERSION
+  Future<List<Map<String, dynamic>>> getPets() async {
+    try {
+      // AuthService returns parsed JSON directly
+      final data = await _authService.authenticatedGet('/groups');
+
+      print('📥 Groups data type: ${data.runtimeType}');
+      print('📥 Groups data: $data');
+
+      List<Map<String, dynamic>> allPets = [];
+
+      if (data is Map<String, dynamic> && data.containsKey('groups')) {
+        final List<dynamic> groups = data['groups'] as List;
+        
+        for (var group in groups) {
+          if (group is Map<String, dynamic> && group.containsKey('pets')) {
+            final List<dynamic> pets = group['pets'] as List;
+            for (var pet in pets) {
+              if (pet is Map<String, dynamic>) {
+                allPets.add(pet);
+              }
+            }
+          }
+        }
+      } else if (data is List) {
+        // If response is directly a list of groups
+        for (var group in data) {
+          if (group is Map<String, dynamic> && group.containsKey('pets')) {
+            final List<dynamic> pets = group['pets'] as List;
+            for (var pet in pets) {
+              if (pet is Map<String, dynamic>) {
+                allPets.add(pet);
+              }
+            }
+          }
+        }
+      }
+
+      print('✅ Found ${allPets.length} pets');
+      return allPets;
+    } catch (e) {
+      print('❌ Error getting pets: $e');
+      rethrow;
+    }
+  }
+
+  // Add BCS record - CORRECTED VERSION
+  Future<Map<String, dynamic>> addBcsRecord(String petId, PetRecord pet) async {
+    try {
+      // Upload images first
+      final imageUrls = await _uploadPetImages(pet);
+
+      // AuthService returns parsed JSON directly
+      final responseData = await _authService.authenticatedPost('/pets/$petId/records', {
+        'score': pet.bcs ?? 5,
+        'date': DateTime.now().toIso8601String(),
+        'weight': _parseWeight(pet.weight ?? '0'),
+        ...imageUrls,
+        'notes': pet.additionalNotes ?? '',
+      });
+
+      if (responseData != null && responseData is Map<String, dynamic>) {
+        return responseData;
+      } else {
+        throw Exception('Unexpected response format');
+      }
+    } catch (e) {
+      print('❌ Error adding BCS record: $e');
+      rethrow;
     }
   }
 }
