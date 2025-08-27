@@ -27,7 +27,7 @@ class PetService {
       return envUrl;
     }
     // Fallback to production URL
-    return 'http://35.240.210.10:3000';
+    return 'http://34.142.243.161';
   }
 
   // Create a new pet - FIXED VERSION
@@ -61,9 +61,9 @@ class PetService {
       final requestBody = {
         'name': pet.name!,
         'breed': pet.breed ?? 'Mixed',
-        'age': totalMonths,           // Total months for backward compatibility
-        'age_years': ageYears,        // ✅ เพิ่มใหม่
-        'age_months': ageMonths,      // ✅ เพิ่มใหม่
+        'age': totalMonths, // Total months for backward compatibility
+        'age_years': ageYears, // ✅ เพิ่มใหม่
+        'age_months': ageMonths, // ✅ เพิ่มใหม่
         'gender': pet.gender ?? 'Male',
         'spay_neuter_status': spayNeuterStatus, // ✅ เป็น boolean แล้ว
         'group_id': pet.groupId!,
@@ -74,7 +74,10 @@ class PetService {
       print('🔗 URL: $baseUrl/pets');
 
       // Create pet in database
-      final responseData = await _authService.authenticatedPost('/pets', requestBody);
+      final responseData = await _authService.authenticatedPost(
+        '/pets',
+        requestBody,
+      );
 
       print('📥 Response data: $responseData');
 
@@ -92,7 +95,7 @@ class PetService {
 
           if (petId != null) {
             print('✅ Pet created with ID: $petId');
-            
+
             // ✅ สร้าง record แรกพร้อมรูป (แทนที่การอัพโหลดรูปใน Pet)
             await _createInitialRecord(petId, pet);
           }
@@ -128,7 +131,9 @@ class PetService {
 
       // ตรวจสอบไฟล์มีอยู่จริงไหม
       if (pet.frontViewImagePath != null) {
-        print('  Front file exists: ${File(pet.frontViewImagePath!).existsSync()}');
+        print(
+          '  Front file exists: ${File(pet.frontViewImagePath!).existsSync()}',
+        );
       }
 
       // อัพโหลดรูปทั้งหมด
@@ -149,11 +154,14 @@ class PetService {
       print('🔍 Record data to send: $recordData');
 
       // สร้าง record แรกพร้อมรูป
-      final recordResponse = await _authService.authenticatedPost('/pets/$petId/records', recordData);
-      
+      final recordResponse = await _authService.authenticatedPost(
+        '/pets/$petId/records',
+        recordData,
+      );
+
       print('✅ Initial record created successfully');
       print('📥 Record response: $recordResponse');
-      
+
       if (imageUrls.isNotEmpty) {
         print('✅ Images included: ${imageUrls.keys.join(', ')}');
       } else {
@@ -170,7 +178,7 @@ class PetService {
   int _parseAgeYears(String ageString) {
     try {
       print('🔍 Parsing age years from: "$ageString"');
-      
+
       if (ageString.contains('years') && ageString.contains('months')) {
         // Format: "2 years 6 months"
         final yearsPart = ageString.split(' years')[0];
@@ -195,7 +203,7 @@ class PetService {
   int _parseAgeMonths(String ageString) {
     try {
       print('🔍 Parsing age months from: "$ageString"');
-      
+
       if (ageString.contains('months')) {
         if (ageString.contains('years') || ageString.contains('year')) {
           // Format: "2 years 6 months" or "1 year 0 months"
@@ -255,7 +263,7 @@ class PetService {
 
     try {
       print('🔍 Starting image upload process...');
-      
+
       if (pet.frontViewImagePath != null) {
         print('📤 Uploading front image: ${pet.frontViewImagePath}');
         final url = await _uploadImage(pet.frontViewImagePath!);
@@ -354,10 +362,10 @@ class PetService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+
         // ✅ แก้ไขการดึง URL ตาม response format ของ backend
         String url = '';
-        
+
         if (data['url'] != null) {
           url = data['url'];
         } else if (data['file_url'] != null) {
@@ -369,7 +377,7 @@ class PetService {
           print('❌ No URL found in response: $data');
           return '';
         }
-        
+
         print('✅ Image uploaded successfully: $url');
         return url;
       } else {
@@ -395,7 +403,7 @@ class PetService {
 
       if (data is Map<String, dynamic> && data.containsKey('groups')) {
         final List<dynamic> groups = data['groups'] as List;
-        
+
         for (var group in groups) {
           if (group is Map<String, dynamic> && group.containsKey('pets')) {
             final List<dynamic> pets = group['pets'] as List;
@@ -435,13 +443,14 @@ class PetService {
       final imageUrls = await _uploadPetImages(pet);
 
       // AuthService returns parsed JSON directly
-      final responseData = await _authService.authenticatedPost('/pets/$petId/records', {
-        'score': pet.bcs ?? 5,
-        'date': DateTime.now().toIso8601String(),
-        'weight': _parseWeight(pet.weight ?? '0'),
-        ...imageUrls,
-        'notes': pet.additionalNotes ?? '',
-      });
+      final responseData = await _authService
+          .authenticatedPost('/pets/$petId/records', {
+            'score': pet.bcs ?? 5,
+            'date': DateTime.now().toIso8601String(),
+            'weight': _parseWeight(pet.weight ?? '0'),
+            ...imageUrls,
+            'notes': pet.additionalNotes ?? '',
+          });
 
       if (responseData != null && responseData is Map<String, dynamic>) {
         return responseData;
@@ -450,6 +459,47 @@ class PetService {
       }
     } catch (e) {
       print('❌ Error adding BCS record: $e');
+      rethrow;
+    }
+  }
+  // เพิ่ม method นี้ใน PetService class
+
+  // Method สำหรับเพิ่ม record ให้สัตว์ที่มีอยู่แล้ว
+  Future<Map<String, dynamic>> addRecordToExistingPet(
+    String petId,
+    PetRecord petRecord,
+  ) async {
+    try {
+      print('Adding record to existing pet: $petId');
+
+      // อัพโหลดรูปทั้งหมด
+      final imageUrls = await _uploadPetImages(petRecord);
+
+      // สร้าง record data
+      final recordData = {
+        'date': DateTime.now().toIso8601String(),
+        'score': petRecord.bcs ?? 5,
+        'weight': _parseWeight(petRecord.weight ?? '0'),
+        ...imageUrls, // รูปทั้งหมด
+        'notes': petRecord.additionalNotes ?? '',
+      };
+
+      print('Sending record data: $recordData');
+
+      // ส่งข้อมูลไปยัง API
+      final responseData = await _authService.authenticatedPost(
+        '/pets/$petId/records',
+        recordData,
+      );
+
+      if (responseData != null && responseData is Map<String, dynamic>) {
+        print('Record added successfully to pet: $petId');
+        return responseData;
+      } else {
+        throw Exception('Unexpected response format');
+      }
+    } catch (e) {
+      print('Error adding record to existing pet: $e');
       rethrow;
     }
   }

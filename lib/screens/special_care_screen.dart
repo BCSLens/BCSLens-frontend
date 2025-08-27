@@ -81,16 +81,16 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> {
           ),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.upload_outlined,
-              color: Color(0xFF7B8EB5),
-              size: 24,
-            ),
-            onPressed: () {},
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(
+        //       Icons.upload_outlined,
+        //       color: Color(0xFF7B8EB5),
+        //       size: 24,
+        //     ),
+        //     onPressed: () {},
+        //   ),
+        // ],
       ),
       body: Column(
         children: [

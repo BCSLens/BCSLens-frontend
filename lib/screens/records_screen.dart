@@ -5,6 +5,7 @@ import 'history_screen.dart';
 import '../services/auth_service.dart';
 import '../services/group_service.dart';
 import '../services/pet_service.dart';
+import '../models/pet_record_model.dart'; // เพิ่ม import
 
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({Key? key}) : super(key: key);
@@ -137,7 +138,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
       // Load groups with pets included
       final groupService = GroupService();
-      // Remove the context parameter since it doesn't exist in your current implementation
       final groups = await groupService.getGroups();
 
       // Initialize expanded state for each group
@@ -201,6 +201,33 @@ class _RecordsScreenState extends State<RecordsScreen> {
     Navigator.pushNamed(context, '/add-record');
   }
 
+  void _addNewRecordForPet(Map<String, dynamic> pet) {
+  print('🔍 _addNewRecordForPet called');
+  print('🔍 Pet data: $pet');
+  
+  final PetRecord newRecord = PetRecord();
+  
+  // ใส่ข้อมูลสัตว์ที่มีอยู่แล้ว
+  newRecord.existingPetId = pet['_id'];
+  newRecord.name = pet['name'];
+  newRecord.breed = pet['breed'];
+  newRecord.age = pet['age'];
+  newRecord.gender = pet['gender'];
+  newRecord.isSterilized = pet['is_sterilized'];
+  newRecord.category = pet['category'];
+  newRecord.groupId = pet['group_id'];
+  newRecord.isNewRecordForExistingPet = true; // สำคัญมาก!
+
+  print('🔍 Created PetRecord: ${newRecord.toString()}');
+  print('🔍 isNewRecordForExistingPet: ${newRecord.isNewRecordForExistingPet}');
+
+  Navigator.pushNamed(
+    context, 
+    '/add-record',
+    arguments: newRecord,
+  );
+}
+
   @override
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
@@ -263,16 +290,11 @@ class _RecordsScreenState extends State<RecordsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(
-        0xFFF8FAFC,
-      ), // ✅ เปลี่ยนเป็น background เดียวกับหน้าอื่น
+      backgroundColor: Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
-            // ✅ Modern Header แบบเดียวกับหน้าอื่น
             _buildModernHeader(),
-
-            // ✅ Content ทั้งหมด
             Expanded(
               child:
                   _isLoading
@@ -345,7 +367,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                                 ),
                               ),
 
-                              // Filter options - shown when filter icon is tapped
+                              // Filter options
                               if (_showFilterOptions)
                                 Container(
                                   margin: EdgeInsets.symmetric(
@@ -740,7 +762,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
-  // ✅ เพิ่ม Modern Header แบบเดียวกับหน้าอื่น
   Widget _buildModernHeader() {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 20),
@@ -758,7 +779,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
         padding: EdgeInsets.symmetric(horizontal: 24),
         child: Row(
           children: [
-            // ✅ ไม่มี back button เพราะเป็นหน้าหลัก
             Expanded(
               child: Center(
                 child: Text(
@@ -772,7 +792,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                 ),
               ),
             ),
-            // ✅ Profile button แบบเดียวกับเดิม แต่ดี design ขึ้น
             GestureDetector(
               onTap: () {
                 Navigator.pushNamed(context, '/profile');
@@ -831,7 +850,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
             child: Center(
               child: Image.asset(
-                'assets/images/empty_pets.png', // Add this image to your assets
+                'assets/images/empty_pets.png',
                 width: 150,
                 height: 150,
                 fit: BoxFit.contain,
@@ -846,7 +865,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          // Title text
           const Text(
             'No Pet Groups Yet',
             style: TextStyle(
@@ -857,7 +875,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          // Description text
           Text(
             'Start monitoring your pets\' health by creating your first group. You can organize pets by type, location, or any category you prefer.',
             style: TextStyle(
@@ -868,7 +885,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 40),
-          // Add group button
           ElevatedButton(
             onPressed: _showAddGroupDialog,
             style: ElevatedButton.styleFrom(
@@ -879,7 +895,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
               elevation: 2,
             ),
-            child: Row(
+                          child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
                 Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
@@ -896,7 +912,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          // Tutorial card
           Container(
             margin: const EdgeInsets.symmetric(vertical: 16),
             padding: const EdgeInsets.all(16),
@@ -1013,8 +1028,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
- Widget _buildPetCard(Map<String, dynamic> pet, String groupName) {
-    // ✅ เพิ่ม debug logs
+  Widget _buildPetCard(Map<String, dynamic> pet, String groupName) {
     print('🔍 Building pet card for: ${pet['name']}');
     print('🔍 Pet data: $pet');
     
@@ -1101,7 +1115,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
                         print('❌ Image load error for URL: $imageUrl');
                         print('❌ Error: $error');
                         
-                        // ✅ แสดง error info ใน debug mode
                         if (imageUrl.isNotEmpty) {
                           print('💡 Try opening this URL in browser: $imageUrl');
                         }
@@ -1175,6 +1188,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
                         ),
                       ),
                       const Spacer(),
+                      // ✅ ปุ่มสำหรับเพิ่มข้อมูลใหม่ของสัตว์นี้
                       Container(
                         width: 36,
                         height: 36,
@@ -1191,7 +1205,8 @@ class _RecordsScreenState extends State<RecordsScreen> {
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           onPressed: () {
-                            Navigator.pushNamed(context, '/add-record');
+                            // ✅ เรียกใช้ฟังก์ชันใหม่ที่เพิ่มเข้าไป
+                            _addNewRecordForPet(pet);
                           },
                         ),
                       ),
@@ -1235,7 +1250,6 @@ class _RecordsScreenState extends State<RecordsScreen> {
     );
   }
 
-  // ✅ เพิ่ม placeholder image ที่สวยขึ้น
   Widget _buildPlaceholderImage() {
     return Container(
       width: 70,

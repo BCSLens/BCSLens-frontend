@@ -7,18 +7,22 @@ import 'package:path_provider/path_provider.dart';
 import '../services/pet_detection_service.dart';
 import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:image_picker/image_picker.dart'; // ✅ เพิ่ม import
+import 'package:image_picker/image_picker.dart';
 
 class AddRecordScreen extends StatefulWidget {
-  const AddRecordScreen({Key? key}) : super(key: key);
+  final PetRecord?
+  existingPetRecord; // ✅ เพิ่ม parameter สำหรับรับข้อมูลจากภายนอก
+
+  const AddRecordScreen({Key? key, this.existingPetRecord}) : super(key: key);
+
   @override
   State<AddRecordScreen> createState() => _AddRecordScreenState();
 }
 
 class _AddRecordScreenState extends State<AddRecordScreen>
     with TickerProviderStateMixin {
-  final ImagePicker _picker = ImagePicker(); // ✅ เพิ่ม ImagePicker instance
-  
+  final ImagePicker _picker = ImagePicker();
+
   int _selectedIndex = 1;
   String? _frontViewImagePath;
   bool _isPhotoLoading = false;
@@ -27,6 +31,10 @@ class _AddRecordScreenState extends State<AddRecordScreen>
   double? _predictionConfidence;
   bool _predictionHandled = false;
   bool _apiError = false;
+
+  // ✅ เพิ่มตัวแปรสำหรับเก็บข้อมูลสัตว์ที่มีอยู่แล้ว
+  late PetRecord _petRecord;
+  bool _isExistingPet = false;
 
   late AnimationController _buttonAnimationController;
   late Animation<double> _fadeAnimation;
@@ -60,12 +68,38 @@ class _AddRecordScreenState extends State<AddRecordScreen>
 
     _buttonAnimationController.forward();
 
-    // Reset all previous data when starting a new record
-    PetRecord().reset();
+    print('🔍 AddRecordScreen initState');
+    print('🔍 existingPetRecord: ${widget.existingPetRecord}');
+    print(
+      '🔍 isNewRecordForExistingPet: ${widget.existingPetRecord?.isNewRecordForExistingPet}',
+    );
+
+    // ตรวจสอบว่ามีข้อมูลสัตว์ที่ส่งเข้ามาหรือไม่
+    if (widget.existingPetRecord != null &&
+        widget.existingPetRecord!.isNewRecordForExistingPet) {
+      // กรณีเพิ่มข้อมูลใหม่ให้สัตว์ที่มีอยู่แล้ว
+      _petRecord = widget.existingPetRecord!;
+      _isExistingPet = true;
+      _predictedAnimal = _petRecord.category == 'Dogs' ? 'dog' : 'cat';
+      _predictionHandled = true;
+
+      print('✅ Setting up for existing pet: ${_petRecord.name}');
+      print('✅ Pet ID: ${_petRecord.existingPetId}');
+    } else {
+      // กรณีเพิ่มสัตว์ใหม่
+      _petRecord = PetRecord();
+      _isExistingPet = false;
+      _petRecord.reset();
+      print('✅ Setting up for new pet');
+    }
+
+    // Reset image states
     _frontViewImagePath = null;
-    _predictedAnimal = null;
-    _predictionConfidence = null;
-    _predictionHandled = false;
+    if (!_isExistingPet) {
+      _predictedAnimal = null;
+      _predictionConfidence = null;
+      _predictionHandled = false;
+    }
     _apiError = false;
   }
 
@@ -87,7 +121,6 @@ class _AddRecordScreenState extends State<AddRecordScreen>
     }
   }
 
-  // ✅ เพิ่ม method สำหรับแสดง dialog เลือก Camera หรือ Gallery
   void _showImageOptions() {
     showModalBottomSheet(
       context: context,
@@ -102,7 +135,6 @@ class _AddRecordScreenState extends State<AddRecordScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle bar
               Container(
                 width: 40,
                 height: 4,
@@ -112,8 +144,7 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                 ),
               ),
               SizedBox(height: 24),
-              
-              // Title
+
               Text(
                 'Add Front View Photo',
                 style: TextStyle(
@@ -123,8 +154,7 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                 ),
               ),
               SizedBox(height: 24),
-              
-              // Camera Button
+
               ListTile(
                 leading: Container(
                   width: 50,
@@ -133,10 +163,7 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                     color: Color(0xFF6B86C9).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    Icons.camera_alt,
-                    color: Color(0xFF6B86C9),
-                  ),
+                  child: Icon(Icons.camera_alt, color: Color(0xFF6B86C9)),
                 ),
                 title: Text('Take Photo'),
                 subtitle: Text('Use camera to capture new photo'),
@@ -145,8 +172,7 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                   _takePhoto();
                 },
               ),
-              
-              // Gallery Button
+
               ListTile(
                 leading: Container(
                   width: 50,
@@ -155,10 +181,7 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                     color: Color(0xFF8B5CF6).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    Icons.photo_library,
-                    color: Color(0xFF8B5CF6),
-                  ),
+                  child: Icon(Icons.photo_library, color: Color(0xFF8B5CF6)),
                 ),
                 title: Text('Choose from Gallery'),
                 subtitle: Text('Select photo from your gallery'),
@@ -167,7 +190,7 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                   _pickFromGallery();
                 },
               ),
-              
+
               SizedBox(height: 16),
             ],
           ),
@@ -180,8 +203,10 @@ class _AddRecordScreenState extends State<AddRecordScreen>
     setState(() {
       _isPhotoLoading = true;
       _apiError = false;
-      _predictionHandled = false;
-      _predictedAnimal = null;
+      if (!_isExistingPet) {
+        _predictionHandled = false;
+        _predictedAnimal = null;
+      }
     });
 
     try {
@@ -191,8 +216,11 @@ class _AddRecordScreenState extends State<AddRecordScreen>
           _frontViewImagePath = photoPath;
         });
 
-        // After taking the photo, predict the pet type
-        await _predictPetType(photoPath);
+        // ✅ ถ้าเป็นสัตว์ใหม่ ให้ทำ prediction
+        // ถ้าเป็นสัตว์เก่า จะข้าม prediction เพราะรู้ประเภทแล้ว
+        if (!_isExistingPet) {
+          await _predictPetType(photoPath);
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(
@@ -205,13 +233,14 @@ class _AddRecordScreenState extends State<AddRecordScreen>
     }
   }
 
-  // ✅ เพิ่ม method สำหรับเลือกจาก Gallery
   void _pickFromGallery() async {
     setState(() {
       _isPhotoLoading = true;
       _apiError = false;
-      _predictionHandled = false;
-      _predictedAnimal = null;
+      if (!_isExistingPet) {
+        _predictionHandled = false;
+        _predictedAnimal = null;
+      }
     });
 
     try {
@@ -227,22 +256,23 @@ class _AddRecordScreenState extends State<AddRecordScreen>
           _frontViewImagePath = image.path;
         });
 
-        // แสดงข้อความสำเร็จ
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Photo selected from gallery'),
+            content: Text('Photo selected from gallery'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
         );
 
-        // ทำการ predict pet type
-        await _predictPetType(image.path);
+        // ✅ ถ้าเป็นสัตว์ใหม่ ให้ทำ prediction
+        if (!_isExistingPet) {
+          await _predictPetType(image.path);
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Error selecting image: $e'),
+          content: Text('Error selecting image: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -257,8 +287,10 @@ class _AddRecordScreenState extends State<AddRecordScreen>
     setState(() {
       _isPhotoLoading = true;
       _apiError = false;
-      _predictionHandled = false;
-      _predictedAnimal = null;
+      if (!_isExistingPet) {
+        _predictionHandled = false;
+        _predictedAnimal = null;
+      }
     });
 
     try {
@@ -274,7 +306,9 @@ class _AddRecordScreenState extends State<AddRecordScreen>
         _frontViewImagePath = tempFile.path;
       });
 
-      await _predictPetType(tempFile.path);
+      if (!_isExistingPet) {
+        await _predictPetType(tempFile.path);
+      }
     } catch (e) {
       print('Error using test image: $e');
       ScaffoldMessenger.of(
@@ -288,6 +322,11 @@ class _AddRecordScreenState extends State<AddRecordScreen>
   }
 
   Future<void> _predictPetType(String imagePath) async {
+    // ✅ ข้าม prediction ถ้าเป็นสัตว์ที่มีอยู่แล้ว
+    if (_isExistingPet) {
+      return;
+    }
+
     setState(() {
       _isPredicting = true;
       _predictionHandled = false;
@@ -339,6 +378,9 @@ class _AddRecordScreenState extends State<AddRecordScreen>
   }
 
   void _showPetConfirmationDialog(bool isError, {String? errorMsg}) {
+    // ถ้าเป็นสัตว์ที่มีอยู่แล้ว ไม่ต้องแสดง dialog
+    if (_isExistingPet) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -444,9 +486,8 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.pop(context);
-                            final petRecord = PetRecord();
-                            petRecord.frontViewImagePath = _frontViewImagePath;
-                            petRecord.category =
+                            _petRecord.frontViewImagePath = _frontViewImagePath;
+                            _petRecord.category =
                                 _predictedAnimal == 'dog' ? 'Dogs' : 'Cats';
                           },
                           style: ElevatedButton.styleFrom(
@@ -536,9 +577,8 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                       _predictionHandled = true;
                       _apiError = false;
                     });
-                    final petRecord = PetRecord();
-                    petRecord.frontViewImagePath = _frontViewImagePath;
-                    petRecord.category = 'Dogs';
+                    _petRecord.frontViewImagePath = _frontViewImagePath;
+                    _petRecord.category = 'Dogs';
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
@@ -571,9 +611,8 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                       _predictionHandled = true;
                       _apiError = false;
                     });
-                    final petRecord = PetRecord();
-                    petRecord.frontViewImagePath = _frontViewImagePath;
-                    petRecord.category = 'Cats';
+                    _petRecord.frontViewImagePath = _frontViewImagePath;
+                    _petRecord.category = 'Cats';
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
@@ -607,15 +646,15 @@ class _AddRecordScreenState extends State<AddRecordScreen>
 
   void _goToNextStep() {
     if (_frontViewImagePath != null) {
-      final petRecord = PetRecord(frontViewImagePath: _frontViewImagePath);
+      _petRecord.frontViewImagePath = _frontViewImagePath;
 
       if (_predictedAnimal != null) {
-        petRecord.category = _predictedAnimal == 'dog' ? 'Dogs' : 'Cats';
-        petRecord.predictedAnimal = _predictedAnimal;
-        petRecord.predictionConfidence = _predictionConfidence;
+        _petRecord.category = _predictedAnimal == 'dog' ? 'Dogs' : 'Cats';
+        _petRecord.predictedAnimal = _predictedAnimal;
+        _petRecord.predictionConfidence = _predictionConfidence;
       }
 
-      Navigator.pushNamed(context, '/top-side-view', arguments: petRecord);
+      Navigator.pushNamed(context, '/top-side-view', arguments: _petRecord);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -632,8 +671,11 @@ class _AddRecordScreenState extends State<AddRecordScreen>
 
   @override
   Widget build(BuildContext context) {
+    // ถ้าเป็นสัตว์เก่า ถือว่า prediction handled แล้ว
     bool canProceed =
-        _frontViewImagePath != null && _predictionHandled && !_apiError;
+        _frontViewImagePath != null &&
+        (_predictionHandled || _isExistingPet) &&
+        !_apiError;
 
     return Scaffold(
       backgroundColor: Color(0xFFF8FAFC),
@@ -659,7 +701,6 @@ class _AddRecordScreenState extends State<AddRecordScreen>
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
         children: [
-          // Back arrow and title on same line
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
@@ -689,18 +730,33 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                 ),
                 Expanded(
                   child: Center(
-                    child: Text(
-                      'Add Records',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF7B8EB5),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Add Records',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            color: Color(0xFF7B8EB5),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        // แสดงชื่อสัตว์ถ้าเป็นการเพิ่มข้อมูลให้สัตว์เก่า
+                        if (_isExistingPet)
+                          Text(
+                            'for ${_petRecord.name}',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              color: Color(0xFF64748B),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
-                SizedBox(width: 40), // Spacer to balance the back button
+                SizedBox(width: 40),
               ],
             ),
           ),
@@ -762,89 +818,118 @@ class _AddRecordScreenState extends State<AddRecordScreen>
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
-          child: _frontViewImagePath != null
-              ? Stack(
-                  children: [
-                    Image.file(
-                      File(_frontViewImagePath!),
-                      fit: BoxFit.contain,
-                      width: double.infinity,
-                      height: double.infinity,
-                    ),
-                    Positioned(
-                      top: 16,
-                      left: 16,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
+          child:
+              _frontViewImagePath != null
+                  ? Stack(
+                    children: [
+                      Image.file(
+                        File(_frontViewImagePath!),
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
+                      Positioned(
+                        top: 16,
+                        left: 16,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Front View',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                              size: 14,
+                      ),
+                      // แสดง pet type ถ้าทราบแล้ว
+                      if (_predictedAnimal != null)
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
                             ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Front View',
+                            decoration: BoxDecoration(
+                              color:
+                                  _isExistingPet
+                                      ? Colors.blue.withOpacity(0.9)
+                                      : Colors.green.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              _predictedAnimal!.toUpperCase(),
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
+                          ),
+                        ),
+                    ],
+                  )
+                  : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Color(0xFF6B86C9).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.camera_alt,
+                          size: 32,
+                          color: Color(0xFF6B86C9),
                         ),
                       ),
-                    ),
-                    // ✅ เอา loading overlay ออก - ไม่มี if (_isPredicting) แล้ว
-                  ],
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Color(0xFF6B86C9).withOpacity(0.1),
-                        shape: BoxShape.circle,
+                      SizedBox(height: 20),
+                      Text(
+                        'Capture Front View',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
+                          letterSpacing: -0.3,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.camera_alt,
-                        size: 32,
-                        color: Color(0xFF6B86C9),
+                      SizedBox(height: 8),
+                      Text(
+                        _isExistingPet
+                            ? 'Take a new photo of ${_petRecord.name}'
+                            : 'Position the camera to show the front of your pet',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      'Capture Front View',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Position the camera to show the front of your pet',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF64748B),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
         ),
       ),
     );
@@ -874,25 +959,23 @@ class _AddRecordScreenState extends State<AddRecordScreen>
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(40),
-          // ✅ เปลี่ยนจาก _takePhoto เป็น _showImageOptions
           onTap: _isPhotoLoading ? null : _showImageOptions,
           child: Center(
-            child: _isPhotoLoading
-                ? SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white,
+            child:
+                _isPhotoLoading
+                    ? SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
+                    )
+                    : Icon(
+                      Icons.camera_alt_rounded,
+                      size: 32,
+                      color: Colors.white,
                     ),
-                  )
-                : Icon(
-                    Icons.camera_alt_rounded,
-                    size: 32,
-                    color: Colors.white,
-                  ),
           ),
         ),
       ),
@@ -916,7 +999,6 @@ class _AddRecordScreenState extends State<AddRecordScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Status indicator
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -930,9 +1012,10 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                   width: 20,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: _frontViewImagePath != null
-                        ? Color(0xFF10B981)
-                        : Color(0xFFCBD5E1),
+                    color:
+                        _frontViewImagePath != null
+                            ? Color(0xFF10B981)
+                            : Color(0xFFCBD5E1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -944,7 +1027,9 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                 SizedBox(width: 12),
                 Text(
                   _frontViewImagePath != null
-                      ? (_predictionHandled ? 'Photo ready!' : 'Processing...')
+                      ? (_isExistingPet || _predictionHandled
+                          ? 'Photo ready!'
+                          : 'Processing...')
                       : 'Take a photo to continue',
                   style: TextStyle(
                     fontSize: 15,
@@ -957,29 +1042,30 @@ class _AddRecordScreenState extends State<AddRecordScreen>
           ),
           SizedBox(height: 20),
 
-          // Next button
           Container(
             width: double.infinity,
             height: 56,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              gradient: canProceed
-                  ? LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF8B5CF6), Color(0xFFAA7BF7)],
-                    )
-                  : null,
+              gradient:
+                  canProceed
+                      ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF8B5CF6), Color(0xFFAA7BF7)],
+                      )
+                      : null,
               color: canProceed ? null : Color(0xFFE2E8F0),
-              boxShadow: canProceed
-                  ? [
-                      BoxShadow(
-                        color: Color(0xFF8B5CF6).withOpacity(0.3),
-                        blurRadius: 15,
-                        offset: Offset(0, 6),
-                      ),
-                    ]
-                  : null,
+              boxShadow:
+                  canProceed
+                      ? [
+                        BoxShadow(
+                          color: Color(0xFF8B5CF6).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: Offset(0, 6),
+                        ),
+                      ]
+                      : null,
             ),
             child: Material(
               color: Colors.transparent,

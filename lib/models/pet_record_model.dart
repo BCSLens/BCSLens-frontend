@@ -1,96 +1,131 @@
-// lib/models/pet_record_model.dart
 class PetRecord {
-  // Create a singleton instance
-  static final PetRecord _instance = PetRecord._internal();
+  // Existing pet information (for adding records to existing pets)
+  String? existingPetId;
+  bool isNewRecordForExistingPet = false;
 
-  // Factory constructor returns the singleton instance
-  factory PetRecord({
-    String? frontViewImagePath,
-    String? topViewImagePath,
-    String? leftViewImagePath,
-    String? rightViewImagePath,
-    String? backViewImagePath,
-    String? predictedAnimal,
-    double? predictionConfidence,
-    String? id,
-  }) {
-    // Update paths if provided
-    if (frontViewImagePath != null) {
-      _instance.frontViewImagePath = frontViewImagePath;
-    }
-    if (topViewImagePath != null) {
-      _instance.topViewImagePath = topViewImagePath;
-    }
-    if (leftViewImagePath != null) {
-      _instance.leftViewImagePath = leftViewImagePath;
-    }
-    if (rightViewImagePath != null) {
-      _instance.rightViewImagePath = rightViewImagePath;
-    }
-    if (backViewImagePath != null) {
-      _instance.backViewImagePath = backViewImagePath;
-    }
-    if (predictedAnimal != null) {
-      _instance.predictedAnimal = predictedAnimal;
-    }
-    if (predictionConfidence != null) {
-      _instance.predictionConfidence = predictionConfidence;
-    }
-    return _instance;
-  }
-
-  // Private constructor
-  PetRecord._internal();
-
-  // Image paths for different views
+  // Image paths
   String? frontViewImagePath;
   String? topViewImagePath;
   String? leftViewImagePath;
   String? rightViewImagePath;
   String? backViewImagePath;
 
-  // View classifications
-  Map<String, String> viewClassifications = {};
-
-  // Pet details
+  // Pet basic information
   String? name;
-  String? age;
   String? breed;
+  String? age;
   String? weight;
-  int? bcs;
-  String? species;
-  String? category;
   String? gender;
   bool? isSterilized;
-  String? additionalNotes;
-  String? groupId;  // Add groupId for API integration
-  
-  // Prediction details
-  String? predictedAnimal; 
-  double? predictionConfidence; 
-  int? predictedClassId;
+  String? category; // 'Dogs' or 'Cats'
+  String? groupId;
 
-  // Method to reset record (useful when starting a new record)
+  // BCS evaluation
+  int? bcs;
+  String? additionalNotes;
+
+  // AI predictions
+  String? predictedAnimal;
+  double? predictionConfidence;
+
+  // Constructor
+  PetRecord({
+    this.existingPetId,
+    this.isNewRecordForExistingPet = false,
+    this.frontViewImagePath,
+    this.topViewImagePath,
+    this.leftViewImagePath,
+    this.rightViewImagePath,
+    this.backViewImagePath,
+    this.name,
+    this.breed,
+    this.age,
+    this.weight,
+    this.gender,
+    this.isSterilized,
+    this.category,
+    this.groupId,
+    this.bcs,
+    this.additionalNotes,
+    this.predictedAnimal,
+    this.predictionConfidence,
+  });
+
+  // Reset method for clearing data
   void reset() {
+    existingPetId = null;
+    isNewRecordForExistingPet = false;
     frontViewImagePath = null;
     topViewImagePath = null;
     leftViewImagePath = null;
     rightViewImagePath = null;
     backViewImagePath = null;
-    viewClassifications = {};
     name = null;
-    age = null;
     breed = null;
+    age = null;
     weight = null;
-    bcs = null;
-    species = null;
-    category = null;
     gender = null;
     isSterilized = null;
+    category = null;
+    groupId = null;
+    bcs = null;
     additionalNotes = null;
     predictedAnimal = null;
     predictionConfidence = null;
-    predictedClassId = null;
-    groupId = null;
+  }
+
+  // Convert to JSON for API calls
+  Map<String, dynamic> toJson() {
+    return {
+      'existingPetId': existingPetId,
+      'isNewRecordForExistingPet': isNewRecordForExistingPet,
+      'frontViewImagePath': frontViewImagePath,
+      'topViewImagePath': topViewImagePath,
+      'leftViewImagePath': leftViewImagePath,
+      'rightViewImagePath': rightViewImagePath,
+      'backViewImagePath': backViewImagePath,
+      'name': name,
+      'breed': breed,
+      'age': age,
+      'weight': weight,
+      'gender': gender,
+      'isSterilized': isSterilized,
+      'category': category,
+      'groupId': groupId,
+      'bcs': bcs,
+      'additionalNotes': additionalNotes,
+      'predictedAnimal': predictedAnimal,
+      'predictionConfidence': predictionConfidence,
+    };
+  }
+
+  // Create from JSON
+  factory PetRecord.fromJson(Map<String, dynamic> json) {
+    return PetRecord(
+      existingPetId: json['existingPetId'],
+      isNewRecordForExistingPet: json['isNewRecordForExistingPet'] ?? false,
+      frontViewImagePath: json['frontViewImagePath'],
+      topViewImagePath: json['topViewImagePath'],
+      leftViewImagePath: json['leftViewImagePath'],
+      rightViewImagePath: json['rightViewImagePath'],
+      backViewImagePath: json['backViewImagePath'],
+      name: json['name'],
+      breed: json['breed'],
+      age: json['age'],
+      weight: json['weight'],
+      gender: json['gender'],
+      isSterilized: json['isSterilized'],
+      category: json['category'],
+      groupId: json['groupId'],
+      bcs: json['bcs'],
+      additionalNotes: json['additionalNotes'],
+      predictedAnimal: json['predictedAnimal'],
+      predictionConfidence: json['predictionConfidence']?.toDouble(),
+    );
+  }
+
+  @override
+  String toString() {
+    return 'PetRecord{existingPetId: $existingPetId, isNewRecordForExistingPet: $isNewRecordForExistingPet, name: $name, bcs: $bcs}';
   }
 }

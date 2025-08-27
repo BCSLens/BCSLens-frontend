@@ -56,40 +56,61 @@ class BCSLensApp extends StatelessWidget {
           }
         },
       ),
-      routes: _defineRoutes(),
+      onGenerateRoute: (RouteSettings settings) {
+        switch (settings.name) {
+          case '/welcome':
+            return MaterialPageRoute(
+              builder: (context) => const WelcomeScreen(),
+            );
+          case '/login':
+            return MaterialPageRoute(builder: (context) => const LoginScreen());
+          case '/signup':
+            return MaterialPageRoute(
+              builder: (context) => const SignUpScreen(),
+            );
+          case '/records':
+            return MaterialPageRoute(
+              builder: (context) => const RecordsScreen(),
+            );
+          case '/add-record':
+            // รับ PetRecord arguments
+            final PetRecord? petRecord = settings.arguments as PetRecord?;
+            return MaterialPageRoute(
+              builder:
+                  (context) => AddRecordScreen(existingPetRecord: petRecord),
+            );
+          case '/special-care':
+            return MaterialPageRoute(
+              builder: (context) => const SpecialCareScreen(),
+            );
+          case '/profile':
+            return MaterialPageRoute(
+              builder: (context) => const ProfileScreen(),
+            );
+          case '/top-side-view':
+            final petRecord = settings.arguments as PetRecord;
+            return MaterialPageRoute(
+              builder: (context) => TopSideViewScreen(petRecord: petRecord),
+            );
+          case '/bcs-evaluation':
+            final petRecord = settings.arguments as PetRecord;
+            return MaterialPageRoute(
+              builder: (context) => BcsEvaluationScreen(petRecord: petRecord),
+            );
+          case '/pet-details':
+            final petRecord = settings.arguments as PetRecord;
+            return MaterialPageRoute(
+              builder: (context) => PetDetailsScreen(petRecord: petRecord),
+            );
+          case '/review-details':
+            final petRecord = settings.arguments as PetRecord;
+            return MaterialPageRoute(
+              builder: (context) => BcsReviewScreen(petRecord: petRecord),
+            );
+          default:
+            return null;
+        }
+      },
     );
-  }
-
-  Map<String, WidgetBuilder> _defineRoutes() {
-    return {
-      '/welcome': (context) => const WelcomeScreen(),
-      '/login': (context) => const LoginScreen(),
-      '/signup': (context) => const SignUpScreen(),
-      '/records': (context) => const RecordsScreen(),
-      '/add-record': (context) => const AddRecordScreen(),
-      '/special-care': (context) => const SpecialCareScreen(),
-      '/profile': (context) => const ProfileScreen(),
-      '/top-side-view': (context) {
-        // Extract the PetRecord from route settings
-        final petRecord =
-            ModalRoute.of(context)!.settings.arguments as PetRecord;
-        return TopSideViewScreen(petRecord: petRecord);
-      },
-      '/bcs-evaluation': (context) {
-        final petRecord =
-            ModalRoute.of(context)!.settings.arguments as PetRecord;
-        return BcsEvaluationScreen(petRecord: petRecord);
-      },
-      '/pet-details': (context) {
-        final petRecord =
-            ModalRoute.of(context)!.settings.arguments as PetRecord;
-        return PetDetailsScreen(petRecord: petRecord);
-      },
-      '/review-details': (context) {
-        final petRecord =
-            ModalRoute.of(context)!.settings.arguments as PetRecord;
-        return BcsReviewScreen(petRecord: petRecord);
-      },
-    };
   }
 }

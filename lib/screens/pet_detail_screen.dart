@@ -389,25 +389,29 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   }
 
   Future<void> _submitRecord() async {
-    // Validate inputs
-    if (_nameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a name for your pet')),
-      );
-      return;
-    }
+    print('🔍 _submitRecord called');
+    print(
+      '🔍 isNewRecordForExistingPet: ${widget.petRecord.isNewRecordForExistingPet}',
+    );
+    print('🔍 existingPetId: ${widget.petRecord.existingPetId}');
 
-    if (_selectedGroup.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a group for your pet')),
-      );
-      return;
+    // Validate weight for existing pets
+    if (widget.petRecord.isNewRecordForExistingPet) {
+      if (_weightController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter current weight')),
+        );
+        return;
+      }
+    } else {
+      // Validate for new pets
+      if (_nameController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a name for your pet')),
+        );
+        return;
+      }
     }
-    print('🔍 Debug age input:');
-    print('  Years controller: "${_ageYearsController.text}"');
-    print('  Months controller: "${_ageMonthsController.text}"');
-    final formattedAge = _formatAgeForSubmission();
-    print('  Formatted age: "$formattedAge"');
 
     setState(() {
       _isLoading = true;
@@ -415,35 +419,66 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     });
 
     try {
-      // Update pet record with form data
-      widget.petRecord.name = _nameController.text;
-      widget.petRecord.age = _formatAgeForSubmission();
-      widget.petRecord.weight = _formatWeightForSubmission();
-      widget.petRecord.breed = _breedController.text;
-      widget.petRecord.gender = _selectedGender;
-      widget.petRecord.isSterilized = _isSterilized;
-      widget.petRecord.groupId = _selectedGroup;
-      widget.petRecord.category =
-          widget.petRecord.predictedAnimal == 'cat' ? 'Cats' : 'Dogs';
-
-      // Create pet in database
       final petService = PetService();
-      final result = await petService.createPet(widget.petRecord);
 
-      // Navigate to review page
-      Navigator.pushReplacementNamed(
-        context,
-        '/review-details',
-        arguments: widget.petRecord,
-      );
+      if (widget.petRecord.isNewRecordForExistingPet &&
+          widget.petRecord.existingPetId != null) {
+        // อัปเดตเฉพาะ weight สำหรับสัตว์เก่า
+        widget.petRecord.weight = _formatWeightForSubmission();
+
+        print(
+          '🔍 Adding record to existing pet: ${widget.petRecord.existingPetId}',
+        );
+
+        final result = await petService.addRecordToExistingPet(
+          widget.petRecord.existingPetId!,
+          widget.petRecord,
+        );
+
+        print('✅ Record added successfully');
+
+        // Navigate กลับไปหน้า Records
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/records',
+          (route) => false,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('New record added for ${widget.petRecord.name}!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // สร้างสัตว์ใหม่ (original code)
+        widget.petRecord.name = _nameController.text;
+        widget.petRecord.age = _formatAgeForSubmission();
+        widget.petRecord.weight = _formatWeightForSubmission();
+        widget.petRecord.breed = _breedController.text;
+        widget.petRecord.gender = _selectedGender;
+        widget.petRecord.isSterilized = _isSterilized;
+        widget.petRecord.groupId = _selectedGroup;
+        widget.petRecord.category =
+            widget.petRecord.predictedAnimal == 'cat' ? 'Cats' : 'Dogs';
+
+        final result = await petService.createPet(widget.petRecord);
+
+        Navigator.pushReplacementNamed(
+          context,
+          '/review-details',
+          arguments: widget.petRecord,
+        );
+      }
     } catch (e) {
+      print('❌ Error in _submitRecord: $e');
       setState(() {
         _errorMessage = 'Error: $e';
       });
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error creating pet: $e')));
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() {
         _isLoading = false;
@@ -451,6 +486,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     }
   }
 
+  // ✅ อัปเดต method build เพื่อแสดงข้อความที่แตกต่างกัน
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -462,11 +498,12 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Add Records at top
                   const SizedBox(height: 46),
                   Center(
                     child: Text(
-                      'Add Records',
+                      widget.petRecord.isNewRecordForExistingPet
+                          ? 'Add New Record'
+                          : 'Add Records',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         color: Color(0xFF7B8EB5),
@@ -476,20 +513,19 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                     ),
                   ),
 
-                  // Line separator
                   const SizedBox(height: 40),
                   Container(height: 1, color: Colors.grey[300]),
 
-                  // Main Content
                   const SizedBox(height: 27),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Step Indicator
                         Text(
-                          'Step 4 of 4',
+                          widget.petRecord.isNewRecordForExistingPet
+                              ? 'Final Step'
+                              : 'Step 4 of 4',
                           style: TextStyle(
                             fontFamily: 'Inter',
                             color: Color(0xFF7B8EB5),
@@ -500,9 +536,10 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
 
                         const SizedBox(height: 6),
 
-                        // Step Description
                         Text(
-                          'Provide details about your pet',
+                          widget.petRecord.isNewRecordForExistingPet
+                              ? 'Update weight for ${widget.petRecord.name}'
+                              : 'Provide details about your pet',
                           style: TextStyle(
                             fontFamily: 'Inter',
                             color: Color(0xFF333333),
@@ -511,157 +548,195 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                           ),
                         ),
 
-                        // Error message if any
-                        // if (_errorMessage != null)
-                        //   Padding(
-                        //     padding: const EdgeInsets.only(top: 8.0),
-                        //     child: Text(
-                        //       _errorMessage!,
-                        //       style: TextStyle(color: Colors.red, fontSize: 14),
-                        //     ),
-                        //   ),
                         const SizedBox(height: 24),
 
-                        // Pet Detail Heading
-                        Text(
-                          'Pet Detail',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            color: Color(0xFF7B8EB5),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Name Field
-                        Text(
-                          'Name',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            color: Color(0xFF333333),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        TextField(
-                          controller: _nameController,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                        // ถ้าเป็นการเพิ่ม record ให้สัตว์เก่า แสดงแค่ weight field
+                        if (widget.petRecord.isNewRecordForExistingPet) ...[
+                          // แสดงข้อมูลสัตว์ที่มีอยู่แล้ว
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Color(0xFFE2E8F0)),
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Color(0xFF6B86C9)),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Breed Field with Autocomplete
-                        Text(
-                          'Breed',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            color: Color(0xFF333333),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        CompositedTransformTarget(
-                          link: _layerLink,
-                          child: Container(
-                            key: _breedFieldKey, // Add key here
-                            child: TextField(
-                              controller: _breedController,
-                              focusNode: _breedFocusNode,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey[300]!,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pet Information',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF7B8EB5),
                                   ),
                                 ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey[300]!,
-                                  ),
+                                SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Name: ',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text('${widget.petRecord.name}'),
+                                  ],
                                 ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Color(0xFF6B86C9),
-                                  ),
+                                SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Breed: ',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${widget.petRecord.breed ?? 'Unknown'}',
+                                    ),
+                                  ],
                                 ),
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
+                                SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Age: ',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${widget.petRecord.age ?? 'Unknown'}',
+                                    ),
+                                  ],
                                 ),
-                                hintText: 'e.g., Labrador Retriever',
-                                suffixIcon:
-                                    _breedController.text.isNotEmpty
-                                        ? IconButton(
-                                          icon: Icon(Icons.clear),
-                                          onPressed: () {
-                                            _breedController.clear();
-                                            _hideBreedOverlay();
-                                            setState(() {
-                                              _showBreedSuggestions = false;
-                                            });
-                                          },
-                                        )
-                                        : Icon(
-                                          Icons.pets,
-                                          color: Colors.grey[400],
-                                        ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(height: 24),
+
+                          // Weight field only for existing pets
+                          Text(
+                            'Current Weight',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              color: Color(0xFF333333),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          TextField(
+                            controller: _weightController,
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d*'),
+                              ),
+                            ],
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Color(0xFF6B86C9),
+                                ),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              hintText: '0.0',
+                              suffixText: 'kg',
+                            ),
+                          ),
+                        ] else ...[
+                          // แสดงฟอร์มเต็มสำหรับสัตว์ใหม่
+                          Text(
+                            'Pet Detail',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              color: Color(0xFF7B8EB5),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Name Field
+                          Text(
+                            'Name',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              color: Color(0xFF333333),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _nameController,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Color(0xFF6B86C9),
+                                ),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
                               ),
                             ),
                           ),
-                        ),
 
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 16),
 
-                        // Age Field with Years and Months
-                        Text(
-                          'Age',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            color: Color(0xFF333333),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
+                          // Breed Field with Autocomplete
+                          Text(
+                            'Breed',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              color: Color(0xFF333333),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        Row(
-                          children: [
-                            // Years input
-                            Expanded(
+                          const SizedBox(height: 8),
+                          CompositedTransformTarget(
+                            link: _layerLink,
+                            child: Container(
+                              key: _breedFieldKey,
                               child: TextField(
-                                controller: _ageYearsController,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
+                                controller: _breedController,
+                                focusNode: _breedFocusNode,
                                 decoration: InputDecoration(
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10),
@@ -685,293 +760,361 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                     horizontal: 16,
                                     vertical: 12,
                                   ),
-                                  hintText: '0',
-                                  suffixText: 'years',
+                                  hintText: 'e.g., Labrador Retriever',
+                                  suffixIcon:
+                                      _breedController.text.isNotEmpty
+                                          ? IconButton(
+                                            icon: Icon(Icons.clear),
+                                            onPressed: () {
+                                              _breedController.clear();
+                                              _hideBreedOverlay();
+                                              setState(() {
+                                                _showBreedSuggestions = false;
+                                              });
+                                            },
+                                          )
+                                          : Icon(
+                                            Icons.pets,
+                                            color: Colors.grey[400],
+                                          ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            // Months input
-                            Expanded(
-                              child: TextField(
-                                controller: _ageMonthsController,
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                  TextInputFormatter.withFunction((
-                                    oldValue,
-                                    newValue,
-                                  ) {
-                                    // Limit months to 0-11
-                                    final int? value = int.tryParse(
-                                      newValue.text,
-                                    );
-                                    if (value == null) return newValue;
-                                    if (value > 11) return oldValue;
-                                    return newValue;
-                                  }),
-                                ],
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: Color(0xFF6B86C9),
-                                    ),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  hintText: '0',
-                                  suffixText: 'months',
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Weight Field with kg suffix
-                        Text(
-                          'Weight',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            color: Color(0xFF333333),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
                           ),
-                        ),
 
-                        const SizedBox(height: 8),
+                          const SizedBox(height: 16),
 
-                        TextField(
-                          controller: _weightController,
-                          keyboardType: TextInputType.numberWithOptions(
-                            decimal: true,
+                          // Age Field with Years and Months
+                          Text(
+                            'Age',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              color: Color(0xFF333333),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                          inputFormatters: [
-                            // Allow decimal numbers
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^\d*\.?\d*'),
-                            ),
-                          ],
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Color(0xFF6B86C9)),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            hintText: '0.0',
-                            suffixText: 'kg',
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Gender selection
-                        Text(
-                          'Gender',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            color: Color(0xFF333333),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: RadioListTile<String>(
-                                title: const Text('Male'),
-                                value: 'Male',
-                                groupValue: _selectedGender,
-                                activeColor: Color(0xFF6B86C9),
-                                contentPadding: EdgeInsets.zero,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedGender = value!;
-                                  });
-                                },
-                              ),
-                            ),
-                            Expanded(
-                              child: RadioListTile<String>(
-                                title: const Text('Female'),
-                                value: 'Female',
-                                groupValue: _selectedGender,
-                                activeColor: Color(0xFF6B86C9),
-                                contentPadding: EdgeInsets.zero,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedGender = value!;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Sterilized checkbox (with more clear terminology)
-                        CheckboxListTile(
-                          title: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          const SizedBox(height: 8),
+                          Row(
                             children: [
-                              Text(
-                                _selectedGender == 'Male'
-                                    ? 'Neutered'
-                                    : 'Spayed',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  color: Color(0xFF333333),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
+                              Expanded(
+                                child: TextField(
+                                  controller: _ageYearsController,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  decoration: InputDecoration(
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Color(0xFF6B86C9),
+                                      ),
+                                    ),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    hintText: '0',
+                                    suffixText: 'years',
+                                  ),
                                 ),
                               ),
-                              Text(
-                                _selectedGender == 'Male'
-                                    ? '(Has been castrated)'
-                                    : '(Has had ovaries removed)',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextField(
+                                  controller: _ageMonthsController,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    TextInputFormatter.withFunction((
+                                      oldValue,
+                                      newValue,
+                                    ) {
+                                      final int? value = int.tryParse(
+                                        newValue.text,
+                                      );
+                                      if (value == null) return newValue;
+                                      if (value > 11) return oldValue;
+                                      return newValue;
+                                    }),
+                                  ],
+                                  decoration: InputDecoration(
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(
+                                        color: Color(0xFF6B86C9),
+                                      ),
+                                    ),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    hintText: '0',
+                                    suffixText: 'months',
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          value: _isSterilized,
-                          activeColor: Color(0xFF6B86C9),
-                          contentPadding: EdgeInsets.zero,
-                          controlAffinity: ListTileControlAffinity.leading,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              _isSterilized = value!;
-                            });
-                          },
-                        ),
 
-                        const SizedBox(height: 16),
+                          const SizedBox(height: 16),
 
-                        // Group Selection
-                        Text(
-                          'Group',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            color: Color(0xFF333333),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        _isLoading
-                            ? Center(child: CircularProgressIndicator())
-                            : Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.grey[300]!),
-                              ),
-                              child:
-                                  _groups.isEmpty
-                                      ? Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Center(
-                                          child: Text(
-                                            'No groups available. Please create a group first.',
-                                            style: TextStyle(color: Colors.red),
-                                          ),
-                                        ),
-                                      )
-                                      : DropdownButtonHideUnderline(
-                                        child: ButtonTheme(
-                                          alignedDropdown: true,
-                                          child: DropdownButton<String>(
-                                            value:
-                                                _selectedGroup.isEmpty
-                                                    ? _groups[0]['_id']
-                                                    : _selectedGroup,
-                                            icon: const Icon(
-                                              Icons.keyboard_arrow_down,
-                                            ),
-                                            isExpanded: true,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                            ),
-                                            style: TextStyle(
-                                              fontFamily: 'Inter',
-                                              color: Color(0xFF333333),
-                                              fontSize: 15,
-                                            ),
-                                            onChanged: (String? value) {
-                                              if (value != null) {
-                                                setState(() {
-                                                  _selectedGroup = value;
-                                                });
-                                              }
-                                            },
-                                            items:
-                                                _groups.map<
-                                                  DropdownMenuItem<String>
-                                                >((group) {
-                                                  return DropdownMenuItem<
-                                                    String
-                                                  >(
-                                                    value: group['_id'],
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons.pets,
-                                                          color: Color(
-                                                            0xFF7B8EB5,
-                                                          ),
-                                                          size: 20,
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 12,
-                                                        ),
-                                                        Text(
-                                                          group['group_name'],
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-                                                }).toList(),
-                                          ),
-                                        ),
-                                      ),
+                          // Weight Field
+                          Text(
+                            'Weight',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              color: Color(0xFF333333),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _weightController,
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d*'),
+                              ),
+                            ],
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(
+                                  color: Color(0xFF6B86C9),
+                                ),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              hintText: '0.0',
+                              suffixText: 'kg',
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Gender selection (only for new pets)
+                          Text(
+                            'Gender',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              color: Color(0xFF333333),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: RadioListTile<String>(
+                                  title: const Text('Male'),
+                                  value: 'Male',
+                                  groupValue: _selectedGender,
+                                  activeColor: Color(0xFF6B86C9),
+                                  contentPadding: EdgeInsets.zero,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedGender = value!;
+                                    });
+                                  },
+                                ),
+                              ),
+                              Expanded(
+                                child: RadioListTile<String>(
+                                  title: const Text('Female'),
+                                  value: 'Female',
+                                  groupValue: _selectedGender,
+                                  activeColor: Color(0xFF6B86C9),
+                                  contentPadding: EdgeInsets.zero,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _selectedGender = value!;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Sterilized checkbox (only for new pets)
+                          CheckboxListTile(
+                            title: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selectedGender == 'Male'
+                                      ? 'Neutered'
+                                      : 'Spayed',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    color: Color(0xFF333333),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  _selectedGender == 'Male'
+                                      ? '(Has been castrated)'
+                                      : '(Has had ovaries removed)',
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    color: Colors.grey[600],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            value: _isSterilized,
+                            activeColor: Color(0xFF6B86C9),
+                            contentPadding: EdgeInsets.zero,
+                            controlAffinity: ListTileControlAffinity.leading,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                _isSterilized = value!;
+                              });
+                            },
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Group Selection (only for new pets)
+                          Text(
+                            'Group',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              color: Color(0xFF333333),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _isLoading
+                              ? Center(child: CircularProgressIndicator())
+                              : Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.grey[300]!),
+                                ),
+                                child:
+                                    _groups.isEmpty
+                                        ? Padding(
+                                          padding: const EdgeInsets.all(16.0),
+                                          child: Center(
+                                            child: Text(
+                                              'No groups available. Please create a group first.',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                        : DropdownButtonHideUnderline(
+                                          child: ButtonTheme(
+                                            alignedDropdown: true,
+                                            child: DropdownButton<String>(
+                                              value:
+                                                  _selectedGroup.isEmpty
+                                                      ? _groups[0]['_id']
+                                                      : _selectedGroup,
+                                              icon: const Icon(
+                                                Icons.keyboard_arrow_down,
+                                              ),
+                                              isExpanded: true,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                  ),
+                                              style: TextStyle(
+                                                fontFamily: 'Inter',
+                                                color: Color(0xFF333333),
+                                                fontSize: 15,
+                                              ),
+                                              onChanged: (String? value) {
+                                                if (value != null) {
+                                                  setState(() {
+                                                    _selectedGroup = value;
+                                                  });
+                                                }
+                                              },
+                                              items:
+                                                  _groups.map<
+                                                    DropdownMenuItem<String>
+                                                  >((group) {
+                                                    return DropdownMenuItem<
+                                                      String
+                                                    >(
+                                                      value: group['_id'],
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.pets,
+                                                            color: Color(
+                                                              0xFF7B8EB5,
+                                                            ),
+                                                            size: 20,
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 12,
+                                                          ),
+                                                          Text(
+                                                            group['group_name'],
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  }).toList(),
+                                            ),
+                                          ),
+                                        ),
+                              ),
+                        ],
 
                         const SizedBox(height: 32),
 
@@ -1016,8 +1159,12 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                         ? CircularProgressIndicator(
                                           color: Colors.white,
                                         )
-                                        : const Text(
-                                          'Submit',
+                                        : Text(
+                                          widget
+                                                  .petRecord
+                                                  .isNewRecordForExistingPet
+                                              ? 'Add Record'
+                                              : 'Submit',
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 16,
@@ -1036,7 +1183,6 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
               ),
             ),
 
-            // Loading indicator
             if (_isLoading)
               Container(
                 color: Colors.black.withOpacity(0.3),
@@ -1048,9 +1194,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
-        onAddRecordsTap: () {
-          // Do nothing, already on add record screen
-        },
+        onAddRecordsTap: () {},
       ),
     );
   }

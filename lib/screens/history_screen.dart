@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
+import '../services/pet_service.dart';
 
 class HistoryScreen extends StatefulWidget {
   final Map<String, dynamic> pet;
@@ -15,10 +16,11 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateMixin {
+class _HistoryScreenState extends State<HistoryScreen>
+    with TickerProviderStateMixin {
   int _selectedIndex = 0; // Records tab
   String _selectedTab = 'Records'; // Default selected tab
-  
+
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -27,28 +29,29 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
-    
+
     _fadeController = AnimationController(
       duration: Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _slideController = AnimationController(
       duration: Duration(milliseconds: 400),
       vsync: this,
     );
-    
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
-    );
-    
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
+
     _slideAnimation = Tween<Offset>(
       begin: Offset(0, 0.3),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(parent: _slideController, curve: Curves.elasticOut),
     );
-    
+
     _fadeController.forward();
     _slideController.forward();
   }
@@ -134,17 +137,18 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: 24), 
+                          SizedBox(height: 24),
                           _buildPetProfileCard(latestWeight),
                           SizedBox(height: 24),
                           _buildModernTabs(),
                           SizedBox(height: 20),
                           Expanded(
-                            child: _selectedTab == 'Records'
-                                ? groupedRecords.isEmpty
-                                    ? _buildEmptyState()
-                                    : _buildModernRecordsTab(groupedRecords)
-                                : _buildGraphsTab(),
+                            child:
+                                _selectedTab == 'Records'
+                                    ? groupedRecords.isEmpty
+                                        ? _buildEmptyState()
+                                        : _buildModernRecordsTab(groupedRecords)
+                                    : _buildGraphsTab(),
                           ),
                         ],
                       ),
@@ -227,6 +231,33 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
   }
 
   Widget _buildPetProfileCard(String latestWeight) {
+    // ✅ เพิ่มการดึงรูปภาพจาก records เหมือน RecordsScreen
+    String imageUrl = '';
+
+    if (widget.pet['records'] != null &&
+        (widget.pet['records'] as List).isNotEmpty) {
+      final latestRecord = (widget.pet['records'] as List).last;
+      final frontImageUrl = latestRecord['front_image_url'];
+
+      print('🔍 Latest record: $latestRecord');
+      print('🔍 Front image URL from record: $frontImageUrl');
+
+      if (frontImageUrl != null && frontImageUrl.toString().isNotEmpty) {
+        if (frontImageUrl.toString().startsWith('http')) {
+          imageUrl = frontImageUrl.toString();
+          print('✅ Using full URL: $imageUrl');
+        } else {
+          imageUrl = '${PetService.uploadBaseUrl}/uploads/$frontImageUrl';
+          print('✅ Constructed URL: $imageUrl');
+          print('🔍 Upload base URL: ${PetService.uploadBaseUrl}');
+        }
+      } else {
+        print('❌ No front_image_url in latest record');
+      }
+    } else {
+      print('❌ No records found for pet');
+    }
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 24),
       padding: EdgeInsets.all(24),
@@ -253,7 +284,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
       ),
       child: Column(
         children: [
-          // Pet Avatar with modern styling
+          // Pet Avatar with modern styling - ใช้ logic เดียวกับ RecordsScreen
           Container(
             width: 100,
             height: 100,
@@ -270,22 +301,57 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                 ),
               ],
             ),
-            child: widget.pet['image_url'] != null &&
-                    widget.pet['image_url'].toString().isNotEmpty
-                ? CircleAvatar(
-                    radius: 48,
-                    backgroundImage: NetworkImage(widget.pet['image_url']),
-                    onBackgroundImageError: (_, __) => null,
-                  )
-                : Icon(
-                    Icons.pets,
-                    size: 40,
-                    color: Colors.white,
-                  ),
+            child: ClipOval(
+              child:
+                  imageUrl.isNotEmpty
+                      ? Image.network(
+                        imageUrl,
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) {
+                            print('✅ Image loaded successfully: $imageUrl');
+                            return child;
+                          }
+                          print('⏳ Loading image: $imageUrl');
+                          return Container(
+                            width: 100,
+                            height: 100,
+                            color: Colors.grey[200],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF6B86C9),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          print('❌ Image load error for URL: $imageUrl');
+                          print('❌ Error: $error');
+
+                          if (imageUrl.isNotEmpty) {
+                            print(
+                              '💡 Try opening this URL in browser: $imageUrl',
+                            );
+                          }
+
+                          return Icon(
+                            Icons.pets,
+                            size: 40,
+                            color: Colors.white,
+                          );
+                        },
+                      )
+                      : Icon(Icons.pets, size: 40, color: Colors.white),
+            ),
           ),
-          
+
           SizedBox(height: 16),
-          
+
           // Pet Name with favorite icon
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -307,17 +373,13 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                   color: Colors.amber.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.star,
-                  color: Colors.amber,
-                  size: 20,
-                ),
+                child: Icon(Icons.star, color: Colors.amber, size: 20),
               ),
             ],
           ),
-          
+
           SizedBox(height: 20),
-          
+
           // Pet Details in modern cards
           _buildModernPetDetails(latestWeight),
         ],
@@ -349,7 +411,12 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildModernInfoCard(String label, String value, IconData icon, Color color) {
+  Widget _buildModernInfoCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -402,12 +469,8 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
       ),
       child: Row(
         children: [
-          Expanded(
-            child: _buildTabButton('Records', Icons.history),
-          ),
-          Expanded(
-            child: _buildTabButton('Graphs', Icons.analytics),
-          ),
+          Expanded(child: _buildTabButton('Records', Icons.history)),
+          Expanded(child: _buildTabButton('Graphs', Icons.analytics)),
         ],
       ),
     );
@@ -415,7 +478,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
 
   Widget _buildTabButton(String title, IconData icon) {
     final isSelected = _selectedTab == title;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -428,15 +491,16 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ]
-              : null,
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ]
+                  : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -474,11 +538,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
               color: Color(0xFF6B86C9).withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.pets,
-              size: 32,
-              color: Color(0xFF6B86C9),
-            ),
+            child: Icon(Icons.pets, size: 32, color: Color(0xFF6B86C9)),
           ),
           SizedBox(height: 16),
           Text(
@@ -527,7 +587,9 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildModernRecordsTab(Map<String, List<Map<String, dynamic>>> groupedRecords) {
+  Widget _buildModernRecordsTab(
+    Map<String, List<Map<String, dynamic>>> groupedRecords,
+  ) {
     return ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: 24),
       itemCount: groupedRecords.length,
@@ -588,9 +650,9 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
               size: 18,
             ),
           ),
-          
+
           SizedBox(width: 16),
-          
+
           // Date text
           Expanded(
             child: Column(
@@ -617,7 +679,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
               ],
             ),
           ),
-          
+
           // BCS Score
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -660,9 +722,9 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
               ],
             ),
           ),
-          
+
           SizedBox(width: 12),
-          
+
           // Weight
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -687,10 +749,10 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
 
   Widget _buildGraphsTab() {
     final List<dynamic> rawRecords = widget.pet['records'] ?? [];
-    
+
     print('🔍 Debug: Raw records count: ${rawRecords.length}');
     print('🔍 Debug: Raw records: $rawRecords');
-    
+
     if (rawRecords.isEmpty) {
       return Center(
         child: Column(
@@ -703,11 +765,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                 color: Color(0xFF8B5CF6).withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.analytics,
-                size: 32,
-                color: Color(0xFF8B5CF6),
-              ),
+              child: Icon(Icons.analytics, size: 32, color: Color(0xFF8B5CF6)),
             ),
             SizedBox(height: 16),
             Text(
@@ -734,14 +792,15 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         ),
       );
     }
-    
+
     // Prepare data for charts
     List<Map<String, dynamic>> chartData = [];
-    
+
     for (int i = 0; i < rawRecords.length; i++) {
       var record = rawRecords[i];
-      DateTime recordDate = DateTime.tryParse(record['date'] ?? '') ?? DateTime.now();
-      
+      DateTime recordDate =
+          DateTime.tryParse(record['date'] ?? '') ?? DateTime.now();
+
       // Parse weight more carefully
       double weight = 0.0;
       if (record['weight'] != null) {
@@ -750,14 +809,14 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         weightStr = weightStr.replaceAll(RegExp(r'[^0-9.]'), '');
         weight = double.tryParse(weightStr) ?? 0.0;
       }
-      
+
       int bcs = 0;
       if (record['score'] != null) {
         bcs = int.tryParse(record['score'].toString()) ?? 0;
       }
-      
+
       print('🔍 Debug record $i: date=$recordDate, weight=$weight, bcs=$bcs');
-      
+
       chartData.add({
         'date': recordDate,
         'weight': weight,
@@ -765,12 +824,12 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         'dateLabel': DateFormat('MMM dd').format(recordDate),
       });
     }
-    
+
     // Sort by date
     chartData.sort((a, b) => a['date'].compareTo(b['date']));
-    
+
     print('🔍 Debug: Chart data prepared: ${chartData.length} items');
-    
+
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(24, 32, 24, 24), // ✅ เพิ่ม top padding
       child: Column(
@@ -787,13 +846,13 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
 
   Widget _buildWeightChart(List<Map<String, dynamic>> data) {
     if (data.isEmpty) return SizedBox.shrink();
-    
+
     print('🔍 Debug Weight Chart: ${data.length} data points');
-    
+
     // Find min and max weight for scaling
     List<double> weights = data.map((d) => d['weight'] as double).toList();
     weights = weights.where((w) => w > 0).toList(); // Filter out zero weights
-    
+
     if (weights.isEmpty) {
       return Container(
         padding: EdgeInsets.all(20),
@@ -851,18 +910,18 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         ),
       );
     }
-    
+
     double minWeight = weights.reduce((a, b) => a < b ? a : b);
     double maxWeight = weights.reduce((a, b) => a > b ? a : b);
-    
+
     print('🔍 Weight range: $minWeight - $maxWeight');
-    
+
     // Add some padding to the range
     double weightRange = maxWeight - minWeight;
     if (weightRange == 0) weightRange = 1;
     minWeight = (minWeight - weightRange * 0.1).clamp(0, double.infinity);
     maxWeight = maxWeight + weightRange * 0.1;
-    
+
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -923,13 +982,13 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
 
   Widget _buildBCSChart(List<Map<String, dynamic>> data) {
     if (data.isEmpty) return SizedBox.shrink();
-    
+
     print('🔍 Debug BCS Chart: ${data.length} data points');
-    
+
     // Check if there's any BCS data
     List<int> bcsScores = data.map((d) => d['bcs'] as int).toList();
     bcsScores = bcsScores.where((bcs) => bcs > 0).toList();
-    
+
     if (bcsScores.isEmpty) {
       return Container(
         padding: EdgeInsets.all(20),
@@ -987,7 +1046,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
         ),
       );
     }
-    
+
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1013,11 +1072,7 @@ class _HistoryScreenState extends State<HistoryScreen> with TickerProviderStateM
                   color: Color(0xFF6366F1).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  Icons.favorite,
-                  color: Color(0xFF6366F1),
-                  size: 20,
-                ),
+                child: Icon(Icons.favorite, color: Color(0xFF6366F1), size: 20),
               ),
               SizedBox(width: 12),
               Text(
@@ -1084,23 +1139,24 @@ class WeightChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (data.isEmpty) return;
 
-    final paint = Paint()
-      ..color = Color(0xFF10B981)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    final paint =
+        Paint()
+          ..color = Color(0xFF10B981)
+          ..strokeWidth = 3
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
 
-    final pointPaint = Paint()
-      ..color = Color(0xFF10B981)
-      ..style = PaintingStyle.fill;
+    final pointPaint =
+        Paint()
+          ..color = Color(0xFF10B981)
+          ..style = PaintingStyle.fill;
 
-    final gridPaint = Paint()
-      ..color = Color(0xFFE2E8F0)
-      ..strokeWidth = 1;
+    final gridPaint =
+        Paint()
+          ..color = Color(0xFFE2E8F0)
+          ..strokeWidth = 1;
 
-    final textPainter = TextPainter(
-      textDirection: ui.TextDirection.ltr,
-    );
+    final textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
 
     // Draw grid lines
     for (int i = 0; i <= 4; i++) {
@@ -1118,14 +1174,16 @@ class WeightChartPainter extends CustomPainter {
       } else {
         x = size.width * i / (data.length - 1);
       }
-      
+
       double weight = data[i]['weight'];
       double y;
       if (maxWeight == minWeight) {
         // ✅ ถ้าน้ำหนักเท่ากัน ให้วางตรงกลาง
         y = size.height / 2;
       } else {
-        y = size.height - (size.height * (weight - minWeight) / (maxWeight - minWeight));
+        y =
+            size.height -
+            (size.height * (weight - minWeight) / (maxWeight - minWeight));
       }
       points.add(Offset(x, y));
     }
@@ -1144,19 +1202,27 @@ class WeightChartPainter extends CustomPainter {
     for (int i = 0; i < points.length; i++) {
       // Draw larger point for single data point
       double pointRadius = data.length == 1 ? 8 : 6;
-      
+
       // Draw point with glow effect for single point
       if (data.length == 1) {
-        canvas.drawCircle(points[i], pointRadius + 4, Paint()
-          ..color = Color(0xFF10B981).withOpacity(0.3)
-          ..style = PaintingStyle.fill);
+        canvas.drawCircle(
+          points[i],
+          pointRadius + 4,
+          Paint()
+            ..color = Color(0xFF10B981).withOpacity(0.3)
+            ..style = PaintingStyle.fill,
+        );
       }
-      
+
       canvas.drawCircle(points[i], pointRadius, pointPaint);
-      canvas.drawCircle(points[i], pointRadius, Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2);
+      canvas.drawCircle(
+        points[i],
+        pointRadius,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
 
       // ✅ แสดง weight value บนจุด
       textPainter.text = TextSpan(
@@ -1168,23 +1234,32 @@ class WeightChartPainter extends CustomPainter {
         ),
       );
       textPainter.layout();
-      
+
       double textX = points[i].dx - textPainter.width / 2;
       double textY = points[i].dy - 25;
-      
+
       // Draw background for text
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(textX - 4, textY - 2, textPainter.width + 8, textPainter.height + 4),
+          Rect.fromLTWH(
+            textX - 4,
+            textY - 2,
+            textPainter.width + 8,
+            textPainter.height + 4,
+          ),
           Radius.circular(4),
         ),
-        Paint()..color = Colors.white..style = PaintingStyle.fill,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.fill,
       );
-      
+
       textPainter.paint(canvas, Offset(textX, textY));
 
       // Draw date labels
-      if (data.length == 1 || i % ((data.length / 4).ceil()) == 0 || i == data.length - 1) {
+      if (data.length == 1 ||
+          i % ((data.length / 4).ceil()) == 0 ||
+          i == data.length - 1) {
         textPainter.text = TextSpan(
           text: data[i]['dateLabel'],
           style: TextStyle(
@@ -1194,10 +1269,10 @@ class WeightChartPainter extends CustomPainter {
           ),
         );
         textPainter.layout();
-        
+
         double dateTextX = points[i].dx - textPainter.width / 2;
         double dateTextY = size.height + 8;
-        
+
         textPainter.paint(canvas, Offset(dateTextX, dateTextY));
       }
     }
@@ -1217,23 +1292,24 @@ class BCSChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (data.isEmpty) return;
 
-    final paint = Paint()
-      ..color = Color(0xFF6366F1)
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    final paint =
+        Paint()
+          ..color = Color(0xFF6366F1)
+          ..strokeWidth = 3
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
 
-    final pointPaint = Paint()
-      ..color = Color(0xFF6366F1)
-      ..style = PaintingStyle.fill;
+    final pointPaint =
+        Paint()
+          ..color = Color(0xFF6366F1)
+          ..style = PaintingStyle.fill;
 
-    final gridPaint = Paint()
-      ..color = Color(0xFFE2E8F0)
-      ..strokeWidth = 1;
+    final gridPaint =
+        Paint()
+          ..color = Color(0xFFE2E8F0)
+          ..strokeWidth = 1;
 
-    final textPainter = TextPainter(
-      textDirection: ui.TextDirection.ltr,
-    );
+    final textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
 
     // Draw grid lines
     for (int i = 0; i <= 4; i++) {
@@ -1251,9 +1327,11 @@ class BCSChartPainter extends CustomPainter {
       } else {
         x = size.width * i / (data.length - 1);
       }
-      
+
       double bcs = data[i]['bcs'].toDouble();
-      double y = size.height - (size.height * (bcs - 1) / 8); // Scale 1-9 to full height
+      double y =
+          size.height -
+          (size.height * (bcs - 1) / 8); // Scale 1-9 to full height
       points.add(Offset(x, y));
     }
 
@@ -1271,19 +1349,27 @@ class BCSChartPainter extends CustomPainter {
     for (int i = 0; i < points.length; i++) {
       // Draw larger point for single data point
       double pointRadius = data.length == 1 ? 8 : 6;
-      
+
       // Draw point with glow effect for single point
       if (data.length == 1) {
-        canvas.drawCircle(points[i], pointRadius + 4, Paint()
-          ..color = Color(0xFF6366F1).withOpacity(0.3)
-          ..style = PaintingStyle.fill);
+        canvas.drawCircle(
+          points[i],
+          pointRadius + 4,
+          Paint()
+            ..color = Color(0xFF6366F1).withOpacity(0.3)
+            ..style = PaintingStyle.fill,
+        );
       }
-      
+
       canvas.drawCircle(points[i], pointRadius, pointPaint);
-      canvas.drawCircle(points[i], pointRadius, Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2);
+      canvas.drawCircle(
+        points[i],
+        pointRadius,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
 
       // ✅ แสดง BCS value บนจุด
       textPainter.text = TextSpan(
@@ -1295,23 +1381,32 @@ class BCSChartPainter extends CustomPainter {
         ),
       );
       textPainter.layout();
-      
+
       double textX = points[i].dx - textPainter.width / 2;
       double textY = points[i].dy - 25;
-      
+
       // Draw background for text
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(textX - 4, textY - 2, textPainter.width + 8, textPainter.height + 4),
+          Rect.fromLTWH(
+            textX - 4,
+            textY - 2,
+            textPainter.width + 8,
+            textPainter.height + 4,
+          ),
           Radius.circular(4),
         ),
-        Paint()..color = Colors.white..style = PaintingStyle.fill,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.fill,
       );
-      
+
       textPainter.paint(canvas, Offset(textX, textY));
 
       // Draw date labels
-      if (data.length == 1 || i % ((data.length / 4).ceil()) == 0 || i == data.length - 1) {
+      if (data.length == 1 ||
+          i % ((data.length / 4).ceil()) == 0 ||
+          i == data.length - 1) {
         textPainter.text = TextSpan(
           text: data[i]['dateLabel'],
           style: TextStyle(
@@ -1321,10 +1416,10 @@ class BCSChartPainter extends CustomPainter {
           ),
         );
         textPainter.layout();
-        
+
         double dateTextX = points[i].dx - textPainter.width / 2;
         double dateTextY = size.height + 8;
-        
+
         textPainter.paint(canvas, Offset(dateTextX, dateTextY));
       }
     }
