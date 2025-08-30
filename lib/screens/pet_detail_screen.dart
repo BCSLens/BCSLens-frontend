@@ -89,7 +89,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   FocusNode _breedFocusNode = FocusNode();
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
-  final GlobalKey _breedFieldKey = GlobalKey(); // Add this key for positioning
+  final GlobalKey _breedFieldKey = GlobalKey();
 
   // Available groups
   List<Map<String, dynamic>> _groups = [];
@@ -99,6 +99,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    
     // Initialize with existing data if available
     if (widget.petRecord.name != null) {
       _nameController.text = widget.petRecord.name!;
@@ -173,8 +174,6 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   void _onBreedTextChanged() {
     final String query = _breedController.text.toLowerCase().trim();
 
-    print('Breed text changed: "$query"'); // Debug print
-
     if (query.isEmpty) {
       setState(() {
         _breedSuggestions = [];
@@ -188,19 +187,12 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     List<String> breeds =
         widget.petRecord.predictedAnimal == 'cat' ? _catBreeds : _dogBreeds;
 
-    print(
-      'Using breeds for: ${widget.petRecord.predictedAnimal}',
-    ); // Debug print
-    print('Available breeds: ${breeds.take(5).toList()}'); // Debug print
-
     // Filter breeds that match the query (case insensitive)
     List<String> filteredBreeds =
         breeds
             .where((breed) => breed.toLowerCase().contains(query))
             .take(5) // Limit to 5 suggestions
             .toList();
-
-    print('Filtered breeds: $filteredBreeds'); // Debug print
 
     setState(() {
       _breedSuggestions = filteredBreeds;
@@ -242,8 +234,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     );
 
     _overlayEntry = OverlayEntry(
-      builder:
-          (context) => Positioned(
+      builder: (context) => Positioned(
             left: position.left + 24, // Account for screen padding
             top: position.bottom + 4,
             width: renderBox.size.width,
@@ -261,15 +252,11 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
                   itemCount: _breedSuggestions.length,
-                  separatorBuilder:
-                      (context, index) =>
+              separatorBuilder: (context, index) =>
                           Divider(height: 1, color: Colors.grey[200]),
                   itemBuilder: (context, index) {
                     return InkWell(
                       onTap: () {
-                        print(
-                          'Selected breed: ${_breedSuggestions[index]}',
-                        ); // Debug print
                         _breedController.text = _breedSuggestions[index];
                         _hideBreedOverlay();
                         _breedFocusNode.unfocus();
@@ -389,12 +376,6 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   }
 
   Future<void> _submitRecord() async {
-    print('🔍 _submitRecord called');
-    print(
-      '🔍 isNewRecordForExistingPet: ${widget.petRecord.isNewRecordForExistingPet}',
-    );
-    print('🔍 existingPetId: ${widget.petRecord.existingPetId}');
-
     // Validate weight for existing pets
     if (widget.petRecord.isNewRecordForExistingPet) {
       if (_weightController.text.isEmpty) {
@@ -426,16 +407,10 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
         // อัปเดตเฉพาะ weight สำหรับสัตว์เก่า
         widget.petRecord.weight = _formatWeightForSubmission();
 
-        print(
-          '🔍 Adding record to existing pet: ${widget.petRecord.existingPetId}',
-        );
-
         final result = await petService.addRecordToExistingPet(
           widget.petRecord.existingPetId!,
           widget.petRecord,
         );
-
-        print('✅ Record added successfully');
 
         // Navigate กลับไปหน้า Records
         Navigator.pushNamedAndRemoveUntil(
@@ -471,14 +446,13 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
         );
       }
     } catch (e) {
-      print('❌ Error in _submitRecord: $e');
       setState(() {
         _errorMessage = 'Error: $e';
       });
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     } finally {
       setState(() {
         _isLoading = false;
@@ -486,283 +460,643 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     }
   }
 
-  // ✅ อัปเดต method build เพื่อแสดงข้อความที่แตกต่างกัน
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Stack(
+  // Helper method to build modern input fields
+  Widget _buildInputSection(String label, String hint, IconData icon, TextEditingController controller, {TextInputType? keyboardType, List<TextInputFormatter>? inputFormatters, String? suffixText}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 46),
-                  Center(
-                    child: Text(
-                      widget.petRecord.isNewRecordForExistingPet
-                          ? 'Add New Record'
-                          : 'Add Records',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF7B8EB5),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+        Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Color(0xFF6B86C9).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                size: 16,
+                color: Color(0xFF6B86C9),
+              ),
+            ),
+            SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Color(0xFF6B86C9), width: 2),
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              hintText: hint,
+              hintStyle: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF94A3B8),
+              ),
+              suffixText: suffixText,
+              suffixStyle: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF6B86C9),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper method to build info rows for existing pets
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Color(0xFF6B86C9).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 16,
+            color: Color(0xFF6B86C9),
+          ),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Modern header with back button
+  Widget _buildModernHeader() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF6B86C9),
+            Color(0xFF8BA3E7),
+          ],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF6B86C9).withOpacity(0.3),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  widget.petRecord.isNewRecordForExistingPet
+                      ? 'Add New Record'
+                      : 'Pet Details',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
                   ),
+                ),
+              ),
+            ),
+            SizedBox(width: 44), // Balance the back button
+          ],
+        ),
+      ),
+    );
+  }
 
-                  const SizedBox(height: 40),
-                  Container(height: 1, color: Colors.grey[300]),
-
-                  const SizedBox(height: 27),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+  // Progress indicator
+  Widget _buildProgressIndicator() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Step 4 of 4',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: 1.0, // 4/4 progress - complete
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                        ),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
                         Text(
-                          widget.petRecord.isNewRecordForExistingPet
-                              ? 'Final Step'
-                              : 'Step 4 of 4',
+            'Pet Details',
                           style: TextStyle(
                             fontFamily: 'Inter',
-                            color: Color(0xFF7B8EB5),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-
-                        const SizedBox(height: 6),
-
+              color: Color(0xFF1E293B),
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
                         Text(
-                          widget.petRecord.isNewRecordForExistingPet
-                              ? 'Update weight for ${widget.petRecord.name}'
-                              : 'Provide details about your pet',
+            'Complete your pet\'s information to finish the record',
                           style: TextStyle(
                             fontFamily: 'Inter',
-                            color: Color(0xFF333333),
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+              color: Color(0xFF64748B),
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                        const SizedBox(height: 24),
-
-                        // ถ้าเป็นการเพิ่ม record ให้สัตว์เก่า แสดงแค่ weight field
-                        if (widget.petRecord.isNewRecordForExistingPet) ...[
-                          // แสดงข้อมูลสัตว์ที่มีอยู่แล้ว
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Background with subtle gradient
                           Container(
-                            padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Color(0xFFE2E8F0)),
-                            ),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFFF8FAFC),
+                    Color(0xFFF1F5F9),
+                  ],
+                ),
+              ),
+            ),
+            SingleChildScrollView(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Pet Information',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF7B8EB5),
+                  const SizedBox(height: 20),
+                  
+                  // Modern Header with back button
+                  _buildModernHeader(),
+
+                  const SizedBox(height: 44),
+                  
+                  // Progress Indicator
+                  _buildProgressIndicator(),
+
+                  const SizedBox(height: 32),
+                  
+                  // Main Content Card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 20,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Check if this is for existing pet or new pet
+                            if (widget.petRecord.isNewRecordForExistingPet) ...[
+                              // Header for existing pet
+                                Row(
+                                  children: [
+                                  Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFF6B86C9).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(
+                                      Icons.pets,
+                                      color: Color(0xFF6B86C9),
+                                      size: 20,
+                                    ),
                                   ),
-                                ),
-                                SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Text(
-                                      'Name: ',
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Update Record for ${widget.petRecord.name}',
                                       style: TextStyle(
-                                        fontWeight: FontWeight.w500,
+                                        fontFamily: 'Inter',
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF1E293B),
                                       ),
                                     ),
-                                    Text('${widget.petRecord.name}'),
-                                  ],
-                                ),
-                                SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Text(
-                                      'Breed: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${widget.petRecord.breed ?? 'Unknown'}',
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 4),
+                              
+                              SizedBox(height: 24),
+                              
+                              // Pet Info Card
+                              Container(
+                                padding: EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Color(0xFFF8FAFC),
+                                      Color(0xFFF1F5F9),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Color(0xFFE2E8F0), width: 1),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                 Row(
                                   children: [
+                                        Icon(
+                                          Icons.info_outline,
+                                          color: Color(0xFF6B86C9),
+                                          size: 18,
+                                        ),
+                                        SizedBox(width: 8),
                                     Text(
-                                      'Age: ',
+                                          'Pet Information',
                                       style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                            fontFamily: 'Inter',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF6B86C9),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      '${widget.petRecord.age ?? 'Unknown'}',
-                                    ),
-                                  ],
-                                ),
+                                    SizedBox(height: 16),
+                                    
+                                    // Info Row Items
+                                    _buildInfoRow(Icons.badge, 'Name', widget.petRecord.name ?? 'Unknown'),
+                                    SizedBox(height: 12),
+                                    _buildInfoRow(Icons.category, 'Breed', widget.petRecord.breed ?? 'Unknown'),
+                                    SizedBox(height: 12),
+                                    _buildInfoRow(Icons.cake, 'Age', '${widget.petRecord.age ?? 'Unknown'}'),
+                                    SizedBox(height: 12),
+                                    _buildInfoRow(Icons.pets, 'Type', widget.petRecord.category ?? 'Unknown'),
                               ],
                             ),
                           ),
 
                           SizedBox(height: 24),
 
-                          // Weight field only for existing pets
+                              // Weight Section
+                              Container(
+                                padding: EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Color(0xFFE2E8F0)),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Color(0xFF10B981).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Icon(
+                                            Icons.monitor_weight,
+                                            color: Color(0xFF10B981),
+                                            size: 20,
+                                          ),
+                                        ),
+                                        SizedBox(width: 12),
                           Text(
-                            'Current Weight',
+                                          'Update Weight',
                             style: TextStyle(
                               fontFamily: 'Inter',
-                              color: Color(0xFF333333),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                      ],
                           ),
                           SizedBox(height: 8),
-                          TextField(
-                            controller: _weightController,
-                            keyboardType: TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'^\d*\.?\d*'),
-                              ),
-                            ],
+                                    Text(
+                                      'Enter the current weight of ${widget.petRecord.name}',
+                                      style: TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 14,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                    SizedBox(height: 16),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.05),
+                                            blurRadius: 8,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: TextField(
+                                        controller: _weightController,
+                                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                                        ],
                             decoration: InputDecoration(
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[300]!,
-                                ),
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: BorderSide.none,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[300]!,
-                                ),
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: BorderSide(color: Color(0xFFE2E8F0)),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: Color(0xFF6B86C9),
-                                ),
-                              ),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              hintText: '0.0',
-                              suffixText: 'kg',
-                            ),
-                          ),
-                        ] else ...[
-                          // แสดงฟอร์มเต็มสำหรับสัตว์ใหม่
-                          Text(
-                            'Pet Detail',
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: BorderSide(color: Color(0xFF6B86C9), width: 2),
+                                          ),
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                          hintText: 'Enter weight...',
+                                          hintStyle: TextStyle(
+                                            fontFamily: 'Inter',
+                                            color: Color(0xFF94A3B8),
+                                          ),
+                                          suffixIcon: Container(
+                                            margin: EdgeInsets.all(8),
+                                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: Color(0xFF6B86C9).withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              'kg',
                             style: TextStyle(
                               fontFamily: 'Inter',
-                              color: Color(0xFF7B8EB5),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Name Field
-                          Text(
-                            'Name',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              color: Color(0xFF333333),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _nameController,
-                            decoration: InputDecoration(
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[300]!,
+                                                color: Color(0xFF6B86C9),
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              enabledBorder: OutlineInputBorder(
+                            ] else ...[
+                              // Header for new pet
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Color(0xFF6B86C9).withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[300]!,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
+                                    ),
+                                    child: Icon(
+                                      Icons.pets,
                                   color: Color(0xFF6B86C9),
+                                      size: 20,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Text(
+                                    'Pet Details',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Complete your pet\'s information',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 14,
+                                  color: Color(0xFF64748B),
                                 ),
                               ),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
+                              const SizedBox(height: 24),
+
+                              // Name Field
+                              _buildInputSection(
+                                'Pet Name',
+                                'Enter your pet\'s name',
+                                Icons.badge,
+                                _nameController,
                               ),
-                            ),
-                          ),
+                              const SizedBox(height: 20),
 
-                          const SizedBox(height: 16),
-
-                          // Breed Field with Autocomplete
+                              // Breed Field - Special handling for autocomplete
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF6B86C9).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          Icons.category,
+                                          size: 16,
+                                          color: Color(0xFF6B86C9),
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
                           Text(
                             'Breed',
                             style: TextStyle(
                               fontFamily: 'Inter',
-                              color: Color(0xFF333333),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF1E293B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8),
                           CompositedTransformTarget(
                             link: _layerLink,
                             child: Container(
                               key: _breedFieldKey,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.05),
+                                            blurRadius: 8,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
                               child: TextField(
                                 controller: _breedController,
                                 focusNode: _breedFocusNode,
                                 decoration: InputDecoration(
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: BorderSide.none,
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: Colors.grey[300]!,
-                                    ),
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: BorderSide(color: Color(0xFFE2E8F0)),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(
-                                      color: Color(0xFF6B86C9),
-                                    ),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  hintText: 'e.g., Labrador Retriever',
-                                  suffixIcon:
-                                      _breedController.text.isNotEmpty
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: BorderSide(color: Color(0xFF6B86C9), width: 2),
+                                          ),
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                          hintText: 'Enter your pet\'s breed',
+                                          hintStyle: TextStyle(
+                                            fontFamily: 'Inter',
+                                            color: Color(0xFF94A3B8),
+                                          ),
+                                          suffixIcon: _breedController.text.isNotEmpty
                                           ? IconButton(
                                             icon: Icon(Icons.clear),
                                             onPressed: () {
@@ -781,394 +1115,357 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                               ),
                             ),
                           ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
 
-                          const SizedBox(height: 16),
-
-                          // Age Field with Years and Months
-                          Text(
-                            'Age',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              color: Color(0xFF333333),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
+                              // Age Fields
                           Row(
                             children: [
                               Expanded(
-                                child: TextField(
-                                  controller: _ageYearsController,
+                                    child: _buildInputSection(
+                                      'Years',
+                                      '0',
+                                      Icons.cake,
+                                      _ageYearsController,
                                   keyboardType: TextInputType.number,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                  ],
-                                  decoration: InputDecoration(
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[300]!,
-                                      ),
+                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                     ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[300]!,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(
-                                        color: Color(0xFF6B86C9),
-                                      ),
-                                    ),
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    hintText: '0',
-                                    suffixText: 'years',
                                   ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
+                                  SizedBox(width: 16),
                               Expanded(
-                                child: TextField(
-                                  controller: _ageMonthsController,
+                                    child: _buildInputSection(
+                                      'Months',
+                                      '0',
+                                      Icons.schedule,
+                                      _ageMonthsController,
                                   keyboardType: TextInputType.number,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.digitsOnly,
-                                    TextInputFormatter.withFunction((
-                                      oldValue,
-                                      newValue,
-                                    ) {
-                                      final int? value = int.tryParse(
-                                        newValue.text,
-                                      );
+                                        TextInputFormatter.withFunction((oldValue, newValue) {
+                                          final int? value = int.tryParse(newValue.text);
                                       if (value == null) return newValue;
                                       if (value > 11) return oldValue;
                                       return newValue;
                                     }),
                                   ],
-                                  decoration: InputDecoration(
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[300]!,
-                                      ),
                                     ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(
-                                        color: Colors.grey[300]!,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                      borderSide: BorderSide(
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Weight Field
+                              _buildInputSection(
+                                'Weight',
+                                'Enter weight',
+                                Icons.monitor_weight,
+                                _weightController,
+                                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+                                suffixText: 'kg',
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Gender Selection
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF6B86C9).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          Icons.pets,
+                                          size: 16,
                                         color: Color(0xFF6B86C9),
                                       ),
                                     ),
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    hintText: '0',
-                                    suffixText: 'months',
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Weight Field
+                                      SizedBox(width: 8),
                           Text(
-                            'Weight',
+                                        'Gender',
                             style: TextStyle(
                               fontFamily: 'Inter',
-                              color: Color(0xFF333333),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _weightController,
-                            keyboardType: TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'^\d*\.?\d*'),
-                              ),
-                            ],
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF1E293B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 8,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: DropdownButtonFormField<String>(
+                                      value: _selectedGender,
                             decoration: InputDecoration(
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[300]!,
-                                ),
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide.none,
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[300]!,
-                                ),
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(color: Color(0xFFE2E8F0)),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: Color(0xFF6B86C9),
-                                ),
-                              ),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              hintText: '0.0',
-                              suffixText: 'kg',
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Gender selection (only for new pets)
-                          Text(
-                            'Gender',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              color: Color(0xFF333333),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: RadioListTile<String>(
-                                  title: const Text('Male'),
-                                  value: 'Male',
-                                  groupValue: _selectedGender,
-                                  activeColor: Color(0xFF6B86C9),
-                                  contentPadding: EdgeInsets.zero,
-                                  onChanged: (value) {
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(color: Color(0xFF6B86C9), width: 2),
+                                        ),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                      ),
+                                      items: ['Male', 'Female'].map((String gender) {
+                                        return DropdownMenuItem<String>(
+                                          value: gender,
+                                          child: Text(gender),
+                                        );
+                                      }).toList(),
+                                      onChanged: (String? newValue) {
                                     setState(() {
-                                      _selectedGender = value!;
-                                    });
-                                  },
-                                ),
-                              ),
-                              Expanded(
-                                child: RadioListTile<String>(
-                                  title: const Text('Female'),
-                                  value: 'Female',
-                                  groupValue: _selectedGender,
-                                  activeColor: Color(0xFF6B86C9),
-                                  contentPadding: EdgeInsets.zero,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _selectedGender = value!;
+                                          _selectedGender = newValue!;
                                     });
                                   },
                                 ),
                               ),
                             ],
                           ),
+                              const SizedBox(height: 20),
 
-                          const SizedBox(height: 16),
-
-                          // Sterilized checkbox (only for new pets)
-                          CheckboxListTile(
-                            title: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              // Sterilization Status
+                              Container(
+                                padding: EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Color(0xFFE2E8F0)),
+                                ),
+                                child: Row(
                               children: [
-                                Text(
-                                  _selectedGender == 'Male'
-                                      ? 'Neutered'
-                                      : 'Spayed',
+                                    Container(
+                                      padding: EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Color(0xFF6B86C9).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.medical_services,
+                                        size: 16,
+                                        color: Color(0xFF6B86C9),
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        'Spayed/Neutered',
                                   style: TextStyle(
                                     fontFamily: 'Inter',
-                                    color: Color(0xFF333333),
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF1E293B),
                                   ),
                                 ),
-                                Text(
-                                  _selectedGender == 'Male'
-                                      ? '(Has been castrated)'
-                                      : '(Has had ovaries removed)',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
                             ),
+                                    Switch(
                             value: _isSterilized,
-                            activeColor: Color(0xFF6B86C9),
-                            contentPadding: EdgeInsets.zero,
-                            controlAffinity: ListTileControlAffinity.leading,
-                            onChanged: (bool? value) {
+                                      onChanged: (bool value) {
                               setState(() {
-                                _isSterilized = value!;
+                                          _isSterilized = value;
                               });
                             },
-                          ),
-
-                          const SizedBox(height: 16),
+                                      activeColor: Color(0xFF6B86C9),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 20),
 
                           // Group Selection (only for new pets)
+                              if (_groups.isNotEmpty) ...[
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Color(0xFF6B86C9).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(
+                                            Icons.group,
+                                            size: 16,
+                                            color: Color(0xFF6B86C9),
+                                          ),
+                                        ),
+                                        SizedBox(width: 8),
                           Text(
                             'Group',
                             style: TextStyle(
                               fontFamily: 'Inter',
-                              color: Color(0xFF333333),
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _isLoading
-                              ? Center(child: CircularProgressIndicator())
-                              : Container(
-                                width: double.infinity,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: Colors.grey[300]!),
-                                ),
-                                child:
-                                    _groups.isEmpty
-                                        ? Padding(
-                                          padding: const EdgeInsets.all(16.0),
-                                          child: Center(
-                                            child: Text(
-                                              'No groups available. Please create a group first.',
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                              ),
-                                            ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.05),
+                                            blurRadius: 8,
+                                            offset: Offset(0, 2),
                                           ),
-                                        )
-                                        : DropdownButtonHideUnderline(
-                                          child: ButtonTheme(
-                                            alignedDropdown: true,
-                                            child: DropdownButton<String>(
-                                              value:
-                                                  _selectedGroup.isEmpty
-                                                      ? _groups[0]['_id']
-                                                      : _selectedGroup,
-                                              icon: const Icon(
-                                                Icons.keyboard_arrow_down,
-                                              ),
-                                              isExpanded: true,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 16,
-                                                  ),
-                                              style: TextStyle(
-                                                fontFamily: 'Inter',
-                                                color: Color(0xFF333333),
-                                                fontSize: 15,
-                                              ),
-                                              onChanged: (String? value) {
-                                                if (value != null) {
-                                                  setState(() {
-                                                    _selectedGroup = value;
-                                                  });
-                                                }
-                                              },
-                                              items:
-                                                  _groups.map<
-                                                    DropdownMenuItem<String>
-                                                  >((group) {
-                                                    return DropdownMenuItem<
-                                                      String
-                                                    >(
+                                        ],
+                                      ),
+                                      child: DropdownButtonFormField<String>(
+                                        value: _selectedGroup.isEmpty ? _groups[0]['_id'] : _selectedGroup,
+                                        decoration: InputDecoration(
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: BorderSide.none,
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: BorderSide(color: Color(0xFFE2E8F0)),
+                                          ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                            borderSide: BorderSide(color: Color(0xFF6B86C9), width: 2),
+                                          ),
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                        ),
+                                        items: _groups.map<DropdownMenuItem<String>>((group) {
+                                          return DropdownMenuItem<String>(
                                                       value: group['_id'],
                                                       child: Row(
                                                         children: [
                                                           Icon(
                                                             Icons.pets,
-                                                            color: Color(
-                                                              0xFF7B8EB5,
-                                                            ),
+                                                  color: Color(0xFF7B8EB5),
                                                             size: 20,
                                                           ),
-                                                          const SizedBox(
-                                                            width: 12,
-                                                          ),
-                                                          Text(
-                                                            group['group_name'],
-                                                          ),
+                                                const SizedBox(width: 12),
+                                                Text(group['group_name']),
                                                         ],
                                                       ),
                                                     );
                                                   }).toList(),
+                                        onChanged: (String? newValue) {
+                                          setState(() {
+                                            _selectedGroup = newValue!;
+                                          });
+                                        },
                                             ),
                                           ),
-                                        ),
+                                  ],
                               ),
+                              ],
                         ],
 
                         const SizedBox(height: 32),
 
-                        // Navigation Buttons
+                            // Action Buttons
                         Row(
                           children: [
                             Expanded(
                               child: OutlinedButton(
-                                onPressed: _goBack,
+                                    onPressed: () => Navigator.pop(context),
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                    color: Color(0xFF6B86C9),
-                                  ),
+                                      side: BorderSide(color: Color(0xFF6B86C9)),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(25),
                                   ),
-                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                      padding: EdgeInsets.symmetric(vertical: 16),
                                 ),
-                                child: const Text(
+                                    child: Text(
                                   'Back',
                                   style: TextStyle(
                                     fontFamily: 'Inter',
-                                    color: Color(0xFF6B86C9),
                                     fontSize: 16,
+                                        color: Color(0xFF6B86C9),
                                   ),
                                 ),
                               ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(25),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Color(0xFF6B86C9).withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
                               child: ElevatedButton(
                                 onPressed: _isLoading ? null : _submitRecord,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF6B86C9),
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(25),
                                   ),
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                ),
-                                child:
-                                    _isLoading
-                                        ? CircularProgressIndicator(
+                                        padding: EdgeInsets.symmetric(vertical: 16),
+                                      ),
+                                      child: _isLoading
+                                          ? SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
                                           color: Colors.white,
-                                        )
-                                        : Text(
-                                          widget
-                                                  .petRecord
-                                                  .isNewRecordForExistingPet
+                                              ),
+                                            )
+                                          : Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  widget.petRecord.isNewRecordForExistingPet
+                                                      ? Icons.add_circle_outline
+                                                      : Icons.check_circle_outline,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
+                                                SizedBox(width: 8),
+                                                Text(
+                                                  widget.petRecord.isNewRecordForExistingPet
                                               ? 'Add Record'
-                                              : 'Submit',
+                                                      : 'Complete Setup',
                                           style: TextStyle(
                                             fontFamily: 'Inter',
                                             fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
                                             color: Colors.white,
+                                                  ),
+                                                ),
+                                              ],
                                           ),
                                         ),
                               ),
@@ -1176,6 +1473,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                           ],
                         ),
                       ],
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 40),

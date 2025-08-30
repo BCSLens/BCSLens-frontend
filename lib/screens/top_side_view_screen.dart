@@ -126,6 +126,8 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
         child: Column(
           children: [
             _buildModernHeader(),
+            SizedBox(height: 20),
+            _buildProgressIndicator(),
             _buildGlassmorphicTabs(),
             Expanded(child: _buildPhotoContentWithAnimations()),
             _buildModernBottomSection(),
@@ -140,59 +142,143 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
     );
   }
 
-  Widget _buildModernHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
+  Widget _buildProgressIndicator() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Back arrow and title on same line
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: _goBack,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.arrow_back_ios_new,
-                      size: 18,
-                      color: Color(0xFF64748B),
-                    ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Step 2 of 4',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      'Add Records',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Color(0xFF7B8EB5),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: 0.5, // 2/4 progress
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                        ),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
                 ),
-                SizedBox(width: 40), // Spacer to balance the back button
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Capture Multiple Views',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              color: Color(0xFF1E293B),
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(height: 20),
-          Container(height: 1, color: Colors.grey[300]),
+          const SizedBox(height: 8),
+          Text(
+            'Take photos from different angles for better assessment',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              color: Color(0xFF64748B),
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  Widget _buildModernHeader() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF6B86C9),
+            Color(0xFF8BA3E7),
+          ],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF6B86C9).withOpacity(0.3),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: _goBack,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  'Capture Multiple Views',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 44), // Balance the back button
+          ],
+        ),
       ),
     );
   }

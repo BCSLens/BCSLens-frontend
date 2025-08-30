@@ -12,9 +12,10 @@ import 'screens/bcs_evaluation_screen.dart';
 import 'screens/pet_detail_screen.dart';
 import 'screens/review_add_screen.dart';
 import 'services/auth_service.dart';
+import 'screens/history_screen.dart';
+import 'screens/profile_screen.dart';
 
 import 'models/pet_record_model.dart';
-import 'screens/profile_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
@@ -106,6 +107,18 @@ class BCSLensApp extends StatelessWidget {
             final petRecord = settings.arguments as PetRecord;
             return MaterialPageRoute(
               builder: (context) => BcsReviewScreen(petRecord: petRecord),
+            );
+          case '/history':
+            final arguments = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (context) => HistoryScreen(
+                pet: arguments['pet'],
+                groupName: arguments['groupName'],
+              ),
+            );
+          case '/profile':
+            return MaterialPageRoute(
+              builder: (context) => const ProfileScreen(),
             );
           default:
             return null;

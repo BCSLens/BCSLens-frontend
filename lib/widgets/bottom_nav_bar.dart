@@ -12,21 +12,29 @@ class BottomNavBar extends StatelessWidget {
     required this.onAddRecordsTap,
   }) : super(key: key);
 
-  static const _activeColor = Color(0xFF7B8EB5);
-  static const _inactiveColor = Colors.grey;
+  static const _activeColor = Color(0xFF6B86C9);
+  static const _inactiveColor = Color(0xFF94A3B8);
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 60,
+      margin: EdgeInsets.fromLTRB(20, 0, 20, 20),
+      height: 75,
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, -1),
+            color: Color(0xFF6B86C9).withOpacity(0.15),
+            spreadRadius: 0,
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -34,8 +42,8 @@ class BottomNavBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildNavItem(
-            icon: Icons.folder_outlined,
-            label: 'Records',
+            icon: Icons.home,
+            label: 'Home',
             isSelected: selectedIndex == 0,
             onTap: () {
               if (onItemTapped != null) {
@@ -46,13 +54,13 @@ class BottomNavBar extends StatelessWidget {
             },
           ),
           _buildNavItem(
-            icon: Icons.add_circle_outline,
-            label: 'Add Records',
+            icon: Icons.add,
+            label: 'Add',
             isSelected: selectedIndex == 1,
             onTap: onAddRecordsTap,
           ),
           _buildNavItem(
-            icon: Icons.star_border,
+            icon: Icons.star,
             label: 'Special Care',
             isSelected: selectedIndex == 2,
             onTap: () {
@@ -60,6 +68,18 @@ class BottomNavBar extends StatelessWidget {
                 onItemTapped!(2);
               } else {
                 Navigator.pushReplacementNamed(context, '/special-care');
+              }
+            },
+          ),
+          _buildNavItem(
+            icon: Icons.person,
+            label: 'Profile',
+            isSelected: selectedIndex == 3,
+            onTap: () {
+              if (onItemTapped != null) {
+                onItemTapped!(3);
+              } else {
+                Navigator.pushReplacementNamed(context, '/profile');
               }
             },
           ),
@@ -77,23 +97,42 @@ class BottomNavBar extends StatelessWidget {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? _activeColor : _inactiveColor,
-              size: 24,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: isSelected ? _activeColor : _inactiveColor,
+        child: Container(
+          height: 55,
+          margin: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? _activeColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: _activeColor.withOpacity(0.3),
+                      blurRadius: 15,
+                      offset: Offset(0, 8),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : _inactiveColor,
+                size: 22,
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? Colors.white : _inactiveColor,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
