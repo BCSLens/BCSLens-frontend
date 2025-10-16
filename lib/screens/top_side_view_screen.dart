@@ -42,10 +42,10 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
 
   final List<String> _viewTabs = ['Top', 'Left', 'Right', 'Back'];
   final List<IconData> _viewIcons = [
-    Icons.keyboard_arrow_up_rounded,
-    Icons.keyboard_arrow_left_rounded,
-    Icons.keyboard_arrow_right_rounded,
-    Icons.keyboard_arrow_down_rounded,
+    Icons.camera_alt, // Top view
+    Icons.camera_alt, // Left view
+    Icons.camera_alt, // Right view
+    Icons.camera_alt, // Back view
   ];
 
   final List<String> _viewDescriptions = [
@@ -285,20 +285,7 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
 
   Widget _buildGlassmorphicTabs() {
     return Container(
-      margin: EdgeInsets.all(20),
-      padding: EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
+      margin: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: Row(
         children: List.generate(_viewTabs.length, (index) {
           bool isSelected = _selectedTabIndex == index;
@@ -316,83 +303,52 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
               child: AnimatedContainer(
                 duration: Duration(milliseconds: 300),
                 curve: Curves.easeInOutCubic,
-                padding: EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                margin: EdgeInsets.symmetric(horizontal: 4),
+                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: isSelected ? Color(0xFF6B86C9) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow:
-                      isSelected
-                          ? [
-                            BoxShadow(
-                              color: Color(0xFF6B86C9).withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: Offset(0, 4),
-                            ),
-                          ]
-                          : null,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        AnimatedContainer(
-                          duration: Duration(milliseconds: 300),
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color:
-                                isSelected
-                                    ? Colors.white.withOpacity(0.2)
-                                    : Colors.grey[100],
-                            shape: BoxShape.circle,
+                  color: isSelected ? Color(0xFF6B86C9) : Colors.white,
+                  borderRadius: BorderRadius.circular(25), // Pill shape
+                  border: Border.all(
+                    color: isSelected ? Color(0xFF6B86C9) : Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: Color(0xFF6B86C9).withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
                           ),
-                          child: Icon(
-                            _viewIcons[index],
-                            color:
-                                isSelected ? Colors.white : Color(0xFF64748B),
-                            size: 18,
+                        ]
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 4,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (isLoading)
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isSelected ? Colors.white : Color(0xFF6B86C9),
                           ),
                         ),
-                        if (isLoading)
-                          SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isSelected ? Colors.white : Color(0xFF6B86C9),
-                              ),
-                            ),
-                          ),
-                        if (hasImage && !isLoading)
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: Color(0xFF10B981),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Color(0xFF10B981).withOpacity(0.3),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 1),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    SizedBox(height: 6),
+                      )
+                    else
+                      Icon(
+                        _viewIcons[index],
+                        color: isSelected ? Colors.white : Color(0xFF64748B),
+                        size: 16,
+                      ),
+                    SizedBox(width: 6),
                     Text(
                       _viewTabs[index],
                       style: TextStyle(
@@ -477,49 +433,12 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
           borderRadius: BorderRadius.circular(24),
           child:
               currentImagePath != null
-                  ? Stack(
-                    children: [
-                      Image.file(
-                        File(currentImagePath),
-                        fit: BoxFit.contain,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                      Positioned(
-                        top: 16,
-                        left: 16,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _viewIcons[_selectedTabIndex],
-                                color: Colors.white,
-                                size: 14,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                '$currentView View',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
+                  ? Image.file(
+                      File(currentImagePath),
+                      fit: BoxFit.contain,
+                      width: double.infinity,
+                      height: double.infinity,
+                    )
                   : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

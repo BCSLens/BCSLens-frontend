@@ -84,53 +84,408 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
     ],
   };
 
-  // Enhanced suggestions based on BCS score
-  final Map<int, List<String>> _bcsSuggestions = {
-    1: [
-      "Immediate veterinary consultation required",
-      "Increase caloric intake with high-quality food",
-      "Monitor weight gain progress weekly",
-    ],
-    2: [
-      "Consult veterinarian for feeding plan",
-      "Increase portion sizes gradually",
-      "Regular health monitoring needed",
-    ],
-    3: [
-      "Slight increase in food portions",
-      "Monitor body condition weekly",
-      "Maintain regular exercise routine",
-    ],
-    4: [
-      "Continue current feeding routine",
-      "Regular exercise is beneficial",
-      "Monitor weight stability",
-    ],
-    5: [
-      "Maintain current diet & exercise routine",
-      "Feed high-quality food with proper portion control",
-      "Provide daily interactive play sessions",
-    ],
-    6: [
-      "Slight reduction in daily food portions",
-      "Increase exercise frequency",
-      "Monitor weight weekly",
-    ],
-    7: [
-      "Reduce daily caloric intake by 10-15%",
-      "Increase exercise duration and intensity",
-      "Consider veterinary weight management plan",
-    ],
-    8: [
-      "Veterinary consultation for weight loss plan",
-      "Significant caloric restriction needed",
-      "Supervised exercise program recommended",
-    ],
-    9: [
-      "Immediate veterinary intervention required",
-      "Strict weight management program essential",
-      "Regular health monitoring critical",
-    ],
+  // Enhanced suggestions based on BCS score and animal type
+  Map<String, Map<int, Map<String, List<String>>>> _bcsSuggestions = {
+    'dog': {
+      1: {
+        'Nutrition & Management': [
+          "Increase energy in food",
+          "Use high-quality food with sufficient protein and fat",
+          "Divide food into smaller, more frequent meals"
+        ],
+        'Basic Care': [
+          "Control internal and external parasites",
+          "Maintain overall cleanliness"
+        ],
+        'Exercise & Rehabilitation': [
+          "Engage in light exercise, such as short walks",
+          "Stimulate muscle growth"
+        ],
+        'Additional Advice': [
+          "Continuously observe eating habits, defecation, and weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to identify the cause of being underweight",
+          "Check for gastrointestinal disease or parasites"
+        ]
+      },
+      2: {
+        'Nutrition & Management': [
+          "Increase energy in food",
+          "Use high-quality food with sufficient protein and fat",
+          "Divide food into smaller, more frequent meals"
+        ],
+        'Basic Care': [
+          "Control internal and external parasites",
+          "Maintain overall cleanliness"
+        ],
+        'Exercise & Rehabilitation': [
+          "Engage in light exercise, such as short walks",
+          "Stimulate muscle growth"
+        ],
+        'Additional Advice': [
+          "Continuously observe eating habits, defecation, and weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to identify the cause of being underweight",
+          "Check for gastrointestinal disease or parasites"
+        ]
+      },
+      3: {
+        'Nutrition & Management': [
+          "Increase energy in food",
+          "Use high-quality food with sufficient protein and fat",
+          "Divide food into smaller, more frequent meals"
+        ],
+        'Basic Care': [
+          "Control internal and external parasites",
+          "Maintain overall cleanliness"
+        ],
+        'Exercise & Rehabilitation': [
+          "Engage in light exercise, such as short walks",
+          "Stimulate muscle growth"
+        ],
+        'Additional Advice': [
+          "Continuously observe eating habits, defecation, and weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to identify the cause of being underweight",
+          "Check for gastrointestinal disease or parasites"
+        ]
+      },
+      4: {
+        'Nutrition & Management': [
+          "Provide a balanced food formula appropriate for the pet's age",
+          "Control the quantity to avoid overfeeding or underfeeding"
+        ],
+        'Basic Care': [
+          "Ensure regular vaccinations and deworming",
+          "Maintain consistent oral health"
+        ],
+        'Exercise & Rehabilitation': [
+          "Engage in walking or playing for 30-60 minutes per day"
+        ],
+        'Additional Advice': [
+          "Promote good behavior, such as socialization"
+        ],
+        'Vet Visit': [
+          "Schedule an annual health check-up"
+        ]
+      },
+      5: {
+        'Nutrition & Management': [
+          "Provide a balanced food formula appropriate for the pet's age",
+          "Control the quantity to avoid overfeeding or underfeeding"
+        ],
+        'Basic Care': [
+          "Ensure regular vaccinations and deworming",
+          "Maintain consistent oral health"
+        ],
+        'Exercise & Rehabilitation': [
+          "Engage in walking or playing for 30-60 minutes per day"
+        ],
+        'Additional Advice': [
+          "Promote good behavior, such as socialization"
+        ],
+        'Vet Visit': [
+          "Schedule an annual health check-up"
+        ]
+      },
+      6: {
+        'Nutrition & Management': [
+          "Provide a balanced food formula appropriate for the pet's age",
+          "Control the quantity to avoid overfeeding or underfeeding"
+        ],
+        'Basic Care': [
+          "Ensure regular vaccinations and deworming",
+          "Maintain consistent oral health"
+        ],
+        'Exercise & Rehabilitation': [
+          "Engage in walking or playing for 30-60 minutes per day"
+        ],
+        'Additional Advice': [
+          "Promote good behavior, such as socialization"
+        ],
+        'Vet Visit': [
+          "Schedule an annual health check-up"
+        ]
+      },
+      7: {
+        'Nutrition & Management': [
+          "Restrict energy intake",
+          "Use a weight control food formula",
+          "Reduce snacks"
+        ],
+        'Basic Care': [
+          "Weigh the pet regularly",
+          "Check for abnormalities in joints and skin"
+        ],
+        'Exercise & Rehabilitation': [
+          "Increase non-strenuous activities",
+          "Slow walking, swimming, or using a treadmill"
+        ],
+        'Additional Advice': [
+          "Establish a clear feeding schedule",
+          "Avoid leaving food out all the time",
+          "Monitor for a monthly weight loss of 1-2% of body weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to plan a weight loss strategy",
+          "Check for complications such as diabetes or heart disease"
+        ]
+      },
+      8: {
+        'Nutrition & Management': [
+          "Restrict energy intake",
+          "Use a weight control food formula",
+          "Reduce snacks"
+        ],
+        'Basic Care': [
+          "Weigh the pet regularly",
+          "Check for abnormalities in joints and skin"
+        ],
+        'Exercise & Rehabilitation': [
+          "Increase non-strenuous activities",
+          "Slow walking, swimming, or using a treadmill"
+        ],
+        'Additional Advice': [
+          "Establish a clear feeding schedule",
+          "Avoid leaving food out all the time",
+          "Monitor for a monthly weight loss of 1-2% of body weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to plan a weight loss strategy",
+          "Check for complications such as diabetes or heart disease"
+        ]
+      },
+      9: {
+        'Nutrition & Management': [
+          "Restrict energy intake",
+          "Use a weight control food formula",
+          "Reduce snacks"
+        ],
+        'Basic Care': [
+          "Weigh the pet regularly",
+          "Check for abnormalities in joints and skin"
+        ],
+        'Exercise & Rehabilitation': [
+          "Increase non-strenuous activities",
+          "Slow walking, swimming, or using a treadmill"
+        ],
+        'Additional Advice': [
+          "Establish a clear feeding schedule",
+          "Avoid leaving food out all the time",
+          "Monitor for a monthly weight loss of 1-2% of body weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to plan a weight loss strategy",
+          "Check for complications such as diabetes or heart disease"
+        ]
+      }
+    },
+    'cat': {
+      1: {
+        'Nutrition & Management': [
+          "Provide high-energy and high-protein food",
+          "Consider using wet food or a prescription diet",
+          "Aid in weight gain"
+        ],
+        'Basic Care': [
+          "Ensure a warm and comfortable resting corner",
+          "Reduce stress",
+          "Control internal and external parasites"
+        ],
+        'Exercise & Rehabilitation': [
+          "Stimulate movement through play",
+          "Hunting games, but avoid excessive exertion"
+        ],
+        'Additional Advice': [
+          "Continuously observe eating habits, defecation, and weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to check for chronic diseases",
+          "Check for kidney or liver disease or parasites"
+        ]
+      },
+      2: {
+        'Nutrition & Management': [
+          "Provide high-energy and high-protein food",
+          "Consider using wet food or a prescription diet",
+          "Aid in weight gain"
+        ],
+        'Basic Care': [
+          "Ensure a warm and comfortable resting corner",
+          "Reduce stress",
+          "Control internal and external parasites"
+        ],
+        'Exercise & Rehabilitation': [
+          "Stimulate movement through play",
+          "Hunting games, but avoid excessive exertion"
+        ],
+        'Additional Advice': [
+          "Continuously observe eating habits, defecation, and weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to check for chronic diseases",
+          "Check for kidney or liver disease or parasites"
+        ]
+      },
+      3: {
+        'Nutrition & Management': [
+          "Provide high-energy and high-protein food",
+          "Consider using wet food or a prescription diet",
+          "Aid in weight gain"
+        ],
+        'Basic Care': [
+          "Ensure a warm and comfortable resting corner",
+          "Reduce stress",
+          "Control internal and external parasites"
+        ],
+        'Exercise & Rehabilitation': [
+          "Stimulate movement through play",
+          "Hunting games, but avoid excessive exertion"
+        ],
+        'Additional Advice': [
+          "Continuously observe eating habits, defecation, and weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to check for chronic diseases",
+          "Check for kidney or liver disease or parasites"
+        ]
+      },
+      4: {
+        'Nutrition & Management': [
+          "Control food quantity to prevent excess",
+          "Include both dry and wet food",
+          "Maintain proper water balance in the body"
+        ],
+        'Basic Care': [
+          "Maintain a clean litter box",
+          "Follow the vaccination schedule"
+        ],
+        'Exercise & Rehabilitation': [
+          "Stimulate play for 15-20 minutes per day",
+          "Chasing toys"
+        ],
+        'Additional Advice': [
+          "Arrange an environment that allows for climbing",
+          "Provide hiding spots"
+        ],
+        'Vet Visit': [
+          "Schedule an annual health check-up",
+          "Dental cleaning"
+        ]
+      },
+      5: {
+        'Nutrition & Management': [
+          "Control food quantity to prevent excess",
+          "Include both dry and wet food",
+          "Maintain proper water balance in the body"
+        ],
+        'Basic Care': [
+          "Maintain a clean litter box",
+          "Follow the vaccination schedule"
+        ],
+        'Exercise & Rehabilitation': [
+          "Stimulate play for 15-20 minutes per day",
+          "Chasing toys"
+        ],
+        'Additional Advice': [
+          "Arrange an environment that allows for climbing",
+          "Provide hiding spots"
+        ],
+        'Vet Visit': [
+          "Schedule an annual health check-up",
+          "Dental cleaning"
+        ]
+      },
+      6: {
+        'Nutrition & Management': [
+          "Control food quantity to prevent excess",
+          "Include both dry and wet food",
+          "Maintain proper water balance in the body"
+        ],
+        'Basic Care': [
+          "Maintain a clean litter box",
+          "Follow the vaccination schedule"
+        ],
+        'Exercise & Rehabilitation': [
+          "Stimulate play for 15-20 minutes per day",
+          "Chasing toys"
+        ],
+        'Additional Advice': [
+          "Arrange an environment that allows for climbing",
+          "Provide hiding spots"
+        ],
+        'Vet Visit': [
+          "Schedule an annual health check-up",
+          "Dental cleaning"
+        ]
+      },
+      7: {
+        'Nutrition & Management': [
+          "Gradually reduce food quantity",
+          "Use a weight loss food formula",
+          "High in protein and low in fat"
+        ],
+        'Basic Care': [
+          "Avoid excessive supplements or snacks"
+        ],
+        'Exercise & Rehabilitation': [
+          "Stimulate movement through interactive toys",
+          "Laser pointer"
+        ],
+        'Additional Advice': [
+          "Monitor for a monthly weight loss of 1-2% of body weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to check for metabolic diseases",
+          "Check for diabetes or fatty liver"
+        ]
+      },
+      8: {
+        'Nutrition & Management': [
+          "Gradually reduce food quantity",
+          "Use a weight loss food formula",
+          "High in protein and low in fat"
+        ],
+        'Basic Care': [
+          "Avoid excessive supplements or snacks"
+        ],
+        'Exercise & Rehabilitation': [
+          "Stimulate movement through interactive toys",
+          "Laser pointer"
+        ],
+        'Additional Advice': [
+          "Monitor for a monthly weight loss of 1-2% of body weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to check for metabolic diseases",
+          "Check for diabetes or fatty liver"
+        ]
+      },
+      9: {
+        'Nutrition & Management': [
+          "Gradually reduce food quantity",
+          "Use a weight loss food formula",
+          "High in protein and low in fat"
+        ],
+        'Basic Care': [
+          "Avoid excessive supplements or snacks"
+        ],
+        'Exercise & Rehabilitation': [
+          "Stimulate movement through interactive toys",
+          "Laser pointer"
+        ],
+        'Additional Advice': [
+          "Monitor for a monthly weight loss of 1-2% of body weight"
+        ],
+        'Vet Visit': [
+          "Consult a veterinarian to check for metabolic diseases",
+          "Check for diabetes or fatty liver"
+        ]
+      }
+    }
   };
 
   @override
@@ -196,7 +551,14 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
   Widget build(BuildContext context) {
     final int bcsScore = widget.petRecord.bcs ?? 5;
     final List<String> bcsInfo = _bcsDescriptions[bcsScore] ?? [];
-    final List<String> suggestions = _bcsSuggestions[bcsScore] ?? [];
+    final String animalType = widget.petRecord.category?.toLowerCase() == 'cats' ? 'cat' : 'dog';
+    final Map<String, List<String>> suggestions = _bcsSuggestions[animalType]?[bcsScore] ?? {};
+    
+    // Debug print
+    print('🔍 Debug - BCS Score: $bcsScore');
+    print('🔍 Debug - Animal Type: $animalType');
+    print('🔍 Debug - Category: ${widget.petRecord.category}');
+    print('🔍 Debug - Suggestions: $suggestions');
 
     return Scaffold(
       backgroundColor: Color(0xFFF8FAFC),
@@ -234,7 +596,6 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
                               SizedBox(height: 24),
                               
                               // Suggestions Card
-                              if (suggestions.isNotEmpty)
                                 _buildSuggestionsCard(suggestions),
                               
                               SizedBox(height: 100), // Space for bottom button
@@ -292,72 +653,89 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
 
   Widget _buildModernHeader() {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF6B86C9),
+            Color(0xFF8BA3E7),
+          ],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
+            color: Color(0xFF6B86C9).withOpacity(0.3),
+            blurRadius: 20,
+            offset: Offset(0, 10),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24),
+        padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
         child: Row(
           children: [
-            // Back button
             GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
+              onTap: () => Navigator.pop(context),
               child: Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Color(0xFFF8FAFC),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Color(0xFFE2E8F0)),
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.arrow_back_ios_new,
-                  size: 18,
-                  color: Color(0xFF64748B),
+                  size: 20,
+                  color: Colors.white,
                 ),
               ),
             ),
-            
-            // Title
             Expanded(
               child: Center(
-                child: Text(
+                child: Column(
+                  children: [
+                    Text(
                   '${widget.petRecord.name}\'s Health Report',
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    color: Color(0xFF7B8EB5),
-                    fontSize: 18,
+                        color: Colors.white,
+                        fontSize: 24,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                    SizedBox(height: 4),
+                    Text(
+                      'BCS Score Analysis',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            
-            // Share button
             GestureDetector(
               onTap: () {
                 // Implement share functionality
               },
               child: Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Color(0xFFF8FAFC),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Color(0xFFE2E8F0)),
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.share_outlined,
-                  size: 18,
-                  color: Color(0xFF64748B),
+                  size: 20,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -672,25 +1050,118 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
     );
   }
 
-  Widget _buildSuggestionsCard(List<String> suggestions) {
+  Widget _buildSuggestionsCard(Map<String, List<String>> suggestions) {
+    if (suggestions.isEmpty) {
+    return Container(
+      width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+                        colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                      ),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Icon(
+                      Icons.lightbulb_outline_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Health Recommendations',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Personalized care guidance',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              
+              SizedBox(height: 20),
+              
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Color(0xFF64748B),
+                      size: 20,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'No specific recommendations available for this BCS score and animal type.',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF10B981).withOpacity(0.05),
-            Color(0xFF059669).withOpacity(0.1),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Color(0xFF10B981).withOpacity(0.2)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF10B981).withOpacity(0.1),
-            blurRadius: 20,
-            offset: Offset(0, 8),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: Offset(0, 5),
           ),
         ],
       ),
@@ -702,19 +1173,25 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
             Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 50,
+                  height: 50,
                   decoration: BoxDecoration(
-                    color: Color(0xFF10B981).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                    ),
+                    borderRadius: BorderRadius.circular(15),
                   ),
                   child: Icon(
                     Icons.lightbulb_outline_rounded,
-                    color: Color(0xFF10B981),
-                    size: 20,
+                    color: Colors.white,
+                    size: 24,
                   ),
                 ),
                 SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                 Text(
                   'Health Recommendations',
                   style: TextStyle(
@@ -722,22 +1199,249 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Personalized care guidance',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
             
-            SizedBox(height: 20),
+            SizedBox(height: 24),
             
-            ...suggestions.asMap().entries.map((entry) {
-              int index = entry.key;
-              String suggestion = entry.value;
-              return _buildAnimatedBulletPoint(suggestion, index, isGreen: true);
+            ...suggestions.entries.map((entry) {
+              String category = entry.key;
+              List<String> items = entry.value;
+              return _buildCategorySection(category, items);
             }).toList(),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildCategorySection(String category, List<String> items) {
+    // Get category icon and color
+    IconData categoryIcon;
+    Color categoryColor;
+    
+    switch (category) {
+      case 'Nutrition & Management':
+        categoryIcon = Icons.restaurant;
+        categoryColor = Color(0xFFEF4444);
+        break;
+      case 'Basic Care':
+        categoryIcon = Icons.shield;
+        categoryColor = Color(0xFF3B82F6);
+        break;
+      case 'Exercise & Rehabilitation':
+        categoryIcon = Icons.directions_run;
+        categoryColor = Color(0xFFF59E0B);
+        break;
+      case 'Additional Advice':
+        categoryIcon = Icons.lightbulb;
+        categoryColor = Color(0xFF8B5CF6);
+        break;
+      case 'Vet Visit':
+        categoryIcon = Icons.calendar_today;
+        categoryColor = Color(0xFF10B981);
+        break;
+      default:
+        categoryIcon = Icons.info;
+        categoryColor = Color(0xFF6B86C9);
+    }
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: categoryColor.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Colored bar at the top
+          Container(
+            width: double.infinity,
+            height: 4,
+            decoration: BoxDecoration(
+              color: categoryColor,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Category Header
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: categoryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        categoryIcon,
+                        color: categoryColor,
+                        size: 20,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      category,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+                // Items
+                ...items.asMap().entries.map((entry) {
+              int index = entry.key;
+                  String item = entry.value;
+                  return _buildRecommendationItem(item, index, categoryColor);
+            }).toList(),
+          ],
+        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationItem(String text, int index, Color categoryColor) {
+    // Get specific icon based on text content
+    IconData icon;
+    
+    // Determine icon based on text content
+    if (text.toLowerCase().contains('balanced') || text.toLowerCase().contains('diet') || text.toLowerCase().contains('food')) {
+      icon = Icons.apple; // Apple icon for nutrition
+    } else if (text.toLowerCase().contains('portion') || text.toLowerCase().contains('control')) {
+      icon = Icons.balance; // Scale icon for portion control
+    } else if (text.toLowerCase().contains('vaccination') || text.toLowerCase().contains('vaccine')) {
+      icon = Icons.medical_services; // Medical icon
+    } else if (text.toLowerCase().contains('oral') || text.toLowerCase().contains('dental')) {
+      icon = Icons.health_and_safety; // Health icon
+    } else if (text.toLowerCase().contains('exercise') || text.toLowerCase().contains('walking') || text.toLowerCase().contains('play')) {
+      icon = Icons.directions_run; // Running icon
+    } else if (text.toLowerCase().contains('vet') || text.toLowerCase().contains('check') || text.toLowerCase().contains('consult')) {
+      icon = Icons.local_hospital; // Hospital icon
+    } else {
+      icon = Icons.info; // Default info icon
+    }
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Single icon
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: categoryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: categoryColor,
+              size: 18,
+            ),
+          ),
+          SizedBox(width: 12),
+          // Text content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _getRecommendationTitle(text),
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  text,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getRecommendationTitle(String text) {
+    // Extract key words to create a title
+    if (text.toLowerCase().contains('balanced') || text.toLowerCase().contains('diet')) {
+      return 'Balanced Diet';
+    } else if (text.toLowerCase().contains('portion') || text.toLowerCase().contains('control')) {
+      return 'Portion Control';
+    } else if (text.toLowerCase().contains('vaccination') || text.toLowerCase().contains('vaccine')) {
+      return 'Vaccination Schedule';
+    } else if (text.toLowerCase().contains('oral') || text.toLowerCase().contains('dental')) {
+      return 'Oral Health';
+    } else if (text.toLowerCase().contains('exercise') || text.toLowerCase().contains('walking')) {
+      return 'Daily Activity';
+    } else if (text.toLowerCase().contains('social') || text.toLowerCase().contains('behavior')) {
+      return 'Socialization';
+    } else if (text.toLowerCase().contains('check') || text.toLowerCase().contains('annual')) {
+      return 'Routine Check-up';
+    } else if (text.toLowerCase().contains('weight') || text.toLowerCase().contains('monitor')) {
+      return 'Weight Management';
+    } else {
+      return 'Health Tip';
+    }
   }
 
   Widget _buildModernInfoPill(String label, String value, IconData icon, Color color) {

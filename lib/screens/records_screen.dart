@@ -44,6 +44,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
 
   // Expanded state for groups
   final Map<String, bool> _expandedGroups = {};
+  
 
   @override
   void initState() {
@@ -75,6 +76,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
     // Start animations
     _headerAnimationController.forward();
     _cardAnimationController.forward();
+    
   }
 
   @override
@@ -173,6 +175,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
         _groupPets = groupPets;
         _isLoading = false;
         _applyFilters();
+        
       });
     } catch (e) {
         setState(() {
@@ -193,7 +196,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
         break;
       case 1:
         // History - for now redirect to special care
-        Navigator.pushReplacementNamed(context, '/special-care');
+      Navigator.pushReplacementNamed(context, '/special-care');
         break;
       case 2:
         Navigator.pushReplacementNamed(context, '/special-care');
@@ -477,6 +480,20 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                                             onPressed: () {
                               // Add notification functionality
                             },
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            icon: Icon(Icons.play_arrow, color: Colors.white),
+                                            onPressed: () {
+                              _showWelcomeDialog();
+                            },
+                            tooltip: 'Welcome to Pet Health',
                           ),
                         ),
                         SizedBox(width: 8),
@@ -881,94 +898,83 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
         final group = _filteredGroups[index];
         final groupId = group['_id'];
         final pets = _filteredGroupPets[groupId] ?? [];
-        final isExpanded = _expandedGroups[groupId] ?? true;
-
-        return AnimatedContainer(
-          duration: Duration(milliseconds: 300),
-          margin: EdgeInsets.only(bottom: 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 15,
-                  offset: Offset(0, 5),
-                ),
-              ],
-            ),
-                  child: Column(
-                    children: [
-                _buildGroupHeader(group, pets.length, isExpanded),
-                if (isExpanded && pets.isNotEmpty) ...[
-                  Divider(height: 1, color: Color(0xFFF1F5F9)),
-                  ...pets.map((pet) => _buildModernPetCard(pet, group['group_name'])),
-                  SizedBox(height: 8),
-                ],
-              ],
-            ),
-          ),
-        );
+        
+        return _buildGroupCard(group, pets.length);
       },
     );
   }
 
-  Widget _buildGroupHeader(Map<String, dynamic> group, int petCount, bool isExpanded) {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _expandedGroups[group['_id']] = !isExpanded;
-        });
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(10),
-        decoration: BoxDecoration(
-                color: Color(0xFF6B86C9).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+  Widget _buildGroupCard(Map<String, dynamic> group, int petCount) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () => _showGroupBottomSheet(group, petCount),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: EdgeInsets.all(20),
+            child: Row(
+              children: [
+              // Group Icon
+                Container(
+                padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                  color: Color(0xFF6B86C9).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.pets,
+                  color: Color(0xFF6B86C9),
+                  size: 24,
+                ),
               ),
-              child: Icon(
-                Icons.folder,
-                color: Color(0xFF6B86C9),
+              SizedBox(width: 16),
+              
+              // Group Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                    Text(
+                      group['group_name'],
+                        style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                      Text(
+                      '$petCount ${petCount == 1 ? 'pet' : 'pets'}',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+              
+              // Arrow Icon
+            Icon(
+                Icons.keyboard_arrow_up,
+                color: Color(0xFF64748B),
                 size: 24,
               ),
-            ),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-                  Text(
-                    group['group_name'],
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
-                  SizedBox(height: 4),
-            Text(
-                    '$petCount pets',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-              color: Color(0xFF64748B),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1095,7 +1101,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                children: [
                       Text(
                           pet['name'] ?? 'Unknown',
                           style: TextStyle(
@@ -1132,9 +1138,9 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                               ),
                             ),
                           ],
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                   ),
                   
                   // Right side with BCS Badge and Action Buttons
@@ -1149,16 +1155,16 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: bcsColor.withOpacity(0.3)),
                         ),
-                        child: Text(
+                          child: Text(
                           'BCS $bcsScore',
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: bcsColor,
+                            ),
                           ),
                         ),
-                      ),
                       
                       SizedBox(width: 8),
                       
@@ -1208,8 +1214,300 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
           ),
         ],
       ),
+                                ),
+                              ),
+                            );
+  }
+
+  void _showGroupBottomSheet(Map<String, dynamic> group, int petCount) {
+    final pets = _filteredGroupPets[group['_id']] ?? [];
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(30),
+            topRight: Radius.circular(30),
+          ),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            
+            // Header
+            Container(
+              padding: EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF6B86C9).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.pets,
+                      color: Color(0xFF6B86C9),
+                      size: 24,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          group['group_name'],
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          '$petCount ${petCount == 1 ? 'pet' : 'pets'}',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(
+                      Icons.close,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Content
+            Expanded(
+              child: pets.isEmpty 
+                  ? _buildEmptyGroupState(group)
+                  : _buildPetsInGroup(pets, group['group_name']),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Widget _buildEmptyGroupState(Map<String, dynamic> group) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(32),
+      decoration: BoxDecoration(
+              color: Color(0xFF6B86C9).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.pets,
+              size: 64,
+              color: Color(0xFF6B86C9),
+            ),
+          ),
+          SizedBox(height: 24),
+          Text(
+            'No pets in this group',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Add your first pet to this group!',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14,
+              color: Color(0xFF64748B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 32),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/add-record');
+            },
+            icon: Icon(Icons.add),
+            label: Text('Add Pet'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF6B86C9),
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPetsInGroup(List<Map<String, dynamic>> pets, String groupName) {
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: 24),
+      itemCount: pets.length,
+      itemBuilder: (context, index) {
+        final pet = pets[index];
+        return _buildModernPetCard(pet, groupName);
+      },
+    );
+  }
+
+  void _showWelcomeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: EdgeInsets.all(24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon
+            Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Color(0xFF6B86C9).withOpacity(0.1),
+                shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.pets,
+                size: 48,
+                color: Color(0xFF6B86C9),
+              ),
+            ),
+            SizedBox(height: 20),
+            
+            // Title
+            Text(
+              'Welcome to Pet Health Records! 🐾',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 12),
+            
+            // Description
+            Text(
+              'Manage your pet\'s health with our comprehensive tracking system. Track BCS scores, weight, and health records for all your beloved pets.',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                color: Color(0xFF64748B),
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 20),
+            
+            // Features
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Color(0xFF6B86C9).withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Color(0xFF6B86C9).withOpacity(0.1),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  _buildFeatureItem(Icons.pets, 'Organize pets by groups'),
+                  SizedBox(height: 8),
+                  _buildFeatureItem(Icons.monitor_weight, 'Track weight and BCS scores'),
+                  SizedBox(height: 8),
+                  _buildFeatureItem(Icons.analytics, 'View health analytics'),
+                  SizedBox(height: 8),
+                  _buildFeatureItem(Icons.photo_camera, 'Capture pet photos'),
+                ],
+              ),
+            ),
+            SizedBox(height: 24),
+            
+            // Close button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF6B86C9),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: Text(
+                  'Get Started',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureItem(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: Color(0xFF6B86C9),
+        ),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12,
+              color: Color(0xFF64748B),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
 }

@@ -14,6 +14,7 @@ import 'screens/review_add_screen.dart';
 import 'services/auth_service.dart';
 import 'screens/history_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/group_details_screen.dart';
 
 import 'models/pet_record_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -119,6 +120,14 @@ class BCSLensApp extends StatelessWidget {
           case '/profile':
             return MaterialPageRoute(
               builder: (context) => const ProfileScreen(),
+            );
+          case '/group-details':
+            final arguments = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (context) => GroupDetailsScreen(
+                group: arguments['group'],
+                pets: arguments['pets'],
+              ),
             );
           default:
             return null;

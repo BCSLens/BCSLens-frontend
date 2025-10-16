@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'package:intl/intl.dart';
-import 'dart:ui' as ui;
 import '../services/pet_service.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -18,25 +17,37 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen>
     with TickerProviderStateMixin {
-  int _selectedIndex = 0; // Records tab
-  String _selectedTab = 'Records'; // Default selected tab
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
+  late AnimationController _bubbleController;
+  late AnimationController _numberController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  late Animation<double> _bubbleAnimation;
+  late Animation<double> _numberAnimation;
 
   @override
   void initState() {
     super.initState();
 
     _fadeController = AnimationController(
-      duration: Duration(milliseconds: 300),
+      duration: Duration(milliseconds: 200),
       vsync: this,
     );
 
     _slideController = AnimationController(
+      duration: Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _bubbleController = AnimationController(
       duration: Duration(milliseconds: 400),
+      vsync: this,
+    );
+
+    _numberController = AnimationController(
+      duration: Duration(milliseconds: 600),
       vsync: this,
     );
 
@@ -52,592 +63,632 @@ class _HistoryScreenState extends State<HistoryScreen>
       CurvedAnimation(parent: _slideController, curve: Curves.elasticOut),
     );
 
+    _bubbleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _bubbleController, curve: Curves.elasticOut));
+
+    _numberAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _numberController, curve: Curves.easeOut));
+
     _fadeController.forward();
     _slideController.forward();
+    
+    // Start bubble animation after a delay
+    Future.delayed(Duration(milliseconds: 150), () {
+      _bubbleController.forward();
+    });
+    
+    // Start number animation after bubble animation
+    Future.delayed(Duration(milliseconds: 250), () {
+      _numberController.forward();
+    });
   }
 
   @override
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
+    _bubbleController.dispose();
+    _numberController.dispose();
     super.dispose();
-  }
-
-  void _onItemTapped(int index) {
-    if (index == 1) {
-      Navigator.pushReplacementNamed(context, '/add-record');
-    } else if (index == 2) {
-      Navigator.pushReplacementNamed(context, '/special-care');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Get records from the pet data
-    final List<dynamic> rawRecords = widget.pet['records'] ?? [];
-
-    // Get latest weight from records or default to N/A
-    String latestWeight = 'N/A';
-    if (rawRecords.isNotEmpty) {
-      final latestRecord = rawRecords.last;
-      if (latestRecord['weight'] != null) {
-        latestWeight = '${latestRecord['weight']}';
-      }
-    }
-
-    // Format records into the structure we need
-    final List<Map<String, dynamic>> records = [];
-
-    for (var record in rawRecords) {
-      // Format date string
-      DateTime recordDate =
-          DateTime.tryParse(record['date'] ?? '') ?? DateTime.now();
-      String formattedDate = DateFormat('dd MMMM yyyy').format(recordDate);
-      String month = DateFormat('MMMM').format(recordDate);
-
-      // Get weight from record or use N/A
-      String weightDisplay =
-          record['weight'] != null ? '${record['weight']} kg' : 'N/A kg';
-
-      records.add({
-        'date': formattedDate,
-        'bcs': record['score'] ?? 0,
-        'weight': weightDisplay,
-        'month': month,
-      });
-    }
-
-    // Group records by month
-    final Map<String, List<Map<String, dynamic>>> groupedRecords = {};
-
-    for (var record in records) {
-      final month = record['month'] as String;
-
-      if (!groupedRecords.containsKey(month)) {
-        groupedRecords[month] = [];
-      }
-
-      groupedRecords[month]!.add(record);
-    }
-
     return Scaffold(
       backgroundColor: Color(0xFFF8FAFC),
       body: SafeArea(
+        child: SingleChildScrollView(
         child: Column(
           children: [
             _buildModernHeader(),
-            Expanded(
-              child: AnimatedBuilder(
-                animation: _fadeAnimation,
-                builder: (context, child) {
-                  return FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: 24),
-                          _buildPetProfileCard(latestWeight),
-                          SizedBox(height: 24),
-                          _buildModernTabs(),
-                          SizedBox(height: 20),
-                          Expanded(
-                            child:
-                                _selectedTab == 'Records'
-                                    ? groupedRecords.isEmpty
-                                        ? _buildEmptyState()
-                                        : _buildModernRecordsTab(groupedRecords)
-                                    : _buildGraphsTab(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+              _buildPetImageSection(),
+              _buildBubbleSection(),
+              _buildPetInfoSection(),
+              _buildRecordsSection(),
+              _buildGraphsSection(),
+              SizedBox(height: 100), // Space for bottom nav
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
-        onAddRecordsTap: () {
+        selectedIndex: 0,
+        onItemTapped: (index) {
+          if (index == 1) {
           Navigator.pushReplacementNamed(context, '/add-record');
+          } else if (index == 2) {
+            Navigator.pushReplacementNamed(context, '/special-care');
+          } else if (index == 3) {
+            Navigator.pushReplacementNamed(context, '/profile');
+          }
         },
+        onAddRecordsTap: () {},
       ),
     );
   }
 
   Widget _buildModernHeader() {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF6B86C9),
+            Color(0xFF8BA3E7),
+          ],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
+            color: Color(0xFF6B86C9).withOpacity(0.3),
+            blurRadius: 20,
+            offset: Offset(0, 10),
           ),
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24),
+        padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
         child: Row(
           children: [
             GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.arrow_back_ios_new,
-                  size: 18,
-                  color: Color(0xFF64748B),
+                  size: 20,
+                  color: Colors.white,
                 ),
               ),
             ),
             Expanded(
               child: Center(
-                child: Text(
-                  '${widget.pet['name'] ?? 'Pet'}\'s Records',
+                child: Column(
+                  children: [
+                    Text(
+                      widget.groupName,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    color: Color(0xFF7B8EB5),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Pet Health History',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            SizedBox(width: 40), // Spacer to balance the back button
+            SizedBox(width: 44), // Balance the back button
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPetProfileCard(String latestWeight) {
-    // ✅ เพิ่มการดึงรูปภาพจาก records เหมือน RecordsScreen
+  Widget _buildPetImageSection() {
     String imageUrl = '';
 
-    if (widget.pet['records'] != null &&
-        (widget.pet['records'] as List).isNotEmpty) {
+    if (widget.pet['records'] != null && (widget.pet['records'] as List).isNotEmpty) {
       final latestRecord = (widget.pet['records'] as List).last;
       final frontImageUrl = latestRecord['front_image_url'];
 
-      print('🔍 Latest record: $latestRecord');
-      print('🔍 Front image URL from record: $frontImageUrl');
-
       if (frontImageUrl != null && frontImageUrl.toString().isNotEmpty) {
-        if (frontImageUrl.toString().startsWith('http')) {
-          imageUrl = frontImageUrl.toString();
-          print('✅ Using full URL: $imageUrl');
+        String originalUrl = frontImageUrl.toString();
+        
+        if (originalUrl.startsWith('http')) {
+          if (originalUrl.contains('172.20.10.3') || originalUrl.contains('localhost') || originalUrl.contains('127.0.0.1')) {
+            String filename = originalUrl.split('/').last;
+            imageUrl = '${PetService.uploadBaseUrl}/uploads/$filename';
         } else {
-          imageUrl = '${PetService.uploadBaseUrl}/uploads/$frontImageUrl';
-          print('✅ Constructed URL: $imageUrl');
-          print('🔍 Upload base URL: ${PetService.uploadBaseUrl}');
+            imageUrl = originalUrl;
         }
       } else {
-        print('❌ No front_image_url in latest record');
+          imageUrl = '${PetService.uploadBaseUrl}/uploads/$originalUrl';
+        }
       }
-    } else {
-      print('❌ No records found for pet');
     }
 
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 24),
-      padding: EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.white, Color(0xFFF8FAFC)],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.8), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-          BoxShadow(
-            color: Color(0xFF6B86C9).withOpacity(0.04),
-            blurRadius: 40,
-            offset: Offset(0, 16),
-          ),
-        ],
-      ),
-      child: Column(
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: Container(
+          margin: EdgeInsets.all(24),
+          height: 400,
+          child: Stack(
         children: [
-          // Pet Avatar with modern styling - ใช้ logic เดียวกับ RecordsScreen
-          Container(
-            width: 100,
-            height: 100,
+              // Pet Image - ครึ่งหน้าจอ
+              Positioned(
+                left: 0,
+                top: 0,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.5 - 48, // ครึ่งหน้าจอลบ margin
+                  height: 350,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Color(0xFF6B86C9), Color(0xFF8B5CF6)],
-              ),
+                    borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0xFF6B86C9).withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: Offset(0, 10),
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 30,
+                        offset: Offset(0, 20),
                 ),
               ],
             ),
-            child: ClipOval(
-              child:
-                  imageUrl.isNotEmpty
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: imageUrl.isNotEmpty
                       ? Image.network(
                         imageUrl,
-                        width: 100,
-                        height: 100,
                         fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) {
-                            print('✅ Image loaded successfully: $imageUrl');
-                            return child;
-                          }
-                          print('⏳ Loading image: $imageUrl');
+                            errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            width: 100,
-                            height: 100,
-                            color: Colors.grey[200],
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF6B86C9),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
                                 ),
-                              ),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          print('❌ Image load error for URL: $imageUrl');
-                          print('❌ Error: $error');
-
-                          if (imageUrl.isNotEmpty) {
-                            print(
-                              '💡 Try opening this URL in browser: $imageUrl',
-                            );
-                          }
-
-                          return Icon(
+                                child: Center(
+                                  child: Icon(
                             Icons.pets,
-                            size: 40,
                             color: Colors.white,
+                                    size: 120,
+                                  ),
+                                ),
                           );
                         },
                       )
-                      : Icon(Icons.pets, size: 40, color: Colors.white),
-            ),
-          ),
-
-          SizedBox(height: 16),
-
-          // Pet Name with favorite icon
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                widget.pet['name'] ?? 'Pet',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
-                  letterSpacing: -0.5,
+                        : Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.pets,
+                                color: Colors.white,
+                                size: 120,
+                              ),
+                            ),
+                          ),
+                  ),
                 ),
               ),
-              SizedBox(width: 8),
-              Container(
-                padding: EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.1),
-                  shape: BoxShape.circle,
+              // BCS Score with connecting line - ขนาดใหญ่ขึ้น
+              Positioned(
+                right: 100,
+                top: 50,
+                child: _buildConnectedBubble(
+                  'BCS',
+                  _getBcsScore(),
+                  Color(0xFF6B86C9), // ใช้สีน้ำเงินสวยงาม
+                  Icons.monitor_weight,
+                  Offset(-200, 50), // เส้นยาวขึ้นสำหรับ BCS
+                  Offset(0, 50), // End point (at bubble)
+                  isLarge: true, // เพิ่มพารามิเตอร์สำหรับขนาดใหญ่
                 ),
-                child: Icon(Icons.star, color: Colors.amber, size: 20),
               ),
-            ],
-          ),
-
-          SizedBox(height: 20),
-
-          // Pet Details in modern cards
-          _buildModernPetDetails(latestWeight),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModernPetDetails(String latestWeight) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildModernInfoCard(
-            'Age',
-            '${widget.pet['age_years'] ?? 0}y ${widget.pet['age_months'] ?? 0}m',
-            Icons.access_time,
-            Color(0xFF6366F1),
-          ),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: _buildModernInfoCard(
-            'Weight',
-            '$latestWeight kg',
-            Icons.monitor_weight,
-            Color(0xFF10B981),
-          ),
-        ),
+              // Weight with connecting line
+              Positioned(
+                right: 191, // เลื่อนชิดซ้ายมากขึ้น (จาก 20 เป็น 40)
+                top: 200, // กลับไปที่ตำแหน่งเดิม
+                child: _buildConnectedBubble(
+                  'Weight',
+                  _getWeight(),
+                  Color(0xFF10B981), // ใช้สีเขียวสวยงาม
+                  Icons.scale,
+                  Offset(-130, 50), // เพิ่มความยาวเส้นล่าง
+                  Offset(0, 50), // End point (at bubble)
+                ),
+              ),
       ],
-    );
-  }
-
-  Widget _buildModernInfoCard(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 16),
           ),
-          SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              color: Color(0xFF64748B),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildModernTabs() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 24),
-      padding: EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: _buildTabButton('Records', Icons.history)),
-          Expanded(child: _buildTabButton('Graphs', Icons.analytics)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabButton(String title, IconData icon) {
-    final isSelected = _selectedTab == title;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedTab = title;
-        });
-      },
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow:
-              isSelected
-                  ? [
+  Widget _buildConnectedBubble(String label, int value, Color color, IconData icon, Offset lineStart, Offset lineEnd, {bool isLarge = false}) {
+    return AnimatedBuilder(
+      animation: _bubbleAnimation,
+      builder: (context, child) {
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Connecting line - ปรับความยาวตาม isLarge
+            Positioned(
+              left: lineStart.dx,
+              top: lineStart.dy,
+              child: Container(
+                width: isLarge ? 200 : 132, // เพิ่มความยาวเส้นล่างอีกนิดนึง
+                height: 1, // ลดความหนาให้บางลง
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(1),
+                  boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
+                      blurRadius: 2,
+                      offset: Offset(0, 1),
                     ),
-                  ]
-                  : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? Color(0xFF6B86C9) : Color(0xFF94A3B8),
-            ),
-            SizedBox(width: 6),
-            Text(
-              title,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                color: isSelected ? Color(0xFF6B86C9) : Color(0xFF94A3B8),
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Color(0xFF6B86C9).withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.pets, size: 32, color: Color(0xFF6B86C9)),
-          ),
-          SizedBox(height: 16),
-          Text(
-            'No Records Yet',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Start tracking your pet\'s health\nby adding their first record',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 15,
-              color: Color(0xFF64748B),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/add-record');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF6B86C9),
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: Text(
-              'Add First Record',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModernRecordsTab(
-    Map<String, List<Map<String, dynamic>>> groupedRecords,
-  ) {
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 24),
-      itemCount: groupedRecords.length,
-      itemBuilder: (context, index) {
-        final month = groupedRecords.keys.elementAt(index);
-        final records = groupedRecords[month]!;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(bottom: 16, top: index == 0 ? 0 : 24),
-              child: Text(
-                month,
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
+                  ],
                 ),
               ),
             ),
-            ...records.map((record) => _buildModernRecordItem(record)).toList(),
+            // Bubble with enhanced design - ปรับขนาดตาม isLarge
+            Transform.scale(
+              scale: _bubbleAnimation.value,
+              child: Container(
+                width: isLarge ? 100 : 80, // ขนาดใหญ่ถ้า isLarge = true
+                height: isLarge ? 100 : 80, // ขนาดใหญ่ถ้า isLarge = true
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      color,
+                      color.withOpacity(0.9),
+                      color.withOpacity(0.7),
+                      color.withOpacity(0.5),
+                    ],
+                    stops: [0.0, 0.3, 0.7, 1.0], // เพิ่ม stops สำหรับไล่เฉดที่สวยงาม
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.6),
+                      blurRadius: 30,
+                      offset: Offset(0, 20),
+                    ),
+                    BoxShadow(
+                      color: color.withOpacity(0.4),
+                      blurRadius: 60,
+                      offset: Offset(0, 30),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: Offset(-5, -5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isLarge ? 8 : 6, 
+                        vertical: isLarge ? 3 : 2
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(isLarge ? 10 : 8),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: Colors.white,
+                          fontSize: isLarge ? 12 : 10, // ขนาดใหญ่ขึ้นถ้า isLarge
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: isLarge ? 6 : 4),
+                    AnimatedBuilder(
+                      animation: _numberAnimation,
+                      builder: (context, child) {
+                        int animatedValue = (value * _numberAnimation.value).round();
+                        return Container(
+                          padding: EdgeInsets.all(isLarge ? 6 : 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            animatedValue.toString(),
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              color: Colors.white,
+                              fontSize: isLarge ? 22 : 18, // ขนาดใหญ่ขึ้นถ้า isLarge
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  offset: Offset(0, 1),
+                                  blurRadius: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         );
       },
     );
   }
 
-  Widget _buildModernRecordItem(Map<String, dynamic> record) {
+  int _getBcsScore() {
+    final List<dynamic> rawRecords = widget.pet['records'] ?? [];
+    if (rawRecords.isNotEmpty) {
+      final latestRecord = rawRecords.last;
+      return int.tryParse(latestRecord['score']?.toString() ?? '5') ?? 5;
+    }
+    return 5;
+  }
+
+  int _getWeight() {
+    final List<dynamic> rawRecords = widget.pet['records'] ?? [];
+    if (rawRecords.isNotEmpty) {
+      final latestRecord = rawRecords.last;
+      return (double.tryParse(latestRecord['weight']?.toString() ?? '0') ?? 0.0).toInt();
+    }
+    return 0;
+  }
+
+  Widget _buildBubbleSection() {
+    // This section is now integrated into the pet image section
+    return SizedBox.shrink();
+  }
+
+  Widget _buildBubble(String label, int value, Color color, IconData icon) {
+    return AnimatedBuilder(
+      animation: _numberAnimation,
+      builder: (context, child) {
+        int animatedValue = (value * _numberAnimation.value).round();
+        
+        return Container(
+          width: 80,
+          height: 80,
+        decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [color, color.withOpacity(0.7)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+                    BoxShadow(
+                color: color.withOpacity(0.3),
+                blurRadius: 15,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+                color: Colors.white,
+                size: 20,
+            ),
+              SizedBox(height: 4),
+            Text(
+                animatedValue.toString(),
+              style: TextStyle(
+                fontFamily: 'Inter',
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+          Text(
+                label,
+            style: TextStyle(
+              fontFamily: 'Inter',
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildActualGraph(String title, Color color) {
+    // ใช้ข้อมูลจริงจาก records
+    final List<dynamic> rawRecords = widget.pet['records'] ?? [];
+    List<Map<String, dynamic>> chartData = [];
+    
+    if (rawRecords.isNotEmpty) {
+      // แปลงข้อมูล records เป็นข้อมูลสำหรับกราฟ
+      chartData = rawRecords.map((record) {
+        final date = DateTime.parse(record['date'] ?? DateTime.now().toIso8601String());
+        return {
+          'date': date,
+          'bcs': record['score'] ?? 5,
+          'weight': record['weight'] ?? 0,
+          'formattedDate': '${date.day}/${date.month}',
+        };
+      }).toList();
+      
+      // เรียงลำดับตามวันที่
+      chartData.sort((a, b) => a['date'].compareTo(b['date']));
+    }
+    
+    // ถ้าไม่มีข้อมูลเลย ให้แสดงข้อความว่าไม่มีข้อมูล
+    if (chartData.isEmpty) {
+      return Container(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.show_chart,
+              color: color.withOpacity(0.5),
+              size: 32,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'No data available',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+      padding: EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // แสดงข้อมูลล่าสุด
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Latest: ${title == 'BCS Trend' ? chartData.last['bcs'] : chartData.last['weight']}',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              Text(
+                '${chartData.length} record${chartData.length > 1 ? 's' : ''}',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          // แสดงกราฟแบบ Line Chart
+          Container(
+            height: 80,
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: CustomPaint(
+              painter: LineChartPainter(
+                data: chartData,
+                title: title,
+                color: color,
+              ),
+              size: Size.infinite,
+            ),
+          ),
+          SizedBox(height: 6),
+          // แสดงวันที่
+          Container(
+            height: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: chartData.map((data) {
+                return Text(
+                  data['formattedDate'],
+                  style: TextStyle(
+                    fontSize: 9, 
+                    color: Color(0xFF64748B), 
+                    fontWeight: FontWeight.w500,
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
-      child: Row(
+    );
+  }
+
+  Color _getBcsColor(int score) {
+    if (score <= 3) return Color(0xFF3B82F6); // Blue for underweight
+    if (score >= 4 && score <= 6) return Color(0xFF10B981); // Green for ideal
+    return Color(0xFFEF4444); // Red for overweight
+  }
+
+  Widget _buildPetInfoSection() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Container(
+        margin: EdgeInsets.all(24),
+        child: Column(
+          children: [
+            // Pet Information
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 25,
+                    offset: Offset(0, 15),
+          ),
+        ],
+      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Date section
+                  Row(
+                    children: [
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -645,31 +696,312 @@ class _HistoryScreenState extends State<HistoryScreen>
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              Icons.calendar_today,
+                          Icons.pets,
               color: Color(0xFF6B86C9),
-              size: 18,
+                          size: 24,
             ),
           ),
-
           SizedBox(width: 16),
-
-          // Date text
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
                 Text(
-                  record['date'],
+                        'Pet Information',
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 16,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                    ],
+                  ),
+                  SizedBox(height: 24),
+                  _buildInfoRow(Icons.badge, 'Name', widget.pet['name'] ?? 'Unknown'),
+                  _buildInfoRow(Icons.pets, 'Gender', widget.pet['gender'] ?? 'Unknown'),
+                  _buildInfoRow(Icons.category, 'Breed', widget.pet['breed'] ?? 'Unknown'),
+                  _buildInfoRow(Icons.medical_services, 'Spay/Neuter', 
+                      (widget.pet['is_sterilized'] == true) ? 'Yes' : 'No'),
+              ],
+            ),
+          ),
+            SizedBox(height: 20),
+            // Recommendation
+          Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 25,
+                    offset: Offset(0, 15),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF59E0B).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.lightbulb_outline,
+                          color: Color(0xFFF59E0B),
+                          size: 24,
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                Text(
+                        'Recommendation',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Based on BCS Score',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  _buildRecommendationContent(),
+                ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _buildRecommendationContent() {
+    int bcsScore = _getBcsScore();
+    String recommendation = '';
+    Color recommendationColor = Color(0xFF6B86C9);
+
+    if (bcsScore <= 3) {
+      recommendation = 'Your pet is underweight. Consider increasing food portions and consult a veterinarian.';
+      recommendationColor = Color(0xFF3B82F6);
+    } else if (bcsScore >= 4 && bcsScore <= 6) {
+      recommendation = 'Great! Your pet has an ideal body condition. Maintain current feeding routine.';
+      recommendationColor = Color(0xFF10B981);
+    } else {
+      recommendation = 'Your pet is overweight. Consider reducing food portions and increasing exercise.';
+      recommendationColor = Color(0xFFEF4444);
+    }
+
+    return Container(
+      padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+        color: recommendationColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: recommendationColor.withOpacity(0.3),
+          width: 1,
+        ),
+            ),
+            child: Text(
+        recommendation,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+          color: Color(0xFF1E293B),
+          height: 1.4,
+              ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+          children: [
+            Container(
+            padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+              color: Color(0xFF6B86C9).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 16,
+              color: Color(0xFF6B86C9),
+            ),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+            Text(
+                  label,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+            Text(
+                  value,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF1E293B),
                   ),
                 ),
-                SizedBox(height: 2),
+              ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+  Widget _buildRecordsSection() {
+    final List<dynamic> rawRecords = widget.pet['records'] ?? [];
+    
+    if (rawRecords.isEmpty) {
+      return _buildEmptyRecords();
+    }
+
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Container(
+        margin: EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+            Text(
+              'Health Records',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            SizedBox(height: 16),
+            ...rawRecords.reversed.take(5).map((record) => _buildRecordCard(record)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyRecords() {
+      return Container(
+      margin: EdgeInsets.all(24),
+      padding: EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+          Icon(
+            Icons.medical_information,
+            color: Color(0xFF6B86C9),
+            size: 48,
+          ),
+          SizedBox(height: 16),
                 Text(
-                  'Health Check',
+            'No Records Yet',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 18,
+              fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+          SizedBox(height: 8),
+            Text(
+            'Start tracking your pet\'s health by adding their first record.',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                color: Color(0xFF64748B),
+              ),
+            textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+  Widget _buildRecordCard(Map<String, dynamic> record) {
+    DateTime recordDate = DateTime.tryParse(record['date'] ?? '') ?? DateTime.now();
+    String formattedDate = DateFormat('dd MMMM yyyy').format(recordDate);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+            children: [
+              Container(
+            width: 40,
+            height: 40,
+                decoration: BoxDecoration(
+              color: Color(0xFF6B86C9).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+              Icons.medical_information,
+              color: Color(0xFF6B86C9),
+                  size: 20,
+                ),
+              ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              Text(
+                  formattedDate,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+                SizedBox(height: 4),
+                Text(
+                  'BCS: ${record['score'] ?? 'N/A'} • Weight: ${record['weight'] ?? 'N/A'} kg',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 12,
@@ -679,259 +1011,48 @@ class _HistoryScreenState extends State<HistoryScreen>
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // BCS Score
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Color(0xFF10B981).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+  Widget _buildGraphsSection() {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Container(
+        margin: EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                 Text(
-                  'BCS',
+              'Health Trends',
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 11,
-                    color: Color(0xFF10B981),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(width: 4),
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: Color(0xFF10B981),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${record['bcs']}',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(width: 12),
-
-          // Weight
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Color(0xFF8B5CF6).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              record['weight'],
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 12,
-                color: Color(0xFF8B5CF6),
+                    fontSize: 18,
                 fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGraphsTab() {
-    final List<dynamic> rawRecords = widget.pet['records'] ?? [];
-
-    print('🔍 Debug: Raw records count: ${rawRecords.length}');
-    print('🔍 Debug: Raw records: $rawRecords');
-
-    if (rawRecords.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Color(0xFF8B5CF6).withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.analytics, size: 32, color: Color(0xFF8B5CF6)),
-            ),
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
             SizedBox(height: 16),
-            Text(
-              'No Data for Graphs',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Add some records to see\nbeautiful health analytics',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 15,
-                color: Color(0xFF64748B),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            _buildTrendGraph('BCS Trend', Color(0xFF6B86C9)),
+            SizedBox(height: 16),
+            _buildTrendGraph('Weight Trend', Color(0xFF10B981)),
           ],
+        ),
         ),
       );
     }
 
-    // Prepare data for charts
-    List<Map<String, dynamic>> chartData = [];
-
-    for (int i = 0; i < rawRecords.length; i++) {
-      var record = rawRecords[i];
-      DateTime recordDate =
-          DateTime.tryParse(record['date'] ?? '') ?? DateTime.now();
-
-      // Parse weight more carefully
-      double weight = 0.0;
-      if (record['weight'] != null) {
-        String weightStr = record['weight'].toString();
-        // Remove any non-numeric characters except decimal point
-        weightStr = weightStr.replaceAll(RegExp(r'[^0-9.]'), '');
-        weight = double.tryParse(weightStr) ?? 0.0;
-      }
-
-      int bcs = 0;
-      if (record['score'] != null) {
-        bcs = int.tryParse(record['score'].toString()) ?? 0;
-      }
-
-      print('🔍 Debug record $i: date=$recordDate, weight=$weight, bcs=$bcs');
-
-      chartData.add({
-        'date': recordDate,
-        'weight': weight,
-        'bcs': bcs,
-        'dateLabel': DateFormat('MMM dd').format(recordDate),
-      });
-    }
-
-    // Sort by date
-    chartData.sort((a, b) => a['date'].compareTo(b['date']));
-
-    print('🔍 Debug: Chart data prepared: ${chartData.length} items');
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(24, 32, 24, 24), // ✅ เพิ่ม top padding
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildWeightChart(chartData),
-          SizedBox(height: 32),
-          _buildBCSChart(chartData),
-          SizedBox(height: 32), // ✅ เพิ่ม bottom padding
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWeightChart(List<Map<String, dynamic>> data) {
-    if (data.isEmpty) return SizedBox.shrink();
-
-    print('🔍 Debug Weight Chart: ${data.length} data points');
-
-    // Find min and max weight for scaling
-    List<double> weights = data.map((d) => d['weight'] as double).toList();
-    weights = weights.where((w) => w > 0).toList(); // Filter out zero weights
-
-    if (weights.isEmpty) {
-      return Container(
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Color(0xFFE2E8F0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Color(0xFF10B981).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.monitor_weight,
-                    color: Color(0xFF10B981),
-                    size: 20,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Text(
-                  'Weight Trend',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 40),
-            Text(
-              'No weight data available',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 14,
-                color: Color(0xFF64748B),
-              ),
-            ),
-            SizedBox(height: 40),
-          ],
-        ),
-      );
-    }
-
-    double minWeight = weights.reduce((a, b) => a < b ? a : b);
-    double maxWeight = weights.reduce((a, b) => a > b ? a : b);
-
-    print('🔍 Weight range: $minWeight - $maxWeight');
-
-    // Add some padding to the range
-    double weightRange = maxWeight - minWeight;
-    if (weightRange == 0) weightRange = 1;
-    minWeight = (minWeight - weightRange * 0.1).clamp(0, double.infinity);
-    maxWeight = maxWeight + weightRange * 0.1;
-
+  Widget _buildTrendGraph(String title, Color color) {
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
             offset: Offset(0, 4),
           ),
         ],
@@ -942,24 +1063,20 @@ class _HistoryScreenState extends State<HistoryScreen>
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(8),
+                width: 8,
+                height: 8,
                 decoration: BoxDecoration(
-                  color: Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.monitor_weight,
-                  color: Color(0xFF10B981),
-                  size: 20,
+                  color: color,
+                  shape: BoxShape.circle,
                 ),
               ),
-              SizedBox(width: 12),
+              SizedBox(width: 8),
               Text(
-                'Weight Trend',
+                title,
                 style: TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                   color: Color(0xFF1E293B),
                 ),
               ),
@@ -967,464 +1084,180 @@ class _HistoryScreenState extends State<HistoryScreen>
           ),
           SizedBox(height: 20),
           Container(
-            height: 200,
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: WeightChartPainter(data, minWeight, maxWeight),
+            height: 180,
+            decoration: BoxDecoration(
+              color: Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
             ),
-          ),
-          SizedBox(height: 16),
-          _buildChartLegend('Weight (kg)', Color(0xFF10B981)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBCSChart(List<Map<String, dynamic>> data) {
-    if (data.isEmpty) return SizedBox.shrink();
-
-    print('🔍 Debug BCS Chart: ${data.length} data points');
-
-    // Check if there's any BCS data
-    List<int> bcsScores = data.map((d) => d['bcs'] as int).toList();
-    bcsScores = bcsScores.where((bcs) => bcs > 0).toList();
-
-    if (bcsScores.isEmpty) {
-      return Container(
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Color(0xFFE2E8F0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Color(0xFF6366F1).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.favorite,
-                    color: Color(0xFF6366F1),
-                    size: 20,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Text(
-                  'Body Condition Score',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E293B),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 40),
-            Text(
-              'No BCS data available',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 14,
-                color: Color(0xFF64748B),
-              ),
-            ),
-            SizedBox(height: 40),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: Offset(0, 4),
+            child: _buildActualGraph(title, color),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Color(0xFF6366F1).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.favorite, color: Color(0xFF6366F1), size: 20),
-              ),
-              SizedBox(width: 12),
-              Text(
-                'Body Condition Score',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 20),
-          Container(
-            height: 200,
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: BCSChartPainter(data),
-            ),
-          ),
-          SizedBox(height: 16),
-          _buildChartLegend('BCS Score (1-9)', Color(0xFF6366F1)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildChartLegend(String title, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        SizedBox(width: 8),
-        Text(
-          title,
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 14,
-            color: Color(0xFF64748B),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 }
 
-// Custom Painter for Weight Chart
-class WeightChartPainter extends CustomPainter {
+class LineChartPainter extends CustomPainter {
   final List<Map<String, dynamic>> data;
-  final double minWeight;
-  final double maxWeight;
+  final String title;
+  final Color color;
 
-  WeightChartPainter(this.data, this.minWeight, this.maxWeight);
+  LineChartPainter({
+    required this.data,
+    required this.title,
+    required this.color,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     if (data.isEmpty) return;
 
-    final paint =
-        Paint()
-          ..color = Color(0xFF10B981)
-          ..strokeWidth = 3
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round;
+    // เพิ่ม padding เพื่อป้องกัน overflow
+    final padding = 12.0;
+    final chartWidth = size.width - (padding * 2);
+    final chartHeight = size.height - (padding * 2);
 
-    final pointPaint =
-        Paint()
-          ..color = Color(0xFF10B981)
-          ..style = PaintingStyle.fill;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 3.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
 
-    final gridPaint =
-        Paint()
-          ..color = Color(0xFFE2E8F0)
-          ..strokeWidth = 1;
+    final fillPaint = Paint()
+      ..color = color.withOpacity(0.15)
+      ..style = PaintingStyle.fill;
 
-    final textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+    final pointPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
 
-    // Draw grid lines
-    for (int i = 0; i <= 4; i++) {
-      double y = size.height * i / 4;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
+    final shadowPaint = Paint()
+      ..color = color.withOpacity(0.3)
+      ..style = PaintingStyle.fill;
 
-    // Calculate points
-    List<Offset> points = [];
+    // คำนวณจุดข้อมูล
+    final points = <Offset>[];
+    final double maxValue = title == 'BCS Trend' ? 9.0 : 30.0;
+    final double minValue = title == 'BCS Trend' ? 1.0 : 0.0;
+    
+    // หาค่าต่ำสุดและสูงสุดจากข้อมูลจริง
+    double actualMin = double.infinity;
+    double actualMax = double.negativeInfinity;
+    
     for (int i = 0; i < data.length; i++) {
-      double x;
-      if (data.length == 1) {
-        // ✅ ถ้ามีข้อมูลเพียงจุดเดียว ให้วางตรงกลาง
-        x = size.width / 2;
-      } else {
-        x = size.width * i / (data.length - 1);
-      }
-
-      double weight = data[i]['weight'];
-      double y;
-      if (maxWeight == minWeight) {
-        // ✅ ถ้าน้ำหนักเท่ากัน ให้วางตรงกลาง
-        y = size.height / 2;
-      } else {
-        y =
-            size.height -
-            (size.height * (weight - minWeight) / (maxWeight - minWeight));
-      }
+      final value = title == 'BCS Trend' 
+          ? data[i]['bcs'].toDouble() 
+          : data[i]['weight'].toDouble();
+      if (value < actualMin) actualMin = value;
+      if (value > actualMax) actualMax = value;
+    }
+    
+    // ใช้ค่าจริงหรือค่าเริ่มต้น
+    final double rangeMin = actualMin == double.infinity ? minValue : actualMin - 1;
+    final double rangeMax = actualMax == double.negativeInfinity ? maxValue : actualMax + 1;
+    
+    for (int i = 0; i < data.length; i++) {
+      final value = title == 'BCS Trend' 
+          ? data[i]['bcs'].toDouble() 
+          : data[i]['weight'].toDouble();
+      
+      final x = padding + (i / (data.length - 1)) * chartWidth;
+      final y = padding + chartHeight - ((value - rangeMin) / (rangeMax - rangeMin)) * chartHeight;
+      
       points.add(Offset(x, y));
     }
 
-    // Draw line (only if more than 1 point)
+    // วาดพื้นที่ใต้เส้นกราฟ (Gradient effect)
     if (points.length > 1) {
-      Path path = Path();
-      path.moveTo(points[0].dx, points[0].dy);
+      final fillPath = Path();
+      fillPath.moveTo(points.first.dx, padding + chartHeight);
+      fillPath.lineTo(points.first.dx, points.first.dy);
+      
       for (int i = 1; i < points.length; i++) {
-        path.lineTo(points[i].dx, points[i].dy);
+        fillPath.lineTo(points[i].dx, points[i].dy);
       }
+      
+      fillPath.lineTo(points.last.dx, padding + chartHeight);
+      fillPath.close();
+      
+      canvas.drawPath(fillPath, fillPaint);
+    }
+
+    // วาดเส้นกราฟ
+    if (points.length == 1) {
+      // ถ้ามี 1 จุด ให้วาดจุดเดียว
+      final point = points.first;
+      canvas.drawCircle(point, 6, pointPaint);
+      canvas.drawCircle(point, 3, Paint()..color = Colors.white);
+    } else if (points.length == 2) {
+      // ถ้ามี 2 จุด ให้วาดเส้นตรง
+      final path = Path();
+      path.moveTo(points.first.dx, points.first.dy);
+      path.lineTo(points.last.dx, points.last.dy);
+      canvas.drawPath(path, paint);
+    } else {
+      // ถ้ามีมากกว่า 2 จุด ให้วาด smooth curve
+      final path = Path();
+      path.moveTo(points.first.dx, points.first.dy);
+      
+      for (int i = 1; i < points.length - 1; i++) {
+        final current = points[i];
+        final next = points[i + 1];
+        
+        final controlPoint1 = Offset(
+          current.dx + (next.dx - current.dx) * 0.3,
+          current.dy,
+        );
+        final controlPoint2 = Offset(
+          current.dx + (next.dx - current.dx) * 0.7,
+          next.dy,
+        );
+        
+        path.cubicTo(
+          controlPoint1.dx, controlPoint1.dy,
+          controlPoint2.dx, controlPoint2.dy,
+          next.dx, next.dy,
+        );
+      }
+      
       canvas.drawPath(path, paint);
     }
 
-    // Draw points and labels (always show points)
-    for (int i = 0; i < points.length; i++) {
-      // Draw larger point for single data point
-      double pointRadius = data.length == 1 ? 8 : 6;
-
-      // Draw point with glow effect for single point
-      if (data.length == 1) {
-        canvas.drawCircle(
-          points[i],
-          pointRadius + 4,
-          Paint()
-            ..color = Color(0xFF10B981).withOpacity(0.3)
-            ..style = PaintingStyle.fill,
-        );
-      }
-
-      canvas.drawCircle(points[i], pointRadius, pointPaint);
-      canvas.drawCircle(
-        points[i],
-        pointRadius,
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
-      );
-
-      // ✅ แสดง weight value บนจุด
-      textPainter.text = TextSpan(
-        text: '${data[i]['weight']} kg',
-        style: TextStyle(
-          color: Color(0xFF1E293B),
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      );
-      textPainter.layout();
-
-      double textX = points[i].dx - textPainter.width / 2;
-      double textY = points[i].dy - 25;
-
-      // Draw background for text
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            textX - 4,
-            textY - 2,
-            textPainter.width + 8,
-            textPainter.height + 4,
-          ),
-          Radius.circular(4),
-        ),
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.fill,
-      );
-
-      textPainter.paint(canvas, Offset(textX, textY));
-
-      // Draw date labels
-      if (data.length == 1 ||
-          i % ((data.length / 4).ceil()) == 0 ||
-          i == data.length - 1) {
-        textPainter.text = TextSpan(
-          text: data[i]['dateLabel'],
-          style: TextStyle(
-            color: Color(0xFF64748B),
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        );
-        textPainter.layout();
-
-        double dateTextX = points[i].dx - textPainter.width / 2;
-        double dateTextY = size.height + 8;
-
-        textPainter.paint(canvas, Offset(dateTextX, dateTextY));
-      }
+    // วาดจุดข้อมูลพร้อม shadow
+    for (final point in points) {
+      // Shadow
+      canvas.drawCircle(Offset(point.dx + 1, point.dy + 1), 5, shadowPaint);
+      // Main point
+      canvas.drawCircle(point, 4, pointPaint);
+      // Inner highlight
+      canvas.drawCircle(point, 2, Paint()..color = Colors.white);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
-// Custom Painter for BCS Chart
-class BCSChartPainter extends CustomPainter {
-  final List<Map<String, dynamic>> data;
-
-  BCSChartPainter(this.data);
-
+class LinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    if (data.isEmpty) return;
+    final paint = Paint()
+      ..color = Color(0xFF6B86C9)
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
 
-    final paint =
-        Paint()
-          ..color = Color(0xFF6366F1)
-          ..strokeWidth = 3
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round;
+    final path = Path();
+    path.moveTo(0, size.height / 2);
+    path.quadraticBezierTo(
+      size.width / 2, 
+      size.height / 2 - 10,
+      size.width, 
+      size.height / 2
+    );
 
-    final pointPaint =
-        Paint()
-          ..color = Color(0xFF6366F1)
-          ..style = PaintingStyle.fill;
-
-    final gridPaint =
-        Paint()
-          ..color = Color(0xFFE2E8F0)
-          ..strokeWidth = 1;
-
-    final textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
-
-    // Draw grid lines
-    for (int i = 0; i <= 4; i++) {
-      double y = size.height * i / 4;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    // Calculate points (BCS scale 1-9)
-    List<Offset> points = [];
-    for (int i = 0; i < data.length; i++) {
-      double x;
-      if (data.length == 1) {
-        // ✅ ถ้ามีข้อมูลเพียงจุดเดียว ให้วางตรงกลาง
-        x = size.width / 2;
-      } else {
-        x = size.width * i / (data.length - 1);
-      }
-
-      double bcs = data[i]['bcs'].toDouble();
-      double y =
-          size.height -
-          (size.height * (bcs - 1) / 8); // Scale 1-9 to full height
-      points.add(Offset(x, y));
-    }
-
-    // Draw line (only if more than 1 point)
-    if (points.length > 1) {
-      Path path = Path();
-      path.moveTo(points[0].dx, points[0].dy);
-      for (int i = 1; i < points.length; i++) {
-        path.lineTo(points[i].dx, points[i].dy);
-      }
       canvas.drawPath(path, paint);
-    }
-
-    // Draw points and labels (always show points)
-    for (int i = 0; i < points.length; i++) {
-      // Draw larger point for single data point
-      double pointRadius = data.length == 1 ? 8 : 6;
-
-      // Draw point with glow effect for single point
-      if (data.length == 1) {
-        canvas.drawCircle(
-          points[i],
-          pointRadius + 4,
-          Paint()
-            ..color = Color(0xFF6366F1).withOpacity(0.3)
-            ..style = PaintingStyle.fill,
-        );
-      }
-
-      canvas.drawCircle(points[i], pointRadius, pointPaint);
-      canvas.drawCircle(
-        points[i],
-        pointRadius,
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
-      );
-
-      // ✅ แสดง BCS value บนจุด
-      textPainter.text = TextSpan(
-        text: 'BCS ${data[i]['bcs']}',
-        style: TextStyle(
-          color: Color(0xFF1E293B),
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      );
-      textPainter.layout();
-
-      double textX = points[i].dx - textPainter.width / 2;
-      double textY = points[i].dy - 25;
-
-      // Draw background for text
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            textX - 4,
-            textY - 2,
-            textPainter.width + 8,
-            textPainter.height + 4,
-          ),
-          Radius.circular(4),
-        ),
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.fill,
-      );
-
-      textPainter.paint(canvas, Offset(textX, textY));
-
-      // Draw date labels
-      if (data.length == 1 ||
-          i % ((data.length / 4).ceil()) == 0 ||
-          i == data.length - 1) {
-        textPainter.text = TextSpan(
-          text: data[i]['dateLabel'],
-          style: TextStyle(
-            color: Color(0xFF64748B),
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        );
-        textPainter.layout();
-
-        double dateTextX = points[i].dx - textPainter.width / 2;
-        double dateTextY = size.height + 8;
-
-        textPainter.paint(canvas, Offset(dateTextX, dateTextY));
-      }
-    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

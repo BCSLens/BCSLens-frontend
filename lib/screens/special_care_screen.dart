@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_nav_bar.dart';
-import '../services/pet_service.dart';
 import '../services/group_service.dart';
-import '../models/pet_record_model.dart';
 
 class SpecialCareScreen extends StatefulWidget {
   const SpecialCareScreen({Key? key}) : super(key: key);
@@ -12,8 +10,6 @@ class SpecialCareScreen extends StatefulWidget {
 }
 
 class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProviderStateMixin {
-  int _selectedIndex = 2;
-  final PetService _petService = PetService();
   final GroupService _groupService = GroupService();
   List<Map<String, dynamic>> _specialCarePets = [];
   List<Map<String, dynamic>> _allPets = [];
@@ -165,10 +161,10 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
         case 'Underweight':
           return bcs <= 3;
         case 'Overweight':
-          return bcs >= 8;
+          return bcs >= 7; // เปลี่ยนจาก 8 เป็น 7
         case 'All':
         default:
-          return bcs <= 3 || bcs >= 8;
+          return bcs <= 3 || bcs >= 7; // เปลี่ยนจาก 8 เป็น 7
       }
     }).toList();
 
@@ -188,7 +184,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
   void _onItemTapped(int index) {
     switch (index) {
       case 0:
-        Navigator.pushReplacementNamed(context, '/records');
+      Navigator.pushReplacementNamed(context, '/records');
         break;
       case 1:
         // History - for now do nothing, already on special care
@@ -239,7 +235,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
 
   Widget _buildModernHeader() {
     return Container(
-      decoration: BoxDecoration(
+              decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -266,7 +262,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+                children: [
                 Expanded(
                   child: Text(
                     'Special Care',
@@ -359,7 +355,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
 
   Widget _buildStatsCards() {
     int underweightCount = _allPets.where((pet) => (pet['bcs'] as int) <= 3).length;
-    int overweightCount = _allPets.where((pet) => (pet['bcs'] as int) >= 8).length;
+    int overweightCount = _allPets.where((pet) => (pet['bcs'] as int) >= 7).length; // เปลี่ยนจาก 8 เป็น 7
     int totalSpecialCare = underweightCount + overweightCount;
 
     return Container(
@@ -576,7 +572,6 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
   Widget _buildSpecialCarePetCard(Map<String, dynamic> pet, int index) {
     int bcs = pet['bcs'] as int;
     bool isUnderweight = bcs <= 3;
-    bool isOverweight = bcs >= 8;
     
     Color statusColor = isUnderweight ? Color(0xFF3B82F6) : Color(0xFFF59E0B);
     String statusText = isUnderweight ? 'Underweight' : 'Overweight';
@@ -621,9 +616,9 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                   ),
                 ),
                 SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         pet['name'],
@@ -815,6 +810,8 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
       return 'Severely underweight. Consult veterinarian immediately. Increase caloric intake and monitor closely.';
     } else if (bcs == 3) {
       return 'Underweight. Increase food portions and consider high-calorie diet. Regular vet check-ups recommended.';
+    } else if (bcs == 7) {
+      return 'Slightly overweight. Monitor food intake, increase exercise, and consider portion control.';
     } else if (bcs == 8) {
       return 'Overweight. Reduce portions, increase exercise, and consider weight management diet.';
     } else if (bcs >= 9) {

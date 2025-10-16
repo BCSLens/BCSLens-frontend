@@ -95,6 +95,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   List<Map<String, dynamic>> _groups = [];
   bool _isLoading = false;
   String? _errorMessage;
+  
+  // Group creation
+  final TextEditingController _newGroupController = TextEditingController();
 
   @override
   void initState() {
@@ -338,6 +341,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     _ageMonthsController.dispose();
     _weightController.dispose();
     _breedFocusNode.dispose();
+    _newGroupController.dispose();
     _hideBreedOverlay();
     super.dispose();
   }
@@ -352,6 +356,122 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
 
   void _goBack() {
     Navigator.pop(context);
+  }
+
+  void _showCreateGroupDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.create_new_folder, color: Color(0xFF10B981)),
+            SizedBox(width: 8),
+            Text(
+              'Create New Group',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+        content: Container(
+          width: double.maxFinite,
+          child: TextField(
+            controller: _newGroupController,
+            decoration: InputDecoration(
+              hintText: 'Enter group name',
+              hintStyle: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF94A3B8),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Color(0xFFE2E8F0)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Color(0xFF10B981)),
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+            autofocus: true,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _newGroupController.clear();
+            },
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _createNewGroup();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Create',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createNewGroup() async {
+    if (_newGroupController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Group name cannot be empty')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final groupService = GroupService();
+      await groupService.createGroup(_newGroupController.text);
+      _newGroupController.clear();
+      _loadGroups(); // Reload groups
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Group created successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating group: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   String _formatAgeForSubmission() {
@@ -463,8 +583,8 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   // Helper method to build modern input fields
   Widget _buildInputSection(String label, String hint, IconData icon, TextEditingController controller, {TextInputType? keyboardType, List<TextInputFormatter>? inputFormatters, String? suffixText}) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
         Row(
           children: [
             Container(
@@ -482,10 +602,10 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
             SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                fontFamily: 'Inter',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                 color: Color(0xFF1E293B),
               ),
             ),
@@ -560,20 +680,20 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
         Expanded(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
+                      children: [
+                        Text(
                 label,
-                style: TextStyle(
-                  fontFamily: 'Inter',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
                   fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w500,
                   color: Color(0xFF64748B),
-                ),
-              ),
-              Text(
+                          ),
+                        ),
+                        Text(
                 value,
-                style: TextStyle(
-                  fontFamily: 'Inter',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF1E293B),
@@ -589,7 +709,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   // Modern header with back button
   Widget _buildModernHeader() {
     return Container(
-      decoration: BoxDecoration(
+                            decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -621,7 +741,7 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                 height: 44,
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.arrow_back_ios_new,
@@ -656,9 +776,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   Widget _buildProgressIndicator() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
           Row(
             children: [
               Container(
@@ -706,9 +826,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
             ],
           ),
           const SizedBox(height: 16),
-                        Text(
+                                Text(
             'Pet Details',
-                          style: TextStyle(
+                                  style: TextStyle(
                             fontFamily: 'Inter',
               color: Color(0xFF1E293B),
               fontSize: 18,
@@ -716,9 +836,9 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
             ),
           ),
           const SizedBox(height: 8),
-                        Text(
+                                    Text(
             'Complete your pet\'s information to finish the record',
-                          style: TextStyle(
+                                      style: TextStyle(
                             fontFamily: 'Inter',
               color: Color(0xFF64748B),
               fontSize: 14,
@@ -1293,40 +1413,54 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                               const SizedBox(height: 20),
 
                           // Group Selection (only for new pets)
-                              if (_groups.isNotEmpty) ...[
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: Color(0xFF6B86C9).withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Icon(
-                                            Icons.group,
-                                            size: 16,
-                                            color: Color(0xFF6B86C9),
-                                          ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF6B86C9).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
-                                        SizedBox(width: 8),
-                          Text(
-                            'Group',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF1E293B),
-                                          ),
+                                        child: Icon(
+                                          Icons.group,
+                                          size: 16,
+                                          color: Color(0xFF6B86C9),
                                         ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 8),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Group',
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF1E293B),
+                                        ),
+                                      ),
+                                      Spacer(),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF10B981).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: IconButton(
+                                          icon: Icon(Icons.add, color: Color(0xFF10B981), size: 20),
+                                          onPressed: _showCreateGroupDialog,
+                                          tooltip: 'Create New Group',
+                                          constraints: BoxConstraints(minWidth: 32, minHeight: 32),
+                                          padding: EdgeInsets.all(8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8),
+                                  if (_groups.isNotEmpty) ...[
                                     Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
                                         borderRadius: BorderRadius.circular(12),
                                         boxShadow: [
                                           BoxShadow(
@@ -1355,30 +1489,85 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
                                         ),
                                         items: _groups.map<DropdownMenuItem<String>>((group) {
                                           return DropdownMenuItem<String>(
-                                                      value: group['_id'],
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons.pets,
+                                            value: group['_id'],
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.pets,
                                                   color: Color(0xFF7B8EB5),
-                                                            size: 20,
-                                                          ),
+                                                  size: 20,
+                                                ),
                                                 const SizedBox(width: 12),
                                                 Text(group['group_name']),
-                                                        ],
-                                                      ),
-                                                    );
-                                                  }).toList(),
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
                                         onChanged: (String? newValue) {
                                           setState(() {
                                             _selectedGroup = newValue!;
                                           });
                                         },
+                                      ),
+                                    ),
+                                  ] else ...[
+                                    Center(
+                                      child: Container(
+                                        padding: EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFFF8FAFC),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Color(0xFFE2E8F0)),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.group_add,
+                                              color: Color(0xFF6B86C9),
+                                              size: 32,
                                             ),
-                                          ),
+                                            SizedBox(height: 12),
+                                            Text(
+                                              'No groups available',
+                                              style: TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF1E293B),
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              'Create your first group to organize your pets',
+                                              style: TextStyle(
+                                                fontFamily: 'Inter',
+                                                fontSize: 14,
+                                                color: Color(0xFF64748B),
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                            SizedBox(height: 16),
+                                            ElevatedButton.icon(
+                                              onPressed: _showCreateGroupDialog,
+                                              icon: Icon(Icons.add),
+                                              label: Text('Create Group'),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Color(0xFF10B981),
+                                                foregroundColor: Colors.white,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ],
+                                ],
                               ),
-                              ],
                         ],
 
                         const SizedBox(height: 32),
