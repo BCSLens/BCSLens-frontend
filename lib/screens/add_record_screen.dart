@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/pet_record_model.dart';
 import '../services/camera_service.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:path_provider/path_provider.dart';
 import '../services/pet_detection_service.dart';
 import 'dart:io';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AddRecordScreen extends StatefulWidget {
@@ -26,7 +23,6 @@ class _AddRecordScreenState extends State<AddRecordScreen>
   int _selectedIndex = 1;
   String? _frontViewImagePath;
   bool _isPhotoLoading = false;
-  bool _isPredicting = false;
   String? _predictedAnimal;
   double? _predictionConfidence;
   bool _predictionHandled = false;
@@ -283,43 +279,6 @@ class _AddRecordScreenState extends State<AddRecordScreen>
     }
   }
 
-  void _useTestImage() async {
-    setState(() {
-      _isPhotoLoading = true;
-      _apiError = false;
-      if (!_isExistingPet) {
-        _predictionHandled = false;
-        _predictedAnimal = null;
-      }
-    });
-
-    try {
-      final directory = await getTemporaryDirectory();
-      final tempPath = directory.path;
-      final assetName = 'assets/images/dog.jpg';
-      final tempFile = File('$tempPath/temp_test_image.jpg');
-
-      final byteData = await rootBundle.load(assetName);
-      await tempFile.writeAsBytes(byteData.buffer.asUint8List());
-
-      setState(() {
-        _frontViewImagePath = tempFile.path;
-      });
-
-      if (!_isExistingPet) {
-        await _predictPetType(tempFile.path);
-      }
-    } catch (e) {
-      print('Error using test image: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error using test image: $e')));
-    } finally {
-      setState(() {
-        _isPhotoLoading = false;
-      });
-    }
-  }
 
   Future<void> _predictPetType(String imagePath) async {
     // ✅ ข้าม prediction ถ้าเป็นสัตว์ที่มีอยู่แล้ว
@@ -328,7 +287,6 @@ class _AddRecordScreenState extends State<AddRecordScreen>
     }
 
     setState(() {
-      _isPredicting = true;
       _predictionHandled = false;
       _apiError = false;
     });
@@ -371,9 +329,7 @@ class _AddRecordScreenState extends State<AddRecordScreen>
             _showPetConfirmationDialog(true, errorMsg: "Error analyzing image"),
       );
     } finally {
-      setState(() {
-        _isPredicting = false;
-      });
+      // Prediction completed
     }
   }
 
@@ -669,6 +625,73 @@ class _AddRecordScreenState extends State<AddRecordScreen>
     }
   }
 
+  // Helper method to check if user has unsaved data
+  bool _hasUnsavedData() {
+    return _frontViewImagePath != null || _predictedAnimal != null;
+  }
+
+  // Show confirmation dialog
+  Future<bool> _showExitConfirmation() async {
+    if (!_hasUnsavedData()) return true;
+    
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B)),
+            SizedBox(width: 8),
+            Text(
+              'Leave without saving?',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'You have unsaved changes. Are you sure you want to leave?',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            color: Color(0xFF64748B),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Leave',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     // ถ้าเป็นสัตว์เก่า ถือว่า prediction handled แล้ว
@@ -677,23 +700,43 @@ class _AddRecordScreenState extends State<AddRecordScreen>
         (_predictionHandled || _isExistingPet) &&
         !_apiError;
 
-    return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildModernHeader(),
-            SizedBox(height: 20),
-            _buildProgressIndicator(),
-            Expanded(child: _buildPhotoContentWithAnimations()),
-            _buildModernBottomSection(canProceed),
-          ],
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (!didPop) {
+          final shouldPop = await _showExitConfirmation();
+          if (shouldPop) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildModernHeader(),
+              SizedBox(height: 20),
+              _buildProgressIndicator(),
+              Expanded(child: _buildPhotoContentWithAnimations()),
+              _buildModernBottomSection(canProceed),
+            ],
+          ),
         ),
-      ),
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
-        onAddRecordsTap: () {},
+        bottomNavigationBar: BottomNavBar(
+          selectedIndex: _selectedIndex,
+          onItemTapped: (index) async {
+            if (_hasUnsavedData()) {
+              final shouldLeave = await _showExitConfirmation();
+              if (shouldLeave) {
+                _onItemTapped(index);
+              }
+            } else {
+              _onItemTapped(index);
+            }
+          },
+          onAddRecordsTap: () {},
+        ),
       ),
     );
   }

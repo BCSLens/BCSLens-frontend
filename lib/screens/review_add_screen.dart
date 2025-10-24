@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/pet_record_model.dart';
+import '../services/pet_service.dart';
 
 class BcsReviewScreen extends StatefulWidget {
   final PetRecord petRecord;
@@ -19,6 +20,7 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
     with TickerProviderStateMixin {
   int _selectedIndex = 0;
   bool _isFavorite = true;
+  bool _isLoading = false;
   
   late AnimationController _animationController;
   late AnimationController _scoreAnimationController;
@@ -543,8 +545,123 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
     });
   }
 
-  void _navigateToRecords() {
-    Navigator.pushReplacementNamed(context, '/records');
+  // Helper method to check if user has unsaved data
+  bool _hasUnsavedData() {
+    // Check if there's any data from add_record page (image, prediction)
+    return widget.petRecord.frontViewImagePath != null ||
+           widget.petRecord.predictedAnimal != null ||
+           widget.petRecord.predictionConfidence != null;
+  }
+
+  // Show confirmation dialog
+  Future<bool> _showExitConfirmation() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B)),
+            SizedBox(width: 8),
+            Text(
+              'Leave without saving?',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Your pet data will be lost. Are you sure you want to leave?',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            color: Color(0xFF64748B),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Leave',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
+  Future<void> _navigateToRecords() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final petService = PetService();
+
+      if (widget.petRecord.isNewRecordForExistingPet &&
+          widget.petRecord.existingPetId != null) {
+        // Add record to existing pet
+        await petService.addRecordToExistingPet(
+          widget.petRecord.existingPetId!,
+          widget.petRecord,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('New record added for ${widget.petRecord.name}!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Create new pet
+        await petService.createPet(widget.petRecord);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Pet ${widget.petRecord.name} created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      // Navigate to records screen
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/records',
+        (route) => false,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -560,8 +677,18 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
     print('🔍 Debug - Category: ${widget.petRecord.category}');
     print('🔍 Debug - Suggestions: $suggestions');
 
-    return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (!didPop) {
+          final shouldPop = await _showExitConfirmation();
+          if (shouldPop) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
       body: SafeArea(
         child: Column(
           children: [
@@ -616,37 +743,56 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
       floatingActionButton: Container(
         margin: EdgeInsets.only(bottom: 80), // Above bottom nav
         child: FloatingActionButton.extended(
-          onPressed: _navigateToRecords,
+          onPressed: _isLoading ? null : _navigateToRecords,
           backgroundColor: Color(0xFF6B86C9),
           elevation: 8,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
-          label: Row(
-            children: [
-              Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Done',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+          label: _isLoading
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Row(
+                  children: [
+                    Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      widget.petRecord.isNewRecordForExistingPet ? 'Add Record' : 'Create Pet',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
+        onItemTapped: (index) async {
+          if (_hasUnsavedData()) {
+            final shouldLeave = await _showExitConfirmation();
+            if (shouldLeave) {
+              _onItemTapped(index);
+            }
+          } else {
+            _onItemTapped(index);
+          }
+        },
         onAddRecordsTap: () {
           Navigator.pushReplacementNamed(context, '/add-record');
         },
+      ),
       ),
     );
   }
@@ -679,7 +825,11 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
         child: Row(
           children: [
             GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () => Navigator.pushReplacementNamed(
+                context,
+                '/pet-details',
+                arguments: widget.petRecord,
+              ),
               child: Container(
                 width: 44,
                 height: 44,

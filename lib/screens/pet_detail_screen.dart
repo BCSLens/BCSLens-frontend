@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/pet_record_model.dart';
-import '../services/pet_service.dart';
 import '../services/group_service.dart';
-import 'dart:io';
 
 // Lists of common dog and cat breeds for autocomplete
 final List<String> _dogBreeds = [
@@ -65,7 +63,6 @@ class PetDetailsScreen extends StatefulWidget {
 
 class _PetDetailsScreenState extends State<PetDetailsScreen> {
   int _selectedIndex = 1;
-  String _recordType = 'Add a New Pet';
 
   // Controllers for text fields
   final TextEditingController _nameController = TextEditingController();
@@ -94,7 +91,6 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   // Available groups
   List<Map<String, dynamic>> _groups = [];
   bool _isLoading = false;
-  String? _errorMessage;
   
   // Group creation
   final TextEditingController _newGroupController = TextEditingController();
@@ -307,7 +303,6 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   Future<void> _loadGroups() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -327,7 +322,6 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error loading groups: $e';
         _isLoading = false;
       });
     }
@@ -354,9 +348,6 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     }
   }
 
-  void _goBack() {
-    Navigator.pop(context);
-  }
 
   void _showCreateGroupDialog() {
     showDialog(
@@ -514,70 +505,29 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
       }
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final petService = PetService();
-
-      if (widget.petRecord.isNewRecordForExistingPet &&
-          widget.petRecord.existingPetId != null) {
-        // อัปเดตเฉพาะ weight สำหรับสัตว์เก่า
-        widget.petRecord.weight = _formatWeightForSubmission();
-
-        final result = await petService.addRecordToExistingPet(
-          widget.petRecord.existingPetId!,
-          widget.petRecord,
-        );
-
-        // Navigate กลับไปหน้า Records
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/records',
-          (route) => false,
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('New record added for ${widget.petRecord.name}!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        // สร้างสัตว์ใหม่ (original code)
-        widget.petRecord.name = _nameController.text;
-        widget.petRecord.age = _formatAgeForSubmission();
-        widget.petRecord.weight = _formatWeightForSubmission();
-        widget.petRecord.breed = _breedController.text;
-        widget.petRecord.gender = _selectedGender;
-        widget.petRecord.isSterilized = _isSterilized;
-        widget.petRecord.groupId = _selectedGroup;
-        widget.petRecord.category =
-            widget.petRecord.predictedAnimal == 'cat' ? 'Cats' : 'Dogs';
-
-        final result = await petService.createPet(widget.petRecord);
-
-        Navigator.pushReplacementNamed(
-          context,
-          '/review-details',
-          arguments: widget.petRecord,
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error: $e';
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+    // Update pet record with form data
+    if (widget.petRecord.isNewRecordForExistingPet) {
+      // For existing pets, only update weight
+      widget.petRecord.weight = _formatWeightForSubmission();
+    } else {
+      // For new pets, update all data
+      widget.petRecord.name = _nameController.text;
+      widget.petRecord.age = _formatAgeForSubmission();
+      widget.petRecord.weight = _formatWeightForSubmission();
+      widget.petRecord.breed = _breedController.text;
+      widget.petRecord.gender = _selectedGender;
+      widget.petRecord.isSterilized = _isSterilized;
+      widget.petRecord.groupId = _selectedGroup;
+      widget.petRecord.category =
+          widget.petRecord.predictedAnimal == 'cat' ? 'Cats' : 'Dogs';
     }
+
+    // Navigate to review screen
+    Navigator.pushReplacementNamed(
+      context,
+      '/review-details',
+      arguments: widget.petRecord,
+    );
   }
 
   // Helper method to build modern input fields
@@ -850,26 +800,106 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Stack(
+  // Helper method to check if user has unsaved data
+  bool _hasUnsavedData() {
+    // Check if there's any data from add_record page (image, prediction)
+    return widget.petRecord.frontViewImagePath != null ||
+           widget.petRecord.predictedAnimal != null ||
+           widget.petRecord.predictionConfidence != null;
+  }
+
+  // Show confirmation dialog
+  Future<bool> _showExitConfirmation() async {
+    if (!_hasUnsavedData()) return true;
+    
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
           children: [
-            // Background with subtle gradient
-                          Container(
-                            decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFFF8FAFC),
-                    Color(0xFFF1F5F9),
-                  ],
-                ),
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B)),
+            SizedBox(width: 8),
+            Text(
+              'Leave without saving?',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
               ),
             ),
+          ],
+        ),
+        content: Text(
+          'You have unsaved changes. Are you sure you want to leave?',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            color: Color(0xFF64748B),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Leave',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (!didPop) {
+          final shouldPop = await _showExitConfirmation();
+          if (shouldPop) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              // Background with subtle gradient
+                            Container(
+                              decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFFF8FAFC),
+                      Color(0xFFF1F5F9),
+                    ],
+                  ),
+                ),
+              ),
             SingleChildScrollView(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1681,8 +1711,18 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
+        onItemTapped: (index) async {
+          if (_hasUnsavedData()) {
+            final shouldLeave = await _showExitConfirmation();
+            if (shouldLeave) {
+              _onItemTapped(index);
+            }
+          } else {
+            _onItemTapped(index);
+          }
+        },
         onAddRecordsTap: () {},
+      ),
       ),
     );
   }

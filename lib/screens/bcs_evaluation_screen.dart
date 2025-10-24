@@ -20,7 +20,6 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
   final TextEditingController _additionalNotesController =
       TextEditingController();
   bool _isExpert = false;
-  bool _isLoading = false;
   bool _isAnalyzing = false;
   late AnimationController _scoreAnimationController;
   late Animation<double> _scoreAnimation;
@@ -169,11 +168,6 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
     }
   }
 
-  void _updateBcsScore(int value) {
-    setState(() {
-      _bcsScore = value;
-    });
-  }
 
   void _goToNextStep() {
     // Update pet record with BCS score
@@ -781,37 +775,117 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
     );
   }
 
+  // Helper method to check if user has unsaved data
+  bool _hasUnsavedData() {
+    // Check if there's any data from add_record page (image, prediction)
+    return widget.petRecord.frontViewImagePath != null ||
+           widget.petRecord.predictedAnimal != null ||
+           widget.petRecord.predictionConfidence != null;
+  }
+
+  // Show confirmation dialog
+  Future<bool> _showExitConfirmation() async {
+    if (!_hasUnsavedData()) return true;
+    
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B)),
+            SizedBox(width: 8),
+            Text(
+              'Leave without saving?',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'You have unsaved BCS evaluation. Are you sure you want to leave?',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            color: Color(0xFF64748B),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Leave',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Modern Header
-            _buildModernHeader(),
-            
-            SizedBox(height: 20),
-            
-            // Scrollable Content
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-                    
-                    // Progress Indicator
-                    _buildProgressIndicator(),
-                    
-                    const SizedBox(height: 32),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (!didPop) {
+          final shouldPop = await _showExitConfirmation();
+          if (shouldPop) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Modern Header
+              _buildModernHeader(),
+              
+              SizedBox(height: 20),
+              
+              // Scrollable Content
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      
+                      // Progress Indicator
+                      _buildProgressIndicator(),
+                      
+                      const SizedBox(height: 32),
 
-                    // Show AI Analysis Card or BCS Score
-                    if (_isAnalyzing) ...[
-                      _buildAIAnalysisCard(),
-                    ] else ...[
-                      // BCS Score Card
-                      _buildBCSScoreCard(),
+                      // Show AI Analysis Card or BCS Score
+                      if (_isAnalyzing) ...[
+                        _buildAIAnalysisCard(),
+                      ] else ...[
+                        // BCS Score Card
+                        _buildBCSScoreCard(),
                       
                       const SizedBox(height: 24),
                       
@@ -840,10 +914,20 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
+        onItemTapped: (index) async {
+          if (_hasUnsavedData()) {
+            final shouldLeave = await _showExitConfirmation();
+            if (shouldLeave) {
+              _onItemTapped(index);
+            }
+          } else {
+            _onItemTapped(index);
+          }
+        },
         onAddRecordsTap: () {
           // Do nothing, already on add record screen
         },
+      ),
       ),
     );
   }

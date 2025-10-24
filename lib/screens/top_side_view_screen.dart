@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../widgets/bottom_nav_bar.dart';
 import '../models/pet_record_model.dart';
@@ -31,9 +29,7 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
 
   Map<int, bool> _loadingStates = {0: false, 1: false, 2: false, 3: false};
 
-  bool _isClassifying = false;
   Map<String, String> _viewClassifications = {};
-  bool _classificationError = false;
 
   late AnimationController _tabAnimationController;
   late AnimationController _buttonAnimationController;
@@ -55,12 +51,6 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
     'Position behind the animal',
   ];
 
-  Map<String, String> _testImages = {
-    'top': 'assets/images/dog_top.webp',
-    'left': 'assets/images/dog_left.jpg',
-    'right': 'assets/images/dog_right.jpg',
-    'back': 'assets/images/dog_back.webp',
-  };
 
   @override
   void initState() {
@@ -118,26 +108,116 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Column(
+  // Helper method to check if user has unsaved data
+  bool _hasUnsavedData() {
+    // Check if there's any data from add_record page (image, prediction)
+    return widget.petRecord.frontViewImagePath != null ||
+           widget.petRecord.predictedAnimal != null ||
+           widget.petRecord.predictionConfidence != null;
+  }
+
+  // Show confirmation dialog
+  Future<bool> _showExitConfirmation() async {
+    if (!_hasUnsavedData()) return true;
+    
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
           children: [
-            _buildModernHeader(),
-            SizedBox(height: 20),
-            _buildProgressIndicator(),
-            _buildGlassmorphicTabs(),
-            Expanded(child: _buildPhotoContentWithAnimations()),
-            _buildModernBottomSection(),
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B)),
+            SizedBox(width: 8),
+            Text(
+              'Leave without saving?',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
           ],
         ),
+        content: Text(
+          'You have unsaved photos. Are you sure you want to leave?',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            color: Color(0xFF64748B),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFEF4444),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'Leave',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
-        onAddRecordsTap: () {},
+    ) ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (!didPop) {
+          final shouldPop = await _showExitConfirmation();
+          if (shouldPop) {
+            Navigator.of(context).pop();
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xFFF8FAFC),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildModernHeader(),
+              SizedBox(height: 20),
+              _buildProgressIndicator(),
+              _buildGlassmorphicTabs(),
+              Expanded(child: _buildPhotoContentWithAnimations()),
+              _buildModernBottomSection(),
+            ],
+          ),
+        ),
+        bottomNavigationBar: BottomNavBar(
+          selectedIndex: _selectedIndex,
+          onItemTapped: (index) async {
+            if (_hasUnsavedData()) {
+              final shouldLeave = await _showExitConfirmation();
+              if (shouldLeave) {
+                _onItemTapped(index);
+              }
+            } else {
+              _onItemTapped(index);
+            }
+          },
+          onAddRecordsTap: () {},
+        ),
       ),
     );
   }
@@ -289,7 +369,6 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
       child: Row(
         children: List.generate(_viewTabs.length, (index) {
           bool isSelected = _selectedTabIndex == index;
-          bool hasImage = _getImagePathByIndex(index) != null;
           bool isLoading = _loadingStates[index] ?? false;
 
           return Expanded(
@@ -714,44 +793,10 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
     }
   }
 
-  void _retakePhoto(int viewIndex) {
-    _setImagePathByIndex(viewIndex, null);
-  }
-
-  void _useTestImage(int viewIndex) async {
-    setState(() {
-      _loadingStates[viewIndex] = true;
-    });
-
-    try {
-      final directory = await getTemporaryDirectory();
-      final tempPath = directory.path;
-
-      String viewName = _viewTabs[viewIndex].toLowerCase();
-      final assetName = _testImages[viewName]!;
-      final tempFile = File('$tempPath/temp_${viewName}_image.jpg');
-
-      final byteData = await rootBundle.load(assetName);
-      await tempFile.writeAsBytes(byteData.buffer.asUint8List());
-
-      _setImagePathByIndex(viewIndex, tempFile.path);
-
-      await _classifyImageView(tempFile.path, viewName);
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error using test image: $e')));
-    } finally {
-      setState(() {
-        _loadingStates[viewIndex] = false;
-      });
-    }
-  }
 
   Future<void> _classifyImageView(String imagePath, String expectedView) async {
     setState(() {
-      _isClassifying = true;
-      _classificationError = false;
+      // Classification started
     });
 
     try {
@@ -765,20 +810,12 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
         });
         _showViewConfirmationDialog(imagePath, expectedView, detectedView);
       } else {
-        setState(() {
-          _classificationError = true;
-        });
         _showViewConfirmationDialog(imagePath, expectedView, "unknown");
       }
     } catch (e) {
-      setState(() {
-        _classificationError = true;
-      });
       _showViewConfirmationDialog(imagePath, expectedView, "unknown");
     } finally {
-      setState(() {
-        _isClassifying = false;
-      });
+      // Classification completed
     }
   }
 
