@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../widgets/bottom_nav_bar.dart';
 
@@ -13,8 +12,11 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final AuthService _authService = AuthService();
-  String _userName = '';
-  String _userEmail = '';
+  String _firstName = '';
+  String _lastName = '';
+  String _email = '';
+  String _username = '';
+  String _role = '';
   bool _isLoading = true;
   int _selectedIndex = 3;
 
@@ -26,16 +28,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      // Fetch user data from backend
+      final userData = await _authService.authenticatedGet('/users/me');
+      
       setState(() {
-        _userName = prefs.getString('user_name') ?? 'User';
-        _userEmail = prefs.getString('user_email') ?? 'user@example.com';
+        _firstName = userData['firstname'] ?? '';
+        _lastName = userData['lastname'] ?? '';
+        _email = userData['email'] ?? '';
+        _username = userData['username'] ?? '';
+        _role = userData['role'] ?? '';
         _isLoading = false;
       });
     } catch (e) {
+      // Show error message to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load profile data'),
+            backgroundColor: Color(0xFFEF4444),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      
       setState(() {
-        _userName = 'User';
-        _userEmail = 'user@example.com';
+        _firstName = 'Error';
+        _lastName = 'Loading';
+        _email = 'Please check connection';
+        _username = 'N/A';
+        _role = 'N/A';
         _isLoading = false;
       });
     }
@@ -127,7 +148,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        // Soft blue gradient - อ่อนๆสวยๆ
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -197,53 +219,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           child: Padding(
             padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      'Profile',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1E293B),
-                        letterSpacing: 0.3,
-                        shadows: [
-                          Shadow(
-                            color: Colors.white.withOpacity(0.8),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
+            child: Center(
+              child: Text(
+                'Profile',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1E293B),
+                  letterSpacing: 0.3,
+                  shadows: [
+                    Shadow(
+                      color: Colors.white.withOpacity(0.8),
+                      blurRadius: 10,
                     ),
-                  ),
+                  ],
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    icon: Icon(Icons.settings, color: Color(0xFF6B86C9)),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Settings coming soon!'),
-                          backgroundColor: Color(0xFF6B86C9),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -254,57 +245,179 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildProfileCard() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 24),
-      padding: EdgeInsets.all(24),
+      padding: EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: Offset(0, 8),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 25,
+            offset: Offset(0, 10),
           ),
         ],
       ),
       child: Column(
         children: [
+          // Profile Avatar
           Container(
-            width: 80,
-            height: 80,
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
                   Color(0xFF6B86C9),
-                  Color(0xFF8B9DC3),
+                  Color(0xFF8BA3E7),
                 ],
               ),
-              borderRadius: BorderRadius.circular(40),
+              borderRadius: BorderRadius.circular(50),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF6B86C9).withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: Offset(0, 8),
+                ),
+              ],
             ),
             child: Icon(
               Icons.person,
-              size: 40,
+              size: 50,
               color: Colors.white,
             ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 20),
+          
+          // Full Name
           Text(
-            _userName,
+            '$_firstName $_lastName',
             style: TextStyle(
               fontFamily: 'Inter',
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
               color: Color(0xFF1E293B),
             ),
+            textAlign: TextAlign.center,
           ),
-          SizedBox(height: 4),
-          Text(
-            _userEmail,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 16,
-              color: Color(0xFF64748B),
+          SizedBox(height: 6),
+          
+          // Role Badge
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: _role.toLowerCase() == 'expert' 
+                  ? Color(0xFFF59E0B).withOpacity(0.15)
+                  : Color(0xFF6B86C9).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _role.toLowerCase() == 'expert' ? Icons.verified : Icons.person_outline,
+                  size: 16,
+                  color: _role.toLowerCase() == 'expert' 
+                      ? Color(0xFFF59E0B)
+                      : Color(0xFF6B86C9),
+                ),
+                SizedBox(width: 6),
+                Text(
+                  _role.toUpperCase(),
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: _role.toLowerCase() == 'expert' 
+                        ? Color(0xFFF59E0B)
+                        : Color(0xFF6B86C9),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 24),
+          
+          // Divider
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  Color(0xFFE2E8F0),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 24),
+          
+          // User Details
+          _buildDetailRow(Icons.account_circle_outlined, 'Username', _username),
+          SizedBox(height: 16),
+          _buildDetailRow(Icons.email_outlined, 'Email', _email),
+          SizedBox(height: 16),
+          _buildDetailRow(Icons.badge_outlined, 'First Name', _firstName),
+          SizedBox(height: 16),
+          _buildDetailRow(Icons.badge_outlined, 'Last Name', _lastName),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Color(0xFFE2E8F0),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Color(0xFF6B86C9).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: Color(0xFF6B86C9),
+            ),
+          ),
+          SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF64748B),
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  value.isNotEmpty ? value : '-',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -314,58 +427,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildMenuItems() {
     final menuItems = [
-      {
-        'icon': Icons.edit_outlined,
-        'title': 'Edit Profile',
-        'subtitle': 'Update your information',
-        'onTap': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Edit Profile coming soon!'),
-              backgroundColor: Color(0xFF6B86C9),
-            ),
-          );
-        },
-      },
-      {
-        'icon': Icons.notifications_outlined,
-        'title': 'Notifications',
-        'subtitle': 'Manage notification settings',
-        'onTap': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Notifications coming soon!'),
-              backgroundColor: Color(0xFF6B86C9),
-            ),
-          );
-        },
-      },
-      {
-        'icon': Icons.help_outline,
-        'title': 'Help & Support',
-        'subtitle': 'Get help and contact support',
-        'onTap': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Help & Support coming soon!'),
-              backgroundColor: Color(0xFF6B86C9),
-            ),
-          );
-        },
-      },
-      {
-        'icon': Icons.info_outline,
-        'title': 'About',
-        'subtitle': 'App version and information',
-        'onTap': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('BCS Lens v1.0.0'),
-              backgroundColor: Color(0xFF6B86C9),
-            ),
-          );
-        },
-      },
       {
         'icon': Icons.logout,
         'title': 'Logout',
