@@ -374,10 +374,34 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with TickerProv
       final frontImageUrl = latestRecord['front_image_url'];
 
       if (frontImageUrl != null && frontImageUrl.toString().isNotEmpty) {
-        if (frontImageUrl.toString().startsWith('http')) {
-          imageUrl = frontImageUrl.toString();
-        } else {
-          imageUrl = '${PetService.uploadBaseUrl}/uploads/$frontImageUrl';
+        String originalUrl = frontImageUrl.toString().trim();
+        
+        // ถ้าเป็น URL เต็มรูปแบบ และไม่ใช่ localhost/old IP → ใช้ตามเดิม
+        if (originalUrl.startsWith('http') && 
+            !originalUrl.contains('172.20.10.3') && 
+            !originalUrl.contains('localhost') && 
+            !originalUrl.contains('127.0.0.1')) {
+          imageUrl = originalUrl;
+        } 
+        // ถ้าเป็น URL แบบเก่าหรือ localhost → แปลงเป็น URL ใหม่
+        else if (originalUrl.startsWith('http')) {
+          String filename = originalUrl.split('/').last;
+          // เช็คว่า filename ไม่ว่างและมี extension
+          if (filename.isNotEmpty && filename.contains('.')) {
+            imageUrl = '${PetService.uploadBaseUrl}/uploads/$filename';
+          } else {
+            imageUrl = originalUrl;
+          }
+        } 
+        // ถ้าเป็นแค่ filename → สร้าง URL เต็ม
+        else {
+          // เช็คว่าเป็น filename จริงๆ (มี extension)
+          if (originalUrl.contains('.')) {
+            imageUrl = '${PetService.uploadBaseUrl}/uploads/$originalUrl';
+          } else {
+            // ถ้าไม่ใช่ filename อาจเป็น path อื่น
+            imageUrl = originalUrl;
+          }
         }
       }
     }

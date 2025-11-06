@@ -107,12 +107,26 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
       _breedController.text = widget.petRecord.breed!;
     }
     if (widget.petRecord.age != null) {
-      // Parse age value which might be in format "X years" or "X months"
+      // Parse age value which might be in format "X years Y months", "X years", "X months", or just a number
       String age = widget.petRecord.age!;
-      if (age.contains('year')) {
+      
+      // Check if it contains both years and months (e.g., "2 years 3 months")
+      if (age.contains('year') && age.contains('month')) {
+        final parts = age.split(' ');
+        // Format: "X years Y months"
+        if (parts.length >= 4) {
+          _ageYearsController.text = parts[0]; // First number is years
+          _ageMonthsController.text = parts[2]; // Third number is months
+        } else {
+          _ageYearsController.text = '0';
+          _ageMonthsController.text = '0';
+        }
+      } else if (age.contains('year')) {
+        // Only years (e.g., "2 years")
         _ageYearsController.text = age.split(' ')[0];
         _ageMonthsController.text = '0';
       } else if (age.contains('month')) {
+        // Only months (e.g., "3 months")
         _ageYearsController.text = '0';
         _ageMonthsController.text = age.split(' ')[0];
       } else {
@@ -313,8 +327,17 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
       setState(() {
         _groups = groups;
 
-        // Set default group if available
-        if (groups.isNotEmpty) {
+        // Restore previously selected group if exists, otherwise use first group
+        if (widget.petRecord.groupId != null && widget.petRecord.groupId!.isNotEmpty) {
+          // Check if the saved group still exists in the list
+          bool groupExists = groups.any((g) => g['_id'] == widget.petRecord.groupId);
+          if (groupExists) {
+            _selectedGroup = widget.petRecord.groupId!;
+          } else if (groups.isNotEmpty) {
+            _selectedGroup = groups[0]['_id'];
+          }
+        } else if (groups.isNotEmpty) {
+          // No previously selected group, use first one
           _selectedGroup = groups[0]['_id'];
         }
 
@@ -500,6 +523,20 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
       if (_nameController.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter a name for your pet')),
+        );
+        return;
+      }
+      
+      // Validate group selection
+      if (_selectedGroup.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please select a group or create a new one'),
+            action: SnackBarAction(
+              label: 'Create Group',
+              onPressed: _showCreateGroupDialog,
+            ),
+          ),
         );
         return;
       }

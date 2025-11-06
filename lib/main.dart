@@ -18,6 +18,7 @@ import 'screens/group_details_screen.dart';
 
 import 'models/pet_record_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/services.dart';
 
 void main() async {
   // Ensure Flutter is initialized
@@ -27,6 +28,11 @@ void main() async {
   final authService = AuthService();
   await dotenv.load(fileName: ".env");
   await authService.initialize();
+
+  // Lock app orientation to portrait only
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
   runApp(const BCSLensApp());
 }
@@ -84,10 +90,6 @@ class BCSLensApp extends StatelessWidget {
           case '/special-care':
             return MaterialPageRoute(
               builder: (context) => const SpecialCareScreen(),
-            );
-          case '/profile':
-            return MaterialPageRoute(
-              builder: (context) => const ProfileScreen(),
             );
           case '/top-side-view':
             final petRecord = settings.arguments as PetRecord;

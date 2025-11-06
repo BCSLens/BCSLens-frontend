@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -20,24 +21,33 @@ class BottomNavBar extends StatelessWidget {
     return Container(
       margin: EdgeInsets.fromLTRB(20, 0, 20, 20),
       height: 75,
-      decoration: BoxDecoration(
-        color: Colors.white,
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF6B86C9).withOpacity(0.15),
-            spreadRadius: 0,
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.3), // แก้วใสๆ แบบเดิม
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.4),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF5B8CC9).withOpacity(0.2),
+                  spreadRadius: 0,
+                  blurRadius: 25,
+                  offset: const Offset(0, -5),
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -85,6 +95,9 @@ class BottomNavBar extends StatelessWidget {
           ),
         ],
       ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -101,14 +114,23 @@ class BottomNavBar extends StatelessWidget {
           height: 55,
           margin: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? _activeColor : Colors.transparent,
+            gradient: isSelected
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF7CA6DB), // สีฟ้ากลาง
+                      Color(0xFF5B8CC9), // สีฟ้าเข้ม
+                    ],
+                  )
+                : null,
             borderRadius: BorderRadius.circular(20),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: _activeColor.withOpacity(0.3),
+                      color: Color(0xFF5B8CC9).withOpacity(0.4),
                       blurRadius: 15,
-                      offset: Offset(0, 8),
+                      offset: Offset(0, 6),
                     ),
                   ]
                 : null,

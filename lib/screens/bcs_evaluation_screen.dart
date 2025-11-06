@@ -1,8 +1,11 @@
 // lib/screens/bcs_evaluation_screen.dart
 import 'package:flutter/material.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/frosted_glass_header.dart';
+import '../widgets/gradient_background.dart';
 import '../models/pet_record_model.dart';
 import '../services/auth_service.dart';
+import '../services/pet_detection_service.dart';
 
 class BcsEvaluationScreen extends StatefulWidget {
   final PetRecord petRecord;
@@ -17,6 +20,9 @@ class BcsEvaluationScreen extends StatefulWidget {
 class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerProviderStateMixin {
   int _selectedIndex = 1;
   int _bcsScore = 5; // Default BCS score
+  String _bcsRange = '4-6'; // BCS range from AI (1-3, 4-6, 7-9)
+  String? _bcsReason; // AI analysis reason
+  String? _bcsCategory; // BCS category from AI
   final TextEditingController _additionalNotesController =
       TextEditingController();
   bool _isExpert = false;
@@ -24,58 +30,56 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
   late AnimationController _scoreAnimationController;
   late Animation<double> _scoreAnimation;
 
-  // BCS descriptions based on score (1-9)
+  // BCS descriptions based on score (1-9) - Official BCS Chart
   final Map<int, List<String>> _bcsDescriptions = {
     1: [
       "Ribs, lumbar vertebrae, pelvic bones and all bony prominences evident from a distance",
       "No discernible body fat",
       "Obvious loss of muscle mass",
-      "Severely emaciated",
     ],
     2: [
-      "Ribs, lumbar vertebrae and pelvic bones easily visible",
-      "Minimal muscle mass",
+      "Ribs, lumbar vertebrae, pelvic bones easily visible",
       "No palpable fat",
-      "Obvious waist and abdominal tuck",
+      "Some evidence of other bony prominence",
+      "Minimal loss of muscle mass",
     ],
     3: [
-      "Ribs easily palpable with minimal fat covering",
-      "Waist easily observed when viewed from above",
-      "Abdominal tuck evident",
-      "Vertebrae and pelvic bones visible",
+      "Ribs easily palpated and may be visible with no palpable fat",
+      "Tops of lumbar vertebrae visible",
+      "Pelvic bones becoming prominent",
+      "Obvious waist and abdominal tuck",
     ],
     4: [
-      "Ribs easily palpable with minimal fat covering",
-      "Waist easily observed from above",
-      "Abdominal tuck present",
-      "No excess fat covering",
+      "Ribs easily palpable, with minimal fat covering",
+      "Waist easily noted when viewed from above",
+      "Abdominal tuck evident",
     ],
     5: [
       "Ribs palpable without excess fat covering",
-      "Waist is visible behind the ribs when viewed from above",
-      "Minimal abdominal fat pad",
-      "Proportionate body shape",
+      "Waist observed behind ribs when viewed from above",
+      "Abdomen tucked up when viewed from the side",
     ],
     6: [
       "Ribs palpable with slight excess fat covering",
-      "Waist is discernible viewed from above but not prominent",
-      "Slight abdominal tuck",
-      "Small fat pad present",
+      "Waist is discernible viewed from above, but is not prominent",
+      "Abdominal tuck apparent",
     ],
     7: [
-      "Ribs palpable with difficulty with moderate fat covering",
-      "Waist barely visible",
-      "Abdominal tuck absent",
-      "Obvious fat deposits over lumbar area",
+      "Ribs palpable with difficulty",
+      "Heavy fat cover",
+      "Noticeable fat deposits over lumbar area and base of tail",
+      "Waist absent or barely visible",
+      "Abdominal tuck may be present",
     ],
     8: [
-      "Ribs not palpable under heavy fat cover",
-      "No waist, abdominal distention present",
-      "Fat deposits on lumbar area and tail base",
-      "Abdomen rounded",
+      "Ribs not palpable under very heavy fat cover, or palpable only with significant pressure",
+      "Heavy fat deposits over lumbar area and base of tail",
+      "Waist absent",
+      "No abdominal tuck",
+      "Obvious abdominal distention may be present",
     ],
     9: [
-      "Massive fat deposits over chest, spine and tail base",
+      "Massive fat deposits over thorax, spine and base of tail",
       "Waist and abdominal tuck absent",
       "Fat deposits on neck and limbs",
       "Obvious abdominal distention",
@@ -120,23 +124,72 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
     });
 
     try {
-      // This will connect to your backend in the future
-      // For now, simulate AI analysis
-      await Future.delayed(const Duration(seconds: 2));
+      print('🔍 Starting BCS prediction with AI...');
+      
+      // Get image paths from pet record
+      final leftImage = widget.petRecord.leftViewImagePath;
+      final rightImage = widget.petRecord.rightViewImagePath;
+      final backImage = widget.petRecord.backViewImagePath;
+      final topImage = widget.petRecord.topViewImagePath;
 
-      // Simulate a BCS score from AI (random between 3-7)
-      final aiScore = 3 + (DateTime.now().millisecond % 5);
+      // Validate all required images are present
+      if (leftImage == null || rightImage == null || 
+          backImage == null || topImage == null) {
+        throw Exception('Missing required images. Please capture all 4 views (left, right, back, top)');
+      }
 
-      setState(() {
-        _bcsScore = aiScore;
-        widget.petRecord.bcs = aiScore;
-        _isAnalyzing = false;
-      });
+      print('📸 Image paths:');
+      print('  Left: $leftImage');
+      print('  Right: $rightImage');
+      print('  Back: $backImage');
+      print('  Top: $topImage');
 
-      // Start animation after AI analysis
-      _scoreAnimationController.forward();
+      // Call AI service for BCS prediction
+      final bcsResult = await AIService.predictBCS(
+        leftImagePath: leftImage,
+        rightImagePath: rightImage,
+        backImagePath: backImage,
+        topImagePath: topImage,
+      );
+
+      if (bcsResult != null) {
+        final bcsCategory = bcsResult['bcs_category'] as String? ?? 'IDEAL';
+        final bcsRange = bcsResult['bcs_range'] as String?; // may be null
+        final bcsScore = bcsResult['bcs_score'] as int? ?? 5; // for internal use
+        
+        print('✅ BCS prediction successful!');
+        print('📊 BCS Category: $bcsCategory');
+        print('📊 BCS Range: ${bcsRange ?? '(derived)'}');
+        print('📊 Mapped Score: $bcsScore (internal)');
+
+        setState(() {
+          _bcsScore = bcsScore;
+          _bcsRange = bcsRange ?? _scoreToRange(bcsScore); // Store explicit or derived range
+          _bcsReason = null; // Flask doesn't send reason
+          _bcsCategory = bcsCategory.toLowerCase();
+          widget.petRecord.bcs = bcsScore; // For internal use
+          widget.petRecord.bcsRange = _bcsRange; // Store range (explicit or derived)
+          _isAnalyzing = false;
+        });
+
+        // Start animation after AI analysis
+        _scoreAnimationController.forward();
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('BCS Range: ${_scoreToRange(bcsScore)} - $bcsCategory'),
+            backgroundColor: Colors.green[400],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else {
+        throw Exception('Failed to get BCS prediction from AI');
+      }
     } catch (e) {
-      print('AI analysis error: $e');
+      print('❌ AI analysis error: $e');
       setState(() {
         _isAnalyzing = false;
       });
@@ -144,12 +197,21 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
       // Show error to user
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error analyzing images: $e'),
+          content: Text('Error analyzing images: ${e.toString()}'),
           backgroundColor: Colors.red[400],
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: Duration(seconds: 5),
         ),
       );
+
+      // Fallback to default score if prediction fails
+      setState(() {
+        _bcsScore = 5;
+        widget.petRecord.bcs = 5;
+      });
+      
+      _scoreAnimationController.forward();
     }
   }
 
@@ -170,8 +232,9 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
 
 
   void _goToNextStep() {
-    // Update pet record with BCS score
-    widget.petRecord.bcs = _bcsScore;
+    // Update pet record with BCS score and range
+    widget.petRecord.bcs = _bcsScore; // For internal use
+    widget.petRecord.bcsRange = _bcsRange; // Store range for backend
 
     // Only save additional notes if user is expert
     if (_isExpert && _additionalNotesController.text.isNotEmpty) {
@@ -180,75 +243,6 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
 
     // Navigate to the pet details screen
     Navigator.pushNamed(context, '/pet-details', arguments: widget.petRecord);
-  }
-
-  void _goBack() {
-    // Save current state before going back
-    widget.petRecord.bcs = _bcsScore;
-    Navigator.pop(context);
-  }
-
-  Widget _buildModernHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF6B86C9),
-            Color(0xFF8BA3E7),
-          ],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF6B86C9).withOpacity(0.3),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: _goBack,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.arrow_back_ios_new,
-                  size: 20,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: Text(
-                  'BCS Evaluation',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(width: 44), // Balance the back button
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildProgressIndicator() {
@@ -395,16 +389,21 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
   }
 
   Widget _buildBCSScoreCard() {
+    // Color based on score (new ranges: 1-3, 4-5, 6-9)
     Color getScoreColor(int score) {
       if (score <= 3) return Color(0xFF3B82F6); // Blue for underweight
-      if (score <= 6) return Color(0xFF10B981); // Green for ideal
+      if (score <= 5) return Color(0xFF10B981); // Green for ideal
       return Color(0xFFEF4444); // Red for overweight
     }
 
-    String getScoreCategory(int score) {
-      if (score <= 3) return 'Underweight';
-      if (score <= 6) return 'Ideal Weight';
-      return 'Overweight';
+    // Category from backend if present; fallback from score
+    String getCategoryText() {
+      if (_bcsCategory != null && _bcsCategory!.isNotEmpty) {
+        return _bcsCategory![0].toUpperCase() + _bcsCategory!.substring(1);
+      }
+      if (_bcsScore <= 3) return 'Too Thin';
+      if (_bcsScore <= 5) return 'Ideal';
+      return 'Obese';
     }
 
     return Container(
@@ -423,7 +422,7 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
           ),
           const SizedBox(height: 16),
           
-          // Score Display Card
+          // Score Display Card - Show single score from AI
           AnimatedBuilder(
             animation: _scoreAnimation,
             builder: (context, child) {
@@ -449,8 +448,9 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
                   ),
                   child: Column(
                     children: [
+                      // Show single score
                       Text(
-                        '$_bcsScore',
+                        _bcsScore.toString(),
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 48,
@@ -467,7 +467,7 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          getScoreCategory(_bcsScore),
+                          getCategoryText(),
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 14,
@@ -592,7 +592,110 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
     );
   }
 
+  Widget _buildAIReasonCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Color(0xFFF0F9FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Color(0xFF6B86C9).withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF6B86C9).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.psychology,
+                  color: Color(0xFF6B86C9),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AI Analysis',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Color(0xFF1E293B),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (_bcsCategory != null && _bcsCategory != 'unknown')
+                      Text(
+                        _bcsCategory!.toUpperCase(),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: Color(0xFF6B86C9),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _bcsReason ?? 'No analysis available',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              color: Color(0xFF475569),
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Get list of BCS scores from range string
+  List<int> _getBCSScoresFromRange(String range) {
+    if (range == '1-3') return [1, 2, 3];
+    if (range == '4-5') return [4, 5];
+    if (range == '6-9') return [6, 7, 8, 9];
+    // Backward compatibility (old ranges)
+    if (range == '4-6') return [4, 5, 6];
+    if (range == '7-9') return [7, 8, 9];
+    return [5]; // default
+  }
+
+  // Map a single score to its range bucket string
+  String _scoreToRange(int score) {
+    if (score <= 3) return '1-3';
+    if (score <= 5) return '4-5';
+    return '6-9';
+  }
+
   Widget _buildBCSInfoCard() {
+    // Derive range from the single BCS score
+    final String rangeFromScore = _scoreToRange(_bcsScore);
+    // Get all scores in that derived range
+    List<int> scoresInRange = _getBCSScoresFromRange(rangeFromScore);
+    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(20),
@@ -627,7 +730,7 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'BCS Information for Rating $_bcsScore',
+                  'BCS Information for Range $rangeFromScore',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     color: Color(0xFF1E293B),
@@ -639,9 +742,45 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
             ],
           ),
           const SizedBox(height: 16),
-          ..._bcsDescriptions[_bcsScore]!
-              .map((description) => _buildBulletPoint(description))
-              .toList(),
+          
+          // Display descriptions for all scores in the range
+          ...scoresInRange.map((score) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Score header
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF6B86C9).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'BCS $score',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      color: Color(0xFF6B86C9),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Descriptions for this score
+                ..._bcsDescriptions[score]!
+                    .map((description) => _buildBulletPoint(description))
+                    .toList(),
+                
+                // Add spacing between scores (except last one)
+                if (score != scoresInRange.last) ...[
+                  const SizedBox(height: 16),
+                  Divider(color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                ],
+              ],
+            );
+          }).toList(),
         ],
       ),
     );
@@ -858,14 +997,25 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
         }
       },
       child: Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Modern Header
-              _buildModernHeader(),
-              
-              SizedBox(height: 20),
+        body: GradientBackground(
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Modern Header
+                FrostedGlassHeader(
+                  title: 'BCS Evaluation',
+                  subtitle: 'Step 3: Body Condition Assessment',
+                  leadingWidget: HeaderBackButton(
+                    onPressed: () async {
+                      final shouldPop = await _showExitConfirmation();
+                      if (shouldPop) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
+                ),
+                
+                SizedBox(height: 20),
               
               // Scrollable Content
               Expanded(
@@ -889,6 +1039,12 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
                       
                       const SizedBox(height: 24),
                       
+                      // AI Analysis Reason Card (if available)
+                      if (_bcsReason != null && _bcsReason!.isNotEmpty) ...[
+                        _buildAIReasonCard(),
+                        const SizedBox(height: 24),
+                      ],
+                      
                       // BCS Information Card
                       _buildBCSInfoCard(),
                       
@@ -909,10 +1065,11 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
                 ),
               ),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
-      ),
-      bottomNavigationBar: BottomNavBar(
+        bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: (index) async {
           if (_hasUnsavedData()) {

@@ -50,13 +50,13 @@ class PetService {
       int totalMonths = (ageYears * 12) + ageMonths;
 
       // Convert weight string to number (remove 'kg' and parse)
-      double weightInKg = _parseWeight(pet.weight ?? '0');
+      // Note: parsed weight is used directly in record creation below
 
       // Convert boolean to boolean (not string) ✅ แก้ไขแล้ว
       bool spayNeuterStatus = pet.isSterilized ?? false;
 
       // Map category/predictedAnimal to species
-      String species = pet.predictedAnimal ?? 'dog';
+      String species = _mapToSpecies(pet.predictedAnimal);
 
       final requestBody = {
         'name': pet.name!,
@@ -145,7 +145,7 @@ class PetService {
       // สร้าง record data
       final recordData = {
         'date': DateTime.now().toIso8601String(),
-        'score': pet.bcs ?? 5,
+        'bcs_score': pet.bcs ?? 5, // send score from AI
         'weight': _parseWeight(pet.weight ?? '0'),
         ...imageUrls, // รูปทั้งหมดไปใน record
         'notes': pet.additionalNotes ?? '',
@@ -338,7 +338,7 @@ class PetService {
 
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('$uploadBaseUrl/upload'),
+        Uri.parse('$uploadBaseUrl/uploads/'),
       );
 
       request.headers['Authorization'] = 'Bearer $token';
@@ -445,7 +445,7 @@ class PetService {
       // AuthService returns parsed JSON directly
       final responseData = await _authService
           .authenticatedPost('/pets/$petId/records', {
-            'score': pet.bcs ?? 5,
+            'bcs_score': pet.bcs ?? 5, // send score from AI
             'date': DateTime.now().toIso8601String(),
             'weight': _parseWeight(pet.weight ?? '0'),
             ...imageUrls,
@@ -478,7 +478,7 @@ class PetService {
       // สร้าง record data
       final recordData = {
         'date': DateTime.now().toIso8601String(),
-        'score': petRecord.bcs ?? 5,
+        'bcs_score': petRecord.bcs ?? 5, // send score from AI
         'weight': _parseWeight(petRecord.weight ?? '0'),
         ...imageUrls, // รูปทั้งหมด
         'notes': petRecord.additionalNotes ?? '',

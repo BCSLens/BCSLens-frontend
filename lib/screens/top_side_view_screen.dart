@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/frosted_glass_header.dart';
+import '../widgets/gradient_background.dart';
 import '../models/pet_record_model.dart';
 import '../services/camera_service.dart';
 import '../services/pet_detection_service.dart';
@@ -191,17 +193,29 @@ class _TopSideViewScreenState extends State<TopSideViewScreen>
         }
       },
       child: Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildModernHeader(),
-              SizedBox(height: 20),
-              _buildProgressIndicator(),
-              _buildGlassmorphicTabs(),
-              Expanded(child: _buildPhotoContentWithAnimations()),
-              _buildModernBottomSection(),
-            ],
+        body: GradientBackground(
+          child: SafeArea(
+            child: Column(
+              children: [
+                FrostedGlassHeader(
+                  title: 'Capture Views',
+                  subtitle: 'Step 2: Multiple Angles',
+                  leadingWidget: HeaderBackButton(
+                    onPressed: () async {
+                      final shouldPop = await _showExitConfirmation();
+                      if (shouldPop) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
+                ),
+                SizedBox(height: 20),
+                _buildProgressIndicator(),
+                _buildGlassmorphicTabs(),
+                Expanded(child: _buildPhotoContentWithAnimations()),
+                _buildModernBottomSection(),
+              ],
+            ),
           ),
         ),
         bottomNavigationBar: BottomNavBar(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../widgets/bottom_nav_bar.dart';
@@ -125,22 +126,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: _isLoading
-            ? Center(child: CircularProgressIndicator(color: Color(0xFF6B86C9)))
-            : SingleChildScrollView(
-                child: Column(
-                  children: [
-                    _buildModernHeader(),
-                    SizedBox(height: 52),
-                    _buildProfileCard(),
-                    SizedBox(height: 24),
-                    _buildMenuItems(),
-                    SizedBox(height: 32),
-                  ],
+      body: Container(
+        // Soft blue gradient - อ่อนๆสวยๆ
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF5B8CC9), // สีฟ้าเข้ม (บน)
+              Color(0xFF7CA6DB), // สีฟ้ากลาง
+              Color(0xFFA8C5E8), // สีฟ้าอ่อน
+              Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่าง)
+            ],
+            stops: [0.0, 0.3, 0.6, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: _isLoading
+              ? Center(child: CircularProgressIndicator(color: Colors.white))
+              : SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      _buildModernHeader(),
+                      SizedBox(height: 52),
+                      _buildProfileCard(),
+                      SizedBox(height: 24),
+                      _buildMenuItems(),
+                      SizedBox(height: 32),
+                    ],
+                  ),
                 ),
-              ),
+        ),
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
@@ -153,64 +169,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildModernHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF6B86C9),
-            Color(0xFF8BA3E7),
-          ],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF6B86C9).withOpacity(0.3),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
+    return ClipRRect(
+      borderRadius: BorderRadius.only(
+        bottomLeft: Radius.circular(30),
+        bottomRight: Radius.circular(30),
       ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Profile',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.3), // แก้วใสๆ
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.4),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 25,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'Profile',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1E293B),
+                        letterSpacing: 0.3,
+                        shadows: [
+                          Shadow(
+                            color: Colors.white.withOpacity(0.8),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.settings, color: Color(0xFF6B86C9)),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Settings coming soon!'),
+                          backgroundColor: Color(0xFF6B86C9),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: IconButton(
-                icon: Icon(Icons.settings, color: Colors.white),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Settings coming soon!'),
-                      backgroundColor: Color(0xFF6B86C9),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

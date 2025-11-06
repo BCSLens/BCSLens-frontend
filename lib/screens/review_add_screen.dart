@@ -666,7 +666,17 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
 
   @override
   Widget build(BuildContext context) {
-    final int bcsScore = widget.petRecord.bcs ?? 5;
+    // Prefer single bcs score; fallback derive from range (supports new and old buckets)
+    int bcsScore = widget.petRecord.bcs ?? 5;
+    final String? bcsRangeRaw = widget.petRecord.bcsRange;
+    if (widget.petRecord.bcs == null && bcsRangeRaw != null) {
+      if (bcsRangeRaw == '1-3') bcsScore = 2;
+      else if (bcsRangeRaw == '4-5') bcsScore = 5;
+      else if (bcsRangeRaw == '6-9') bcsScore = 8;
+      // Backward compatibility with old ranges
+      else if (bcsRangeRaw == '4-6') bcsScore = 5;
+      else if (bcsRangeRaw == '7-9') bcsScore = 8;
+    }
     final List<String> bcsInfo = _bcsDescriptions[bcsScore] ?? [];
     final String animalType = widget.petRecord.category?.toLowerCase() == 'cats' ? 'cat' : 'dog';
     final Map<String, List<String>> suggestions = _bcsSuggestions[animalType]?[bcsScore] ?? {};
@@ -714,7 +724,7 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
                               _buildPetProfileCard(bcsScore),
                               SizedBox(height: 24),
                               
-                              // BCS Score Card
+                              // BCS Score Card (single score)
                               _buildBcsScoreCard(bcsScore),
                               SizedBox(height: 24),
                               
@@ -1087,7 +1097,7 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
                   
                   SizedBox(height: 20),
                   
-                  // Large BCS Score Display
+                  // Large BCS Score Display (single score)
                   Container(
                     width: 100,
                     height: 100,
@@ -1098,10 +1108,10 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
                     ),
                     child: Center(
                       child: Text(
-                        '$bcsScore',
+                        bcsScore.toString(),
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 48,
+                          fontSize: 40,
                           fontWeight: FontWeight.w900,
                           color: Colors.white,
                         ),
@@ -1693,14 +1703,14 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
 
   Color _getBcsScoreColor(int score) {
     if (score <= 3) return Color(0xFFEF4444); // Red - Underweight
-    if (score >= 4 && score <= 6) return Color(0xFF10B981); // Green - Ideal
+    if (score <= 5) return Color(0xFF10B981); // Green - Ideal
     return Color(0xFFFF8C00); // Orange - Overweight
   }
 
   List<Color> _getBcsGradientColors(int score) {
     if (score <= 3) {
       return [Color(0xFFEF4444), Color(0xFFDC2626)]; // Red gradient
-    } else if (score >= 4 && score <= 6) {
+    } else if (score <= 5) {
       return [Color(0xFF10B981), Color(0xFF059669)]; // Green gradient
     }
     return [Color(0xFFFF8C00), Color(0xFFEA580C)]; // Orange gradient
@@ -1708,7 +1718,7 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
 
   String _getBcsScoreLabel(int score) {
     if (score <= 3) return 'Underweight';
-    if (score >= 4 && score <= 6) return 'Ideal Weight';
+    if (score <= 5) return 'Ideal Weight';
     return 'Overweight';
   }
 }

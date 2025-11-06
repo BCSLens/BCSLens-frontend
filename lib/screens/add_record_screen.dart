@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/frosted_glass_header.dart';
+import '../widgets/gradient_background.dart';
 import '../models/pet_record_model.dart';
 import '../services/camera_service.dart';
 import '../services/pet_detection_service.dart';
@@ -711,16 +713,28 @@ class _AddRecordScreenState extends State<AddRecordScreen>
         }
       },
       child: Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildModernHeader(),
-              SizedBox(height: 20),
-              _buildProgressIndicator(),
-              Expanded(child: _buildPhotoContentWithAnimations()),
-              _buildModernBottomSection(canProceed),
-            ],
+        body: GradientBackground(
+          child: SafeArea(
+            child: Column(
+              children: [
+                FrostedGlassHeader(
+                  title: 'Add Record',
+                  subtitle: 'Step 1: Take Photo',
+                  leadingWidget: HeaderBackButton(
+                    onPressed: () async {
+                      final shouldPop = await _showExitConfirmation();
+                      if (shouldPop) {
+                        Navigator.pushReplacementNamed(context, '/records');
+                      }
+                    },
+                  ),
+                ),
+                SizedBox(height: 20),
+                _buildProgressIndicator(),
+                Expanded(child: _buildPhotoContentWithAnimations()),
+                _buildModernBottomSection(canProceed),
+              ],
+            ),
           ),
         ),
         bottomNavigationBar: BottomNavBar(

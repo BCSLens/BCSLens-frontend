@@ -21,7 +21,8 @@ class PetRecord {
   String? groupId;
 
   // BCS evaluation
-  int? bcs;
+  int? bcs; // For internal use (mapped from range)
+  String? bcsRange; // BCS range from AI (1-3, 4-6, 7-9)
   String? additionalNotes;
 
   // AI predictions
@@ -46,6 +47,7 @@ class PetRecord {
     this.category,
     this.groupId,
     this.bcs,
+    this.bcsRange,
     this.additionalNotes,
     this.predictedAnimal,
     this.predictionConfidence,
@@ -69,6 +71,7 @@ class PetRecord {
     category = null;
     groupId = null;
     bcs = null;
+    bcsRange = null;
     additionalNotes = null;
     predictedAnimal = null;
     predictionConfidence = null;
@@ -93,6 +96,7 @@ class PetRecord {
       'category': category,
       'groupId': groupId,
       'bcs': bcs,
+      'bcsRange': bcsRange,
       'additionalNotes': additionalNotes,
       'predictedAnimal': predictedAnimal,
       'predictionConfidence': predictionConfidence,
@@ -118,6 +122,7 @@ class PetRecord {
       category: json['category'],
       groupId: json['groupId'],
       bcs: json['bcs'],
+      bcsRange: json['bcsRange'] ?? json['bcs_range'] ?? '4-6', // Use bcs_range only
       additionalNotes: json['additionalNotes'],
       predictedAnimal: json['predictedAnimal'],
       predictionConfidence: json['predictionConfidence']?.toDouble(),
