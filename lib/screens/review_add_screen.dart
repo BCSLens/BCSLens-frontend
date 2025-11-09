@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:ui';
 import '../widgets/bottom_nav_bar.dart';
+import '../widgets/frosted_glass_header.dart';
 import '../models/pet_record_model.dart';
 import '../services/pet_service.dart';
 
@@ -555,62 +557,197 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
 
   // Show confirmation dialog
   Future<bool> _showExitConfirmation() async {
+    return await _showModernConfirmDialog(
+      context: context,
+      title: 'Leave without saving?',
+      message: 'Your pet data will be lost. Are you sure you want to leave?',
+      confirmText: 'Leave',
+    ) ?? false;
+  }
+  
+  // Helper function for modern confirmation dialog
+  Future<bool?> _showModernConfirmDialog({
+    required BuildContext context,
+    required String title,
+    required String message,
+    String confirmText = 'Confirm',
+    String cancelText = 'Cancel',
+    Color? confirmColor,
+  }) async {
     return await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B)),
-            SizedBox(width: 8),
-            Text(
-              'Leave without saving?',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.95),
+                    Colors.white.withOpacity(0.9),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.5),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0xFF6B86C9).withOpacity(0.2),
+                    blurRadius: 30,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Warning Icon
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFFFFB84D),
+                          Color(0xFFFF9500),
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFFFF9500).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  
+                  // Title
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 12),
+                  
+                  // Content
+                  Text(
+                    message,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 15,
+                      color: Color(0xFF64748B),
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 24),
+                  
+                  // Buttons
+                  Row(
+                    children: [
+                      // Cancel Button
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: Color(0xFF6B86C9),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: Colors.white,
+                          ),
+                          child: Text(
+                            cancelText,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B86C9),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      
+                      // Confirm Button
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: confirmColor != null
+                                  ? [confirmColor, confirmColor.withOpacity(0.8)]
+                                  : [
+                                      Color(0xFFEF4444),
+                                      Color(0xFFDC2626),
+                                    ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (confirmColor ?? Color(0xFFEF4444)).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: Text(
+                              confirmText,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        content: Text(
-          'Your pet data will be lost. Are you sure you want to leave?',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            color: Color(0xFF64748B),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                color: Color(0xFF64748B),
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Leave',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
-    ) ?? false;
+    );
   }
 
   Future<void> _navigateToRecords() async {
@@ -698,16 +835,30 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
         }
       },
       child: Scaffold(
-        backgroundColor: Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Modern Header
-            _buildModernHeader(),
-            
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
+        backgroundColor: Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่างสุด) เพื่อให้ตรงกับ gradient
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF5B8CC9), // สีฟ้าเข้ม (บน)
+                Color(0xFF7CA6DB), // สีฟ้ากลาง
+                Color(0xFFA8C5E8), // สีฟ้าอ่อน
+                Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่าง)
+              ],
+              stops: [0.0, 0.3, 0.6, 1.0],
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Modern Header
+                _buildModernHeader(),
+                
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
                 physics: BouncingScrollPhysics(),
                 child: AnimatedBuilder(
                   animation: _fadeAnimation,
@@ -748,6 +899,7 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
           ],
         ),
       ),
+        ),
       
       // Floating Done Button
       floatingActionButton: Container(
@@ -808,98 +960,14 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
   }
 
   Widget _buildModernHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF6B86C9),
-            Color(0xFF8BA3E7),
-          ],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF6B86C9).withOpacity(0.3),
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
-        child: Row(
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.pushReplacementNamed(
-                context,
-                '/pet-details',
-                arguments: widget.petRecord,
-              ),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.arrow_back_ios_new,
-                  size: 20,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: Column(
-                  children: [
-                    Text(
-                  '${widget.petRecord.name}\'s Health Report',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                        color: Colors.white,
-                        fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                    SizedBox(height: 4),
-                    Text(
-                      'BCS Score Analysis',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                // Implement share functionality
-              },
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.share_outlined,
-                  size: 20,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
+    return FrostedGlassHeader(
+      title: '${widget.petRecord.name}\'s Health Report',
+      subtitle: 'BCS Score Analysis',
+      leadingWidget: HeaderBackButton(
+        onPressed: () => Navigator.pushReplacementNamed(
+          context,
+          '/pet-details',
+          arguments: widget.petRecord,
         ),
       ),
     );

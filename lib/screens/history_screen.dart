@@ -101,33 +101,34 @@ class _HistoryScreenState extends State<HistoryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่างสุด) เพื่อให้ตรงกับ gradient
       body: GradientBackground(
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
+        child: SingleChildScrollView(
+        child: Column(
+          children: [
                 FrostedGlassHeader(
                   title: widget.groupName,
                   subtitle: 'Pet Health History',
                   leadingWidget: HeaderBackButton(),
-                ),
+        ),
                 // Box ใหญ่ครอบทั้งหมด (รวม Health Trends)
                 Container(
                   margin: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   padding: EdgeInsets.all(20),
-                  decoration: BoxDecoration(
+      decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.85), // สีขาวมากขึ้น
                     borderRadius: BorderRadius.circular(35),
-                    boxShadow: [
-                      BoxShadow(
+        boxShadow: [
+          BoxShadow(
                         color: Colors.black.withOpacity(0.08),
-                        blurRadius: 20,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+                child: Column(
+                  children: [
                       _buildPetImageSection(),
                       SizedBox(height: 16),
                       _buildPetInfoSection(),
@@ -141,9 +142,9 @@ class _HistoryScreenState extends State<HistoryScreen>
                   ),
                 ),
                 SizedBox(height: 24), // ลด space เพราะไม่มี navbar
-              ],
-            ),
-          ),
+                  ],
+                ),
+              ),
         ),
       ),
     );
@@ -168,19 +169,19 @@ class _HistoryScreenState extends State<HistoryScreen>
         } 
         // ถ้าเป็น URL แบบเก่าหรือ localhost → แปลงเป็น URL ใหม่
         else if (originalUrl.startsWith('http')) {
-          String filename = originalUrl.split('/').last;
+            String filename = originalUrl.split('/').last;
           // เช็คว่า filename ไม่ว่างและมี extension
           if (filename.isNotEmpty && filename.contains('.')) {
             imageUrl = '${PetService.uploadBaseUrl}/uploads/$filename';
-          } else {
+        } else {
             imageUrl = originalUrl;
-          }
+        }
         } 
         // ถ้าเป็นแค่ filename → สร้าง URL เต็ม
         else {
           // เช็คว่าเป็น filename จริงๆ (มี extension)
           if (originalUrl.contains('.')) {
-            imageUrl = '${PetService.uploadBaseUrl}/uploads/$originalUrl';
+          imageUrl = '${PetService.uploadBaseUrl}/uploads/$originalUrl';
           } else {
             // ถ้าไม่ใช่ filename อาจเป็น path อื่น
             imageUrl = originalUrl;
@@ -197,7 +198,7 @@ class _HistoryScreenState extends State<HistoryScreen>
           margin: EdgeInsets.all(24),
           height: 400,
           child: Stack(
-            children: [
+        children: [
               // Pet Image - สี่เหลี่ยมมุมมนแบบเดิม
               Positioned(
                 left: 0,
@@ -205,60 +206,60 @@ class _HistoryScreenState extends State<HistoryScreen>
                 child: Container(
                   width: MediaQuery.of(context).size.width * 0.5 - 48,
                   height: 350,
-                  decoration: BoxDecoration(
+            decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(30), // กลับเป็นสี่เหลี่ยมมุมมน
-                    boxShadow: [
-                      BoxShadow(
+              boxShadow: [
+                BoxShadow(
                         color: Colors.black.withOpacity(0.2),
                         blurRadius: 30,
                         offset: Offset(0, 20),
-                      ),
-                    ],
-                  ),
+                ),
+              ],
+            ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(30),
-                      child: imageUrl.isNotEmpty
-                          ? Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
+                    child: imageUrl.isNotEmpty
+                      ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                   ),
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.pets,
-                                      color: Colors.white,
-                                      size: 120,
-                                    ),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                            Icons.pets,
+                            color: Colors.white,
+                                    size: 120,
                                   ),
-                                );
-                              },
-                            )
-                          : Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
                                 ),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  Icons.pets,
-                                  color: Colors.white,
-                                  size: 120,
-                                ),
+                          );
+                        },
+                      )
+                        : Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF6B86C9), Color(0xFF8BA3E7)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
                             ),
-                    ),
+                            child: Center(
+                              child: Icon(
+                                Icons.pets,
+                                color: Colors.white,
+                                size: 120,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
+              ),
               // BCS Score with connecting line
               Positioned(
                 right: 18,
@@ -286,7 +287,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                   Offset(0, 50),
                 ),
               ),
-            ],
+      ],
           ),
         ),
       ),
@@ -310,9 +311,9 @@ class _HistoryScreenState extends State<HistoryScreen>
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.6), // เส้นสีเดียวกับ bubble แต่อ่อนลง
                   borderRadius: BorderRadius.circular(1),
+                    ),
                 ),
               ),
-            ),
             // Simple rounded box - เหมือนรูปแรก
             Transform.scale(
               scale: _bubbleAnimation.value,
@@ -339,12 +340,12 @@ class _HistoryScreenState extends State<HistoryScreen>
                   children: [
                     // Label ด้านบน (BCS หรือ Weight)
                     Text(
-                      label,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
+                        label,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
                         color: Color(0xFF4A5568),
                         fontSize: isLarge ? 18 : 14,
-                        fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -362,21 +363,21 @@ class _HistoryScreenState extends State<HistoryScreen>
                             ),
                           )
                         : AnimatedBuilder(
-                            animation: _numberAnimation,
-                            builder: (context, child) {
+                      animation: _numberAnimation,
+                      builder: (context, child) {
                               int animatedValue = ((value as int) * _numberAnimation.value).round();
                               return Text(
-                                animatedValue.toString(),
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
+                            animatedValue.toString(),
+                            style: TextStyle(
+                              fontFamily: 'Inter',
                                   color: Color(0xFF4A5568),
                                   fontSize: isLarge ? 32 : 26,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.5,
-                                ),
-                              );
-                            },
                           ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -581,17 +582,17 @@ class _HistoryScreenState extends State<HistoryScreen>
                   )
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: chartData.map((data) {
-                      return Text(
-                        data['formattedDate'],
-                        style: TextStyle(
+              children: chartData.map((data) {
+                return Text(
+                  data['formattedDate'],
+                  style: TextStyle(
                           fontSize: 10, 
-                          color: Color(0xFF64748B), 
+                    color: Color(0xFF64748B), 
                           fontWeight: FontWeight.w600,
-                        ),
-                      );
-                    }).toList(),
                   ),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
@@ -600,107 +601,107 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   Widget _buildPetInfoSection() {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(24),
+              width: double.infinity,
+              padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
+                borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 25,
-            offset: Offset(0, 15),
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 25,
+                    offset: Offset(0, 15),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Color(0xFF6B86C9).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.pets,
-                  color: Color(0xFF6B86C9),
-                  size: 24,
-                ),
-              ),
-              SizedBox(width: 16),
-              Text(
-                'Pet Information',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-            ],
+                  Row(
+                    children: [
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Color(0xFF6B86C9).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+                          Icons.pets,
+              color: Color(0xFF6B86C9),
+                          size: 24,
+            ),
           ),
-          SizedBox(height: 24),
-          _buildInfoRow(Icons.badge, 'Name', widget.pet['name'] ?? 'Unknown'),
+          SizedBox(width: 16),
+                Text(
+                        'Pet Information',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                    ],
+                  ),
+                  SizedBox(height: 24),
+                  _buildInfoRow(Icons.badge, 'Name', widget.pet['name'] ?? 'Unknown'),
           _buildInfoRow(Icons.cake, 'Age', _calculateAge()),
-          _buildInfoRow(Icons.pets, 'Gender', widget.pet['gender'] ?? 'Unknown'),
-          _buildInfoRow(Icons.category, 'Breed', widget.pet['breed'] ?? 'Unknown'),
-          _buildInfoRow(Icons.medical_services, 'Spay/Neuter', 
-              (widget.pet['is_sterilized'] == true) ? 'Yes' : 'No'),
-        ],
-      ),
+                  _buildInfoRow(Icons.pets, 'Gender', widget.pet['gender'] ?? 'Unknown'),
+                  _buildInfoRow(Icons.category, 'Breed', widget.pet['breed'] ?? 'Unknown'),
+                  _buildInfoRow(Icons.medical_services, 'Spay/Neuter', 
+                      (widget.pet['is_sterilized'] == true) ? 'Yes' : 'No'),
+              ],
+            ),
     );
   }
 
   Widget _buildRecommendationSection() {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 25,
-            offset: Offset(0, 15),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Color(0xFFF59E0B).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.lightbulb_outline,
-                  color: Color(0xFFF59E0B),
-                  size: 24,
-                ),
+              width: double.infinity,
+              padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 25,
+                    offset: Offset(0, 15),
+                  ),
+                ],
               ),
-              SizedBox(width: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF59E0B).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.lightbulb_outline,
+                          color: Color(0xFFF59E0B),
+                          size: 24,
+                        ),
+                      ),
+                      SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  'Recommendation',
+                        'Recommendation',
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E293B),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1E293B),
                   ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
           _buildRecommendationContent(),
         ],
       ),
@@ -780,15 +781,15 @@ class _HistoryScreenState extends State<HistoryScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                  Text(
                       'BCS Score: $bcsScore ($bcsRange)',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1E293B),
-                      ),
                     ),
+                  ),
                     SizedBox(height: 4),
                     Text(
                       '$bcsCategory • ${species == 'cat' ? 'Cat' : 'Dog'}',
@@ -799,12 +800,12 @@ class _HistoryScreenState extends State<HistoryScreen>
                         color: categoryColor,
                       ),
                     ),
-                  ],
+                ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         SizedBox(height: 16),
         // Recommendations based on BCS and species
         _buildRecommendationDetails(bcsScore, species, categoryColor),
@@ -858,14 +859,14 @@ class _HistoryScreenState extends State<HistoryScreen>
   Widget _buildRecommendationItem(IconData icon, String title, String content, Color themeColor) {
     return Container(
       padding: EdgeInsets.all(14),
-      decoration: BoxDecoration(
+            decoration: BoxDecoration(
         color: Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: Color(0xFFE2E8F0),
           width: 1,
         ),
-      ),
+            ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -888,11 +889,11 @@ class _HistoryScreenState extends State<HistoryScreen>
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontFamily: 'Inter',
+              style: TextStyle(
+                fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E293B),
+          color: Color(0xFF1E293B),
                   ),
                 ),
                 SizedBox(height: 6),
@@ -907,7 +908,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                 ),
               ],
             ),
-          ),
+              ),
         ],
       ),
     );
@@ -1032,8 +1033,8 @@ class _HistoryScreenState extends State<HistoryScreen>
     }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
         Row(
           children: [
             Container(
@@ -1098,48 +1099,48 @@ class _HistoryScreenState extends State<HistoryScreen>
         ),
         SizedBox(height: 24),
         Container(
-          padding: EdgeInsets.all(40),
-          decoration: BoxDecoration(
+      padding: EdgeInsets.all(40),
+        decoration: BoxDecoration(
             color: Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: Color(0xFFE2E8F0),
               width: 1,
             ),
-          ),
-          child: Column(
-            children: [
-              Icon(
+        ),
+        child: Column(
+          children: [
+          Icon(
                 Icons.folder_open,
                 color: Color(0xFF8B5CF6).withOpacity(0.5),
-                size: 48,
-              ),
-              SizedBox(height: 16),
-              Text(
-                'No Records Yet',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Start tracking your pet\'s health by adding their first record.',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 14,
-                  color: Color(0xFF64748B),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            size: 48,
           ),
+          SizedBox(height: 16),
+                Text(
+            'No Records Yet',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 18,
+              fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+          SizedBox(height: 8),
+            Text(
+            'Start tracking your pet\'s health by adding their first record.',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                color: Color(0xFF64748B),
+              ),
+            textAlign: TextAlign.center,
+            ),
+          ],
+        ),
         ),
       ],
-    );
-  }
+      );
+    }
 
   Widget _buildRecordCard(Map<String, dynamic> record) {
     DateTime recordDate = DateTime.tryParse(record['date'] ?? '') ?? DateTime.now();
@@ -1207,8 +1208,8 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   Widget _buildGraphsSection() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
         Row(
           children: [
             Container(
@@ -1224,24 +1225,24 @@ class _HistoryScreenState extends State<HistoryScreen>
               ),
             ),
             SizedBox(width: 16),
-            Text(
+                Text(
               'Health Trends',
-              style: TextStyle(
-                fontFamily: 'Inter',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1E293B),
-              ),
-            ),
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
           ],
         ),
         SizedBox(height: 24),
         _buildTrendGraph('BCS Trend', Color(0xFFEF4444)),
-        SizedBox(height: 16),
-        _buildTrendGraph('Weight Trend', Color(0xFF10B981)),
-      ],
-    );
-  }
+            SizedBox(height: 16),
+            _buildTrendGraph('Weight Trend', Color(0xFF10B981)),
+          ],
+      );
+    }
 
   Widget _buildTrendGraph(String title, Color color) {
     return Container(

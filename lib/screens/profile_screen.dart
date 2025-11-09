@@ -83,62 +83,183 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _handleLogout() async {
     showDialog(
       context: context,
+      barrierColor: Colors.black.withOpacity(0.5),
       builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            'Logout',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          content: Text(
-            'Are you sure you want to logout?',
-            style: TextStyle(
-              fontFamily: 'Inter',
-              color: Color(0xFF64748B),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Color(0xFF64748B),
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withOpacity(0.95),
+                      Colors.white.withOpacity(0.9),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.5),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0xFF6B86C9).withOpacity(0.2),
+                      blurRadius: 30,
+                      offset: Offset(0, 10),
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Logout Icon
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFFEF4444),
+                            Color(0xFFDC2626),
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0xFFEF4444).withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.logout_rounded,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    
+                    // Title
+                    Text(
+                      'Logout',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 12),
+                    
+                    // Content
+                    Text(
+                      'Are you sure you want to logout?',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 15,
+                        color: Color(0xFF64748B),
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 24),
+                    
+                    // Buttons
+                    Row(
+                      children: [
+                        // Cancel Button
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: Color(0xFF6B86C9),
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: Colors.white,
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF6B86C9),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        
+                        // Logout Button
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color(0xFFEF4444),
+                                  Color(0xFFDC2626),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(0xFFEF4444).withOpacity(0.3),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                Navigator.of(context).pop();
+                                await _authService.signOut();
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/welcome',
+                                  (route) => false,
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              child: Text(
+                                'Logout',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await _authService.signOut();
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/welcome',
-                  (route) => false,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFEF4444),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Logout',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
+          ),
         );
       },
     );
@@ -147,6 +268,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่างสุด) เพื่อให้ตรงกับ gradient
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -164,21 +286,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         child: SafeArea(
-          child: _isLoading
+        child: _isLoading
               ? Center(child: CircularProgressIndicator(color: Colors.white))
-              : SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _buildModernHeader(),
-                      SizedBox(height: 52),
-                      _buildProfileCard(),
-                      SizedBox(height: 24),
-                      _buildMenuItems(),
-                      SizedBox(height: 32),
-                    ],
+            : SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildModernHeader(),
+                    SizedBox(height: 52),
+                    _buildProfileCard(),
+                    SizedBox(height: 24),
+                    _buildMenuItems(),
+                    SizedBox(height: 32),
+                  ],
                   ),
                 ),
-        ),
+              ),
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
@@ -199,30 +321,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
-          decoration: BoxDecoration(
+      decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.3), // แก้วใสๆ
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
             border: Border.all(
               color: Colors.white.withOpacity(0.4),
               width: 1.5,
             ),
-            boxShadow: [
-              BoxShadow(
+        boxShadow: [
+          BoxShadow(
                 color: Colors.black.withOpacity(0.1),
                 blurRadius: 25,
-                offset: Offset(0, 10),
-              ),
-            ],
+            offset: Offset(0, 10),
           ),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
-            child: Center(
-              child: Text(
-                'Profile',
-                style: TextStyle(
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
+              child: Center(
+                child: Text(
+                  'Profile',
+                  style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF1E293B),
@@ -231,11 +353,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Shadow(
                       color: Colors.white.withOpacity(0.8),
                       blurRadius: 10,
-                    ),
+              ),
                   ],
                 ),
               ),
-            ),
+                    ),
           ),
         ),
       ),
@@ -405,13 +527,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF64748B),
                     letterSpacing: 0.3,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
                   value.isNotEmpty ? value : '-',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
+            style: TextStyle(
+              fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF1E293B),

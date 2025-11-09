@@ -71,7 +71,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
           pets = (group['pets'] as List).cast<Map<String, dynamic>>();
         }
 
-      for (final pet in pets) {
+        for (final pet in pets) {
           print('🐾 Processing pet: ${pet['name']} with records: ${pet['records']}');
           
         // Get latest record for BCS score (require backend bcs_score)
@@ -96,7 +96,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
         // Skip pets without a valid bcs_score
         if (bcsScore == null) {
           continue;
-        }
+          }
 
           _allPets.add({
             'id': pet['_id'] ?? '',
@@ -187,6 +187,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่างสุด) เพื่อให้ตรงกับ gradient
       body: Container(
         // Soft blue gradient - อ่อนๆสวยๆ
         decoration: BoxDecoration(
@@ -203,28 +204,28 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              _buildModernHeader(),
-              SizedBox(height: 20),
-              _buildFilterTabs(),
-              SizedBox(height: 16),
-              _buildStatsCards(),
-              SizedBox(height: 20),
-              Expanded(
+        child: Column(
+          children: [
+            _buildModernHeader(),
+            SizedBox(height: 20),
+            _buildFilterTabs(),
+            SizedBox(height: 16),
+            _buildStatsCards(),
+            SizedBox(height: 20),
+            Expanded(
                 child: RefreshIndicator(
                   onRefresh: _loadSpecialCarePets,
                   color: Color(0xFF6B86C9),
-                  child: _isLoading
-                      ? _buildLoadingState()
-                      : _errorMessage != null
-                          ? _buildErrorState()
-                          : _specialCarePets.isEmpty
-                              ? _buildEmptyState()
-                              : _buildPetsList(),
+              child: _isLoading
+                  ? _buildLoadingState()
+                  : _errorMessage != null
+                      ? _buildErrorState()
+                      : _specialCarePets.isEmpty
+                          ? _buildEmptyState()
+                          : _buildPetsList(),
                 ),
-              ),
-            ],
+            ),
+          ],
           ),
         ),
       ),
@@ -247,35 +248,35 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
         child: Container(
-          decoration: BoxDecoration(
+              decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.3), // แก้วใสๆ
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
             border: Border.all(
               color: Colors.white.withOpacity(0.4),
               width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
+        ),
+        boxShadow: [
+          BoxShadow(
                 color: Colors.black.withOpacity(0.1),
                 blurRadius: 25,
-                offset: Offset(0, 10),
-              ),
-            ],
+            offset: Offset(0, 10),
           ),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Special Care',
-                        style: TextStyle(
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                Expanded(
+                  child: Text(
+                    'Special Care',
+                    style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF1E293B),
@@ -286,16 +287,16 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                               blurRadius: 10,
                             ),
                           ],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
                     ),
-                  ],
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  'Pets that need special attention',
-                  style: TextStyle(
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Pets that need special attention',
+              style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w400,
                     color: Color(0xFF475569),
@@ -306,10 +307,10 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                         blurRadius: 8,
                       ),
                     ],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
             ),
           ),
         ),
@@ -470,20 +471,20 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
       children: [
         SizedBox(height: 200),
         Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: Color(0xFF6B86C9)),
-              SizedBox(height: 16),
-              Text(
-                'Loading special care pets...',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Color(0xFF64748B),
-                ),
-              ),
-            ],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: Color(0xFF6B86C9)),
+          SizedBox(height: 16),
+          Text(
+            'Loading special care pets...',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              color: Color(0xFF64748B),
+            ),
           ),
+        ],
+      ),
         ),
       ],
     );
@@ -495,51 +496,51 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
       children: [
         SizedBox(height: 150),
         Padding(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Color(0xFFEF4444),
+        padding: EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Color(0xFFEF4444),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Oops! Something went wrong',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
               ),
-              SizedBox(height: 16),
-              Text(
-                'Oops! Something went wrong',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B),
+            ),
+            SizedBox(height: 8),
+            Text(
+              _errorMessage ?? 'Please try again later',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF64748B),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loadSpecialCarePets,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF6B86C9),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              SizedBox(height: 8),
-              Text(
-                _errorMessage ?? 'Please try again later',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Color(0xFF64748B),
-                ),
-                textAlign: TextAlign.center,
+              child: Text(
+                'Retry',
+                style: TextStyle(color: Colors.white),
               ),
-              SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loadSpecialCarePets,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF6B86C9),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  'Retry',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
       ],
     );
   }
@@ -550,44 +551,44 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
       children: [
         SizedBox(height: 150),
         Padding(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Icon(
-                  Icons.pets,
-                  size: 64,
-                  color: Color(0xFF10B981),
-                ),
+        padding: EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Color(0xFF10B981).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
               ),
-              SizedBox(height: 24),
-              Text(
-                'All pets are healthy! 🎉',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B),
-                ),
+              child: Icon(
+                Icons.pets,
+                size: 64,
+                color: Color(0xFF10B981),
               ),
-              SizedBox(height: 8),
-              Text(
-                'No pets currently need special care.\nAll BCS scores are in the healthy range.',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  color: Color(0xFF64748B),
-                ),
-                textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 24),
+            Text(
+              'All pets are healthy! 🎉',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
               ),
-            ],
-          ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'No pets currently need special care.\nAll BCS scores are in the healthy range.',
+              style: TextStyle(
+                fontFamily: 'Inter',
+                color: Color(0xFF64748B),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
+      ),
       ],
     );
   }
@@ -658,14 +659,14 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
             // Top: Image and Info with BCS Badge
             Stack(
               children: [
-                Row(
+            Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              children: [
                     // Pet Image
-                    Container(
+                Container(
                       width: 140,
                       height: 140,
-                      decoration: BoxDecoration(
+                  decoration: BoxDecoration(
                         color: Color(0xFFE8B349), // สีเหลืองทอง
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
@@ -675,7 +676,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                             offset: Offset(0, 5),
                           ),
                         ],
-                      ),
+                    ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
                         child: imageUrl.isNotEmpty
@@ -687,24 +688,24 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                                 },
                               )
                             : _buildPlaceholderImage(species),
-                      ),
-                    ),
+                  ),
+                ),
                     SizedBox(width: 20),
                     
                     // Pet Info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                           // Pet Name
-                          Text(
-                            pet['name'],
-                            style: TextStyle(
+                      Text(
+                        pet['name'],
+                        style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFF1E293B),
-                            ),
-                          ),
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
                           SizedBox(height: 16),
                           
                           // Weight
@@ -722,10 +723,10 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                             'Age',
                             '${pet['age_years'] ?? 0} years old',
                             Colors.grey[700]!,
-                          ),
-                        ],
                       ),
-                    ),
+                    ],
+                  ),
+                ),
                   ],
                 ),
                 
@@ -735,7 +736,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                   right: 0,
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
+                  decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
                           statusColor,
@@ -744,7 +745,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
                           color: statusColor.withOpacity(0.4),
@@ -752,24 +753,24 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                           offset: Offset(0, 4),
                         ),
                       ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
+                    children: [
                         Icon(Icons.favorite, color: Colors.white, size: 18),
                         SizedBox(width: 6),
-                        Text(
+                      Text(
                           'BCS Score ${pet['bcs'] != null ? pet['bcs'].toString() : 'N/A'}',
-                          style: TextStyle(
+                        style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
-                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
                 ),
               ],
             ),
@@ -796,34 +797,34 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                       ),
                     ),
                     child: Row(
-                      children: [
+                    children: [
                         Expanded(
                           flex: 2,
                           child: Text(
                             'BCS Level',
-                            style: TextStyle(
-                              fontSize: 14,
+                        style: TextStyle(
+                          fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF1E293B),
                             ),
                             textAlign: TextAlign.center,
-                          ),
                         ),
+                      ),
                         Container(width: 1.5, height: 20, color: Colors.grey[300]),
                         Expanded(
                           flex: 2,
                           child: Text(
                             'Condition',
-                            style: TextStyle(
+                    style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF1E293B),
-                            ),
+                    ),
                             textAlign: TextAlign.center,
-                          ),
-                        ),
+              ),
+            ),
                         Container(width: 1.5, height: 20, color: Colors.grey[300]),
-                        Expanded(
+                Expanded(
                           flex: 5,
                           child: Text(
                             'Feeding Recommendation',
@@ -831,22 +832,22 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF1E293B),
-                            ),
+                      ),
                             textAlign: TextAlign.center,
-                          ),
-                        ),
+                    ),
+                  ),
                       ],
                     ),
                   ),
                   // Rows
                   ..._buildBCSRecommendationRows(bcs, species, statusColor),
                 ],
-              ),
+                    ),
             ),
           ],
-        ),
-      ),
-    ),
+                    ),
+                  ),
+                ),
     );
   }
 
@@ -931,7 +932,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
         SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      children: [
             Text(
               label,
               style: TextStyle(
@@ -939,14 +940,14 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                 color: Colors.grey[600],
               ),
             ),
-            Text(
-              value,
-              style: TextStyle(
+        Text(
+          value,
+          style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1E293B),
-              ),
-            ),
+            color: Color(0xFF1E293B),
+          ),
+        ),
           ],
         ),
       ],
@@ -974,7 +975,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
               flex: 2,
               child: Text(
                 rec['bcs'],
-                style: TextStyle(
+          style: TextStyle(
                   fontSize: 13,
                   fontWeight: isCurrentBCS ? FontWeight.w800 : FontWeight.w600,
                   color: isCurrentBCS ? highlightColor : Color(0xFF1E293B),
@@ -988,7 +989,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
               child: Text(
                 rec['condition'],
                 style: TextStyle(
-                  fontSize: 12,
+            fontSize: 12,
                   fontWeight: isCurrentBCS ? FontWeight.w700 : FontWeight.w500,
                   color: isCurrentBCS ? highlightColor : Color(0xFF475569),
                 ),
@@ -1009,11 +1010,11 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
                     height: 1.3,
                   ),
                 ),
-              ),
-            ),
-          ],
+          ),
         ),
-      );
+      ],
+        ),
+    );
     }).toList();
   }
 
@@ -1067,7 +1068,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
           'recommendation': 'Limit energy intake. Use weight control food formula. Reduce snacks.',
         },
       ];
-    }
+  }
   }
 
 }

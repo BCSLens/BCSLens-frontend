@@ -1,5 +1,6 @@
 // lib/screens/bcs_evaluation_screen.dart
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/frosted_glass_header.dart';
 import '../widgets/gradient_background.dart';
@@ -162,18 +163,18 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
         print('📊 BCS Range: ${bcsRange ?? '(derived)'}');
         print('📊 Mapped Score: $bcsScore (internal)');
 
-        setState(() {
+      setState(() {
           _bcsScore = bcsScore;
           _bcsRange = bcsRange ?? _scoreToRange(bcsScore); // Store explicit or derived range
           _bcsReason = null; // Flask doesn't send reason
           _bcsCategory = bcsCategory.toLowerCase();
           widget.petRecord.bcs = bcsScore; // For internal use
           widget.petRecord.bcsRange = _bcsRange; // Store range (explicit or derived)
-          _isAnalyzing = false;
-        });
+        _isAnalyzing = false;
+      });
 
-        // Start animation after AI analysis
-        _scoreAnimationController.forward();
+      // Start animation after AI analysis
+      _scoreAnimationController.forward();
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
@@ -769,8 +770,8 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
                 
                 // Descriptions for this score
                 ..._bcsDescriptions[score]!
-                    .map((description) => _buildBulletPoint(description))
-                    .toList(),
+              .map((description) => _buildBulletPoint(description))
+              .toList(),
                 
                 // Add spacing between scores (except last one)
                 if (score != scoresInRange.last) ...[
@@ -928,94 +929,199 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
     
     return await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B)),
-            SizedBox(width: 8),
-            Text(
-              'Leave without saving?',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.95),
+                    Colors.white.withOpacity(0.9),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.5),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0xFF6B86C9).withOpacity(0.2),
+                    blurRadius: 30,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Warning Icon
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFFFFB84D),
+                          Color(0xFFFF9500),
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFFFF9500).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  
+                  // Title
+                  Text(
+                    'Leave without saving?',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 12),
+                  
+                  // Content
+                  Text(
+                    'You have unsaved BCS evaluation. Are you sure you want to leave?',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 15,
+                      color: Color(0xFF64748B),
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 24),
+                  
+                  // Buttons
+                  Row(
+                    children: [
+                      // Cancel Button
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: Color(0xFF6B86C9),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: Colors.white,
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B86C9),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      
+                      // Leave Button
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Color(0xFFEF4444),
+                                Color(0xFFDC2626),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xFFEF4444).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: Text(
+                              'Leave',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        content: Text(
-          'You have unsaved BCS evaluation. Are you sure you want to leave?',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            color: Color(0xFF64748B),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                color: Color(0xFF64748B),
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Leave',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
     ) ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (!didPop) {
-          final shouldPop = await _showExitConfirmation();
-          if (shouldPop) {
-            Navigator.of(context).pop();
-          }
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
+        backgroundColor: Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่างสุด) เพื่อให้ตรงกับ gradient
         body: GradientBackground(
           child: SafeArea(
-            child: Column(
-              children: [
-                // Modern Header
+          child: Column(
+            children: [
+              // Modern Header
                 FrostedGlassHeader(
                   title: 'BCS Evaluation',
                   subtitle: 'Step 3: Body Condition Assessment',
                   leadingWidget: HeaderBackButton(
-                    onPressed: () async {
-                      final shouldPop = await _showExitConfirmation();
-                      if (shouldPop) {
-                        Navigator.of(context).pop();
-                      }
+                    onPressed: () {
+                      // Pop ไปหน้าก่อนหน้าโดยไม่ต้องแสดง modal confirm
+                      Navigator.of(context).pop();
                     },
                   ),
                 ),
-                
-                SizedBox(height: 20),
+              
+              SizedBox(height: 20),
               
               // Scrollable Content
               Expanded(
@@ -1065,11 +1171,11 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
                 ),
               ),
             ),
-              ],
+          ],
             ),
-          ),
         ),
-        bottomNavigationBar: BottomNavBar(
+      ),
+      bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: (index) async {
           if (_hasUnsavedData()) {
@@ -1084,7 +1190,6 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
         onAddRecordsTap: () {
           // Do nothing, already on add record screen
         },
-      ),
       ),
     );
   }

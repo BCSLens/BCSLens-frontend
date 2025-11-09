@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/frosted_glass_header.dart';
 import '../widgets/gradient_background.dart';
@@ -636,62 +637,197 @@ class _AddRecordScreenState extends State<AddRecordScreen>
   Future<bool> _showExitConfirmation() async {
     if (!_hasUnsavedData()) return true;
     
+    return await _showModernConfirmDialog(
+      context: context,
+      title: 'Leave without saving?',
+      message: 'You have unsaved changes. Are you sure you want to leave?',
+      confirmText: 'Leave',
+    ) ?? false;
+  }
+  
+  // Helper function for modern confirmation dialog
+  Future<bool?> _showModernConfirmDialog({
+    required BuildContext context,
+    required String title,
+    required String message,
+    String confirmText = 'Confirm',
+    String cancelText = 'Cancel',
+    Color? confirmColor,
+  }) async {
     return await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B)),
-            SizedBox(width: 8),
-            Text(
-              'Leave without saving?',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.95),
+                    Colors.white.withOpacity(0.9),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.5),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0xFF6B86C9).withOpacity(0.2),
+                    blurRadius: 30,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Warning Icon
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFFFFB84D),
+                          Color(0xFFFF9500),
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFFFF9500).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  
+                  // Title
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 12),
+                  
+                  // Content
+                  Text(
+                    message,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 15,
+                      color: Color(0xFF64748B),
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 24),
+                  
+                  // Buttons
+                  Row(
+                    children: [
+                      // Cancel Button
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: Color(0xFF6B86C9),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: Colors.white,
+                          ),
+                          child: Text(
+                            cancelText,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B86C9),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      
+                      // Confirm Button
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: confirmColor != null
+                                  ? [confirmColor, confirmColor.withOpacity(0.8)]
+                                  : [
+                                      Color(0xFFEF4444),
+                                      Color(0xFFDC2626),
+                                    ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (confirmColor ?? Color(0xFFEF4444)).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: Text(
+                              confirmText,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        content: Text(
-          'You have unsaved changes. Are you sure you want to leave?',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            color: Color(0xFF64748B),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                color: Color(0xFF64748B),
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Leave',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
-    ) ?? false;
+    );
   }
 
   @override
@@ -713,6 +849,7 @@ class _AddRecordScreenState extends State<AddRecordScreen>
         }
       },
       child: Scaffold(
+        backgroundColor: Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่างสุด) เพื่อให้ตรงกับ gradient
         body: GradientBackground(
           child: SafeArea(
             child: Column(
@@ -1132,11 +1269,19 @@ class _AddRecordScreenState extends State<AddRecordScreen>
     return Container(
       padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // Gradient สีฟ้าอ่อนแทนสีขาว
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFA8C5E8).withOpacity(0.95), // สีฟ้าอ่อน
+            Color(0xFFD0E3F5).withOpacity(0.98), // สีฟ้าอ่อนมาก
+          ],
+        ),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Color(0xFF5B8CC9).withOpacity(0.15),
             blurRadius: 20,
             offset: Offset(0, -4),
           ),
@@ -1148,8 +1293,12 @@ class _AddRecordScreenState extends State<AddRecordScreen>
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Color(0xFFF1F5F9),
+              color: Colors.white.withOpacity(0.6), // แก้วใสๆ ให้เข้ากับธีม
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.4),
+                width: 1,
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,

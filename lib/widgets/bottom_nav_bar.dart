@@ -33,21 +33,21 @@ class BottomNavBar extends StatelessWidget {
                 color: Colors.white.withOpacity(0.4),
                 width: 1.5,
               ),
-              boxShadow: [
-                BoxShadow(
+        boxShadow: [
+          BoxShadow(
                   color: Color(0xFF5B8CC9).withOpacity(0.2),
-                  spreadRadius: 0,
+            spreadRadius: 0,
                   blurRadius: 25,
                   offset: const Offset(0, -5),
-                ),
-                BoxShadow(
+          ),
+          BoxShadow(
                   color: Colors.black.withOpacity(0.1),
-                  spreadRadius: 0,
+            spreadRadius: 0,
                   blurRadius: 20,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [

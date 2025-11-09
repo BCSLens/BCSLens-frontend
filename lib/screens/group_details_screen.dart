@@ -63,8 +63,22 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with TickerProv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF8FAFC),
-      body: SafeArea(
+      backgroundColor: Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่างสุด) เพื่อให้ตรงกับ gradient
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF5B8CC9), // สีฟ้าเข้ม (บน)
+              Color(0xFF7CA6DB), // สีฟ้ากลาง
+              Color(0xFFA8C5E8), // สีฟ้าอ่อน
+              Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่าง)
+            ],
+            stops: [0.0, 0.3, 0.6, 1.0],
+          ),
+        ),
+        child: SafeArea(
         child: Column(
           children: [
             _buildModernHeader(),
@@ -77,6 +91,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with TickerProv
                   : _buildPetsList(),
             ),
           ],
+        ),
         ),
       ),
       bottomNavigationBar: BottomNavBar(
@@ -398,7 +413,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with TickerProv
           // เช็คว่าเป็น filename จริงๆ (มี extension)
           if (originalUrl.contains('.')) {
             imageUrl = '${PetService.uploadBaseUrl}/uploads/$originalUrl';
-          } else {
+        } else {
             // ถ้าไม่ใช่ filename อาจเป็น path อื่น
             imageUrl = originalUrl;
           }

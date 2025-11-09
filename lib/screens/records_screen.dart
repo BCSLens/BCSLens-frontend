@@ -120,8 +120,8 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
         final bool isFilteringActive = _bcsScoreFilter != null;
         if (isFilteringActive) {
           scoreMatches = false;
-          if (pet['records'] != null && (pet['records'] as List).isNotEmpty) {
-            final latestRecord = (pet['records'] as List).last;
+            if (pet['records'] != null && (pet['records'] as List).isNotEmpty) {
+              final latestRecord = (pet['records'] as List).last;
             final dynamic rawScore = latestRecord['bcs_score'];
             int? score;
             if (rawScore is num) score = rawScore.toInt();
@@ -136,7 +136,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
         }
 
         return (_searchQuery.isEmpty || nameMatches) && scoreMatches;
-      }).toList();
+          }).toList();
 
       if (filteredPets.isNotEmpty || 
           (_searchQuery.isNotEmpty && groupName.contains(_searchQuery))) {
@@ -253,80 +253,186 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
   void _showAddGroupDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.create_new_folder, color: Color(0xFF10B981)),
-            SizedBox(width: 8),
-            Text(
-              'Add New Group',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B),
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withOpacity(0.95),
+                    Colors.white.withOpacity(0.9),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.5),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0xFF6B86C9).withOpacity(0.2),
+                    blurRadius: 30,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Icon
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFF10B981).withOpacity(0.3),
+                          blurRadius: 15,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.create_new_folder,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  
+                  // Title
+                  Text(
+                    'Add New Group',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1E293B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 20),
+                  
+                  // TextField
+                  TextField(
+                    controller: _groupNameController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter group name',
+                      hintStyle: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Color(0xFF94A3B8),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Color(0xFF10B981), width: 2),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.8),
+                    ),
+                    autofocus: true,
+                  ),
+                  SizedBox(height: 24),
+                  
+                  // Buttons
+                  Row(
+                    children: [
+                      // Cancel Button
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _groupNameController.clear();
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: Color(0xFF6B86C9),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: Colors.white,
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B86C9),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      
+                      // Create Button
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF10B981), Color(0xFF059669)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xFF10B981).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              _addNewGroup();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: Text(
+                              'Create',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        content: Container(
-          width: double.maxFinite,
-          child: TextField(
-            controller: _groupNameController,
-            decoration: InputDecoration(
-              hintText: 'Enter group name',
-              hintStyle: TextStyle(
-                fontFamily: 'Inter',
-                color: Color(0xFF94A3B8),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(0xFFE2E8F0)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Color(0xFF10B981)),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            ),
-            autofocus: true,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _groupNameController.clear();
-            },
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                color: Color(0xFF64748B),
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _addNewGroup();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF10B981),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Text(
-              'Create',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -395,11 +501,11 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
               } else if (bcsRange == '7-9') {
                 score = 8;
               }
-              if (score >= 4 && score <= 6) {
-                healthyPets++;
-              } else {
-                concernPets++;
-              }
+            if (score >= 4 && score <= 6) {
+              healthyPets++;
+            } else {
+              concernPets++;
+            }
             }
             // If no bcs_range, don't count in stats (N/A)
           }
@@ -418,6 +524,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0xFFD0E3F5), // สีฟ้าอ่อนมาก (ล่างสุด) เพื่อให้ตรงกับ gradient
       body: Container(
         // Soft blue gradient - อ่อนๆสวยๆ
         decoration: BoxDecoration(
@@ -434,32 +541,32 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              _buildModernHeader(),
-              _buildDashboardStats(),
-              _buildSearchAndFilter(),
-              SizedBox(height: 16),
-              Expanded(
-                child: _isLoading
-                    ? _buildLoadingState()
-                        : _errorMessage != null
-                        ? _buildErrorState()
-                        : _filteredGroups.isEmpty
+        child: Column(
+          children: [
+            _buildModernHeader(),
+            _buildDashboardStats(),
+            _buildSearchAndFilter(),
+            SizedBox(height: 16),
+            Expanded(
+              child: _isLoading
+                  ? _buildLoadingState()
+                      : _errorMessage != null
+                      ? _buildErrorState()
+                      : _filteredGroups.isEmpty
                             ? (_bcsScoreFilter != null || _searchQuery.isNotEmpty
                                 ? _buildFilteredEmptyState()
                                 : _buildEmptyState())
-                            : _buildPetsList(),
-              ),
-            ],
+                          : _buildPetsList(),
+            ),
+                                    ],
           ),
+                                  ),
+                                ),
+              bottomNavigationBar: BottomNavBar(
+          selectedIndex: _selectedIndex,
+          onItemTapped: _onItemTapped,
+          onAddRecordsTap: _handleAddRecordsTap,
         ),
-      ),
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
-        onAddRecordsTap: _handleAddRecordsTap,
-      ),
     );
   }
 
@@ -475,38 +582,38 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
           ),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              decoration: BoxDecoration(
+        child: Container(
+                                  decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.3), // แก้วใสๆ
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
                 ),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.4),
                   width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
+            ),
+                                    boxShadow: [
+                                      BoxShadow(
                     color: Colors.black.withOpacity(0.1),
                     blurRadius: 25,
-                    offset: Offset(0, 10),
-                  ),
-                ],
+                offset: Offset(0, 10),
               ),
+            ],
+          ),
           child: Padding(
             padding: EdgeInsets.fromLTRB(24, 20, 24, 30),
-            child: Column(
-              children: [
+                                  child: Column(
+                                    children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
+                                        children: [
+                                          Text(
                           'Welcome Back! 👋',
-                          style: TextStyle(
+                                            style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF475569),
@@ -519,9 +626,9 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                           ),
                         ),
                         SizedBox(height: 4),
-                        Text(
+                                          Text(
                           'Pet Health Records',
-                          style: TextStyle(
+                                            style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF1E293B),
@@ -532,12 +639,12 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                                 blurRadius: 10,
                               ),
                             ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Row(
+                                        children: [
                         // Info Button
                         Container(
                           decoration: BoxDecoration(
@@ -553,19 +660,19 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                           ),
                           child: IconButton(
                             icon: Icon(Icons.info_outline, color: Color(0xFF6B86C9)),
-                            onPressed: () {
+                                            onPressed: () {
                               _showAppGuideDialog();
                             },
                             tooltip: 'App Guide',
                           ),
                         ),
                       ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
             ),
           ),
         ),
@@ -613,7 +720,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
           icon,
           size: 15,
           color: Color(0xFF6B86C9),
-        ),
+          ),
         SizedBox(width: 6),
         Flexible(
           child: Text(
@@ -625,9 +732,9 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
+                                      ),
+                                    ),
+                                  ],
     );
   }
 
@@ -795,17 +902,17 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                       Expanded(
                         child: Slider(
                           value: (_bcsScoreFilter ?? 5).toDouble(),
-                          min: 1,
-                          max: 9,
-                          divisions: 8,
+                    min: 1,
+                    max: 9,
+                    divisions: 8,
                           label: _bcsScoreFilter?.toString() ?? 'All',
-                          activeColor: Color(0xFF6B86C9),
+                    activeColor: Color(0xFF6B86C9),
                           onChanged: (double v) {
-                            setState(() {
+                      setState(() {
                               _bcsScoreFilter = v.round();
-                              _applyFilters();
-                            });
-                          },
+                        _applyFilters();
+                      });
+                    },
                         ),
                       ),
                       SizedBox(width: 8),
@@ -1050,7 +1157,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
   Widget _buildGroupCard(Map<String, dynamic> group, int petCount) {
     return Container(
       margin: EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
+            decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -1064,8 +1171,8 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
           color: Colors.white.withOpacity(0.5),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
+              boxShadow: [
+                BoxShadow(
             color: Color(0xFF5B8CC9).withOpacity(0.1),
             blurRadius: 20,
             offset: Offset(0, 8),
@@ -1162,7 +1269,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
           // เช็คว่า filename ไม่ว่างและมี extension
           if (filename.isNotEmpty && filename.contains('.')) {
             imageUrl = '${PetService.uploadBaseUrl}/uploads/$filename';
-          } else {
+        } else {
             imageUrl = originalUrl;
           }
         } 
@@ -1213,7 +1320,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
         bcsColor = const Color(0xFF3B82F6); // Blue for underweight
       } else if (bcsScore! <= 5) {
         bcsColor = const Color(0xFF10B981); // Green for ideal
-      } else {
+        } else {
         bcsColor = const Color(0xFFEF4444); // Red for overweight
       }
     }
@@ -1242,52 +1349,52 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
         borderRadius: BorderRadius.circular(24),
         child: Material(
           color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              Navigator.pushNamed(
-                context,
+      child: InkWell(
+        onTap: () {
+          Navigator.pushNamed(
+            context,
                 '/history',
                 arguments: {
                   'pet': pet,
                   'groupName': groupName,
                 },
-              );
-            },
+          );
+        },
             child: Stack(
               children: [
                 // Main Content
                 Container(
-                  padding: EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+            children: [
                       // Pet Image - Large
-                      Container(
+                  Container(
                         width: 120,
                         height: 120,
-                        decoration: BoxDecoration(
+                    decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
                           gradient: LinearGradient(
                             colors: [Color(0xFFE8B349), Color(0xFFD4A044)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          boxShadow: [
-                            BoxShadow(
+        boxShadow: [
+          BoxShadow(
                               color: Colors.black.withOpacity(0.15),
                               blurRadius: 15,
                               offset: Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
+          ),
+        ],
+      ),
+                    child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: imageUrl.isNotEmpty
-                              ? Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                        return Container(
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
                                           colors: [Color(0xFFE8B349), Color(0xFFD4A044)],
@@ -1295,15 +1402,15 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                                           end: Alignment.bottomRight,
                                         ),
                                       ),
-                                      child: Icon(
-                                        Icons.pets,
+                                  child: Icon(
+                                    Icons.pets,
                                         color: Colors.white.withOpacity(0.7),
                                         size: 50,
-                                      ),
-                                    );
-                                  },
-                                )
-                              : Container(
+                          ),
+                        );
+                      },
+                            )
+                          : Container(
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: [Color(0xFFE8B349), Color(0xFFD4A044)],
@@ -1311,19 +1418,19 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                                       end: Alignment.bottomRight,
                                     ),
                                   ),
-                                  child: Icon(
-                                    Icons.pets,
+                              child: Icon(
+                                Icons.pets,
                                     color: Colors.white.withOpacity(0.7),
                                     size: 50,
-                                  ),
-                                ),
-                        ),
-                      ),
-                      
+                              ),
+                            ),
+                    ),
+                  ),
+                  
                       SizedBox(width: 12),
-                      
+                  
                       // Pet Info - Right Side (ความสูง 120 เท่ากับรูป)
-                      Expanded(
+            Expanded(
                         child: Container(
                           height: 120,
                           child: Column(
@@ -1333,32 +1440,32 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                               // Top Section: Name & Breed
                               Padding(
                                 padding: EdgeInsets.only(right: 70), // เผื่อที่ให้ BCS Badge
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      pet['name'] ?? 'Unknown',
-                                      style: TextStyle(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                      Text(
+                          pet['name'] ?? 'Unknown',
+                          style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.w800,
-                                        color: Color(0xFF1E293B),
+                            color: Color(0xFF1E293B),
                                         letterSpacing: -0.5,
-                                      ),
+                          ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                    ),
+                        ),
                                     SizedBox(height: 2),
-                                    Text(
+                  Text(
                                       pet['breed'] ?? 'Unknown breed',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF64748B),
-                                      ),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF64748B),
+                          ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
+                            ),
+                          ],
+                      ),
                               ),
                               
                               // Middle Section: Age + Weight + Buttons
@@ -1370,13 +1477,13 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                                     child: _buildInfoRowSmall(
                                       Icons.calendar_today,
                                       '${pet['age_years'] ?? 0}y ${pet['age_months'] ?? 0}m',
-                                    ),
-                                  ),
+                  ),
+                  ),
                                   SizedBox(height: 8),
-                                  
+                  
                                   // Weight + Action Buttons (same line - ชิดขวาเต็มที่)
-                                  Row(
-                                    children: [
+                  Row(
+                    children: [
                                       Icon(
                                         Icons.monitor_weight,
                                         size: 15,
@@ -1385,50 +1492,50 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                                       SizedBox(width: 6),
                                       Text(
                                         '${weightDisplay} kg',
-                                        style: TextStyle(
+                          style: TextStyle(
                                           fontSize: 13,
-                                          fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w600,
                                           color: Color(0xFF1E293B),
-                                        ),
-                                      ),
-                                      
+                          ),
+                        ),
+                      
                                       Spacer(),
-                                      
+                      
                                       // Analytics Button (ชิดขวา)
-                                      Container(
+                      Container(
                                         padding: EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
+                        decoration: BoxDecoration(
                                           color: Color(0xFF8B5CF6).withOpacity(0.15),
                                           borderRadius: BorderRadius.circular(8),
-                                        ),
+                        ),
                                         child: InkWell(
                                           onTap: () {
-                                            Navigator.pushNamed(
-                                              context,
-                                              '/history',
-                                              arguments: {
-                                                'pet': pet,
-                                                'groupName': groupName,
-                                              },
-                                            );
-                                          },
+                            Navigator.pushNamed(
+                              context,
+                              '/history',
+                              arguments: {
+                                'pet': pet,
+                                'groupName': groupName,
+                              },
+                            );
+                          },
                                           child: Icon(
                                             Icons.analytics,
                                             color: Color(0xFF8B5CF6),
                                             size: 18,
                                           ),
-                                        ),
-                                      ),
-                                      
+                        ),
+                      ),
+                      
                                       SizedBox(width: 6),
-                                      
+                      
                                       // Add Record Button (ชิดขวา)
-                                      Container(
+                      Container(
                                         padding: EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
+                        decoration: BoxDecoration(
                                           color: Color(0xFF6B86C9).withOpacity(0.15),
                                           borderRadius: BorderRadius.circular(8),
-                                        ),
+                        ),
                                         child: InkWell(
                                           onTap: () => _addNewRecordForPet(pet),
                                           child: Icon(
@@ -1436,13 +1543,13 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                                             color: Color(0xFF6B86C9),
                                             size: 18,
                                           ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
+              ),
+            ),
+          ],
+        ),
+                ],
+          ),
+        ],
                           ),
                         ),
                       ),
@@ -1487,10 +1594,10 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                 ),
               ],
             ),
-          ),
-        ),
       ),
-    );
+                                ),
+                              ),
+                            );
   }
 
   void _showGroupBottomSheet(Map<String, dynamic> group, int petCount) {
@@ -1673,7 +1780,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
 
   Widget _buildFeatureItem(IconData icon, String text) {
     return Row(
-      children: [
+          children: [
         Icon(
           icon,
           size: 16,
@@ -1699,13 +1806,13 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Step number circle
-        Container(
+            Container(
           width: 32,
           height: 32,
-          decoration: BoxDecoration(
+              decoration: BoxDecoration(
             color: Color(0xFF6B86C9),
-            shape: BoxShape.circle,
-          ),
+                shape: BoxShape.circle,
+      ),
           child: Center(
             child: Text(
               stepNumber,
@@ -1727,24 +1834,24 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                 children: [
                   Icon(icon, size: 16, color: Color(0xFF6B86C9)),
                   SizedBox(width: 6),
-                  Text(
+            Text(
                     title,
-                    style: TextStyle(
+              style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
-                    ),
+                color: Color(0xFF1E293B),
+              ),
                   ),
                 ],
-              ),
+            ),
               SizedBox(height: 4),
-              Text(
+            Text(
                 description,
-                style: TextStyle(
+              style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF64748B),
+                color: Color(0xFF64748B),
                   height: 1.4,
-                ),
+              ),
               ),
             ],
           ),
@@ -1775,15 +1882,15 @@ class _AppGuideBottomSheetState extends State<_AppGuideBottomSheet> {
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
-      decoration: BoxDecoration(
+              decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(25),
           topRight: Radius.circular(25),
-        ),
-      ),
-      child: Column(
-        children: [
+                ),
+              ),
+              child: Column(
+                children: [
           // Header with close button
           Container(
             padding: EdgeInsets.all(20),
@@ -1807,9 +1914,9 @@ class _AppGuideBottomSheetState extends State<_AppGuideBottomSheet> {
                   icon: Icon(Icons.close),
                   onPressed: () => Navigator.pop(context),
                 ),
-              ],
+                ],
+              ),
             ),
-          ),
           
           // Page indicator
           Padding(
@@ -1823,7 +1930,7 @@ class _AppGuideBottomSheetState extends State<_AppGuideBottomSheet> {
               ],
             ),
           ),
-          
+            
           // Content
           Expanded(
             child: PageView(
@@ -1875,13 +1982,13 @@ class _AppGuideBottomSheetState extends State<_AppGuideBottomSheet> {
                         curve: Curves.easeInOut,
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF6B86C9),
-                      foregroundColor: Colors.white,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF6B86C9),
+                  foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                     ),
                   )
                 else
@@ -1971,15 +2078,15 @@ class _AppGuideBottomSheetState extends State<_AppGuideBottomSheet> {
                       decoration: BoxDecoration(
                         color: color,
                         borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
+                ),
+                child: Text(
                         'Step $number',
-                        style: TextStyle(
+                  style: TextStyle(
                           color: Colors.white,
                           fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                     ),
                   ],
                 ),
@@ -1999,10 +2106,10 @@ class _AppGuideBottomSheetState extends State<_AppGuideBottomSheet> {
                     fontSize: 14,
                     color: Color(0xFF64748B),
                     height: 1.4,
-                  ),
-                ),
-              ],
+              ),
             ),
+          ],
+        ),
           ),
         ],
       ),
@@ -2014,7 +2121,7 @@ class _AppGuideBottomSheetState extends State<_AppGuideBottomSheet> {
       padding: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      children: [
           Text(
             'Body Condition Scoring System',
             style: TextStyle(
@@ -2071,16 +2178,16 @@ class _AppGuideBottomSheetState extends State<_AppGuideBottomSheet> {
               children: [
                 Icon(Icons.info_outline, color: Color(0xFFF59E0B)),
                 SizedBox(width: 12),
-                Expanded(
-                  child: Text(
+        Expanded(
+          child: Text(
                     'Source: Purina Institute - Body Condition System',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
-                ),
-              ],
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+            ),
+          ),
+        ),
+      ],
             ),
           ),
         ],
