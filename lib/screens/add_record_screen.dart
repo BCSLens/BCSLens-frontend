@@ -1191,7 +1191,7 @@ class _AddRecordScreenState extends State<AddRecordScreen>
                       ),
                       SizedBox(height: 20),
                       Text(
-                        'Capture Front Viewr',
+                        'Capture Front View',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
