@@ -736,21 +736,17 @@ class _HistoryScreenState extends State<HistoryScreen>
       );
     }
     
-    // Determine BCS range and color
-    String bcsRange = '';
+    // Determine BCS category and color
     String bcsCategory = '';
     Color categoryColor = Color(0xFF6B86C9);
     
     if (bcsScore <= 3) {
-      bcsRange = '1-3';
       bcsCategory = 'Underweight';
       categoryColor = Color(0xFF3B82F6);
     } else if (bcsScore >= 4 && bcsScore <= 5) {
-      bcsRange = '4-5';
       bcsCategory = 'Ideal';
       categoryColor = Color(0xFF10B981);
     } else {
-      bcsRange = '6-9';
       bcsCategory = 'Overweight';
       categoryColor = Color(0xFFEF4444);
     }
@@ -782,7 +778,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                   Text(
-                      'BCS Score: $bcsScore ($bcsRange)',
+                      'BCS Score: $bcsScore $bcsCategory',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 16,
@@ -792,7 +788,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                   ),
                     SizedBox(height: 4),
                     Text(
-                      '$bcsCategory • ${species == 'cat' ? 'Cat' : 'Dog'}',
+                      '${species == 'cat' ? 'Cat' : 'Dog'}',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13,
@@ -807,173 +803,188 @@ class _HistoryScreenState extends State<HistoryScreen>
             ),
           ),
         SizedBox(height: 16),
-        // Recommendations based on BCS and species
-        _buildRecommendationDetails(bcsScore, species, categoryColor),
+        // Weekly Recommendations based on BCS and species
+        Text(
+          'Recommendation for 1 month',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1E293B),
+          ),
+        ),
+        SizedBox(height: 12),
+        _buildWeeklyRecommendations(bcsScore, species),
       ],
     );
   }
 
-  Widget _buildRecommendationDetails(int bcsScore, String species, Color themeColor) {
-    Map<String, String> recommendations = _getRecommendations(bcsScore, species);
+  Widget _buildWeeklyRecommendations(int bcsScore, String species) {
+    List<Map<String, String>> weeklyRecs = _getWeeklyRecommendations(bcsScore, species);
+    // ใช้สีเดียวกันทั้งหมดสำหรับ week cards
+    Color weekCardColor = Color(0xFF6B86C9);
     
     return Column(
       children: [
-        _buildRecommendationItem(
-          Icons.restaurant,
-          '1. Nutrition and Management',
-          recommendations['nutrition'] ?? '',
-          themeColor,
-        ),
+        _buildWeekCard(1, weeklyRecs[0]['dog'] ?? '', weeklyRecs[0]['cat'] ?? '', species, weekCardColor),
         SizedBox(height: 12),
-        _buildRecommendationItem(
-          Icons.favorite,
-          '2. Basic Care',
-          recommendations['care'] ?? '',
-          themeColor,
-        ),
+        _buildWeekCard(2, weeklyRecs[1]['dog'] ?? '', weeklyRecs[1]['cat'] ?? '', species, weekCardColor),
         SizedBox(height: 12),
-        _buildRecommendationItem(
-          Icons.directions_run,
-          '3. Exercise and Wellness',
-          recommendations['exercise'] ?? '',
-          themeColor,
-        ),
+        _buildWeekCard(3, weeklyRecs[2]['dog'] ?? '', weeklyRecs[2]['cat'] ?? '', species, weekCardColor),
         SizedBox(height: 12),
-        _buildRecommendationItem(
-          Icons.lightbulb_outline,
-          '4. Additional Tips',
-          recommendations['additional'] ?? '',
-          themeColor,
-        ),
-        SizedBox(height: 12),
-        _buildRecommendationItem(
-          Icons.local_hospital,
-          '5. Veterinary Care',
-          recommendations['veterinary'] ?? '',
-          themeColor,
-        ),
+        _buildWeekCard(4, weeklyRecs[3]['dog'] ?? '', weeklyRecs[3]['cat'] ?? '', species, weekCardColor),
       ],
     );
   }
 
-  Widget _buildRecommendationItem(IconData icon, String title, String content, Color themeColor) {
+  Widget _buildWeekCard(int weekNumber, String dogRec, String catRec, String species, Color weekCardColor) {
+    String recommendation = species == 'cat' ? catRec : dogRec;
+    
     return Container(
-      padding: EdgeInsets.all(14),
-            decoration: BoxDecoration(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
         color: Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Color(0xFFE2E8F0),
-          width: 1,
+          color: weekCardColor.withOpacity(0.3),
+          width: 1.5,
         ),
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: weekCardColor.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(8),
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
-              color: themeColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
+              color: weekCardColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              icon,
-              color: themeColor,
-              size: 18,
+            child: Center(
+              child: Text(
+                'Week $weekNumber',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: weekCardColor,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
-          SizedBox(width: 12),
+          SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-          color: Color(0xFF1E293B),
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      species == 'cat' ? Icons.pets : Icons.pets,
+                      size: 16,
+                      color: weekCardColor,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      species == 'cat' ? 'Cat' : 'Dog',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: weekCardColor,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 6),
+                SizedBox(height: 8),
                 Text(
-                  content,
+                  recommendation,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 12,
-                    color: Color(0xFF475569),
+                    fontSize: 13,
+                    color: Color(0xFF1E293B),
                     height: 1.5,
                   ),
                 ),
               ],
             ),
-              ),
+          ),
         ],
       ),
     );
   }
 
-  Map<String, String> _getRecommendations(int bcsScore, String species) {
+  List<Map<String, String>> _getWeeklyRecommendations(int bcsScore, String species) {
     // BCS 1-3: Underweight
     if (bcsScore <= 3) {
-      if (species == 'cat') {
-        return {
-          'nutrition': 'Increase energy in food. Use high-quality food with adequate fat and protein. Divide food into smaller meals.',
-          'care': 'Monitor food intake regularly. Maintain clean food and water bowls. Ensure there are no food restrictions.',
-          'exercise': 'Light exercise such as short walks. Stimulate muscles to strengthen but avoid overexertion.',
-          'additional': 'Observe eating behavior and monitor weight continuously.',
-          'veterinary': 'Consult a veterinarian to find underlying causes such as gastrointestinal diseases or parasites.',
-        };
-      } else { // dog
-        return {
-          'nutrition': 'Increase energy in food. Use high-quality food with adequate fat and protein. Divide food into smaller meals.',
-          'care': 'Monitor food intake regularly. Maintain clean food and water bowls. Use soft bedding for resting areas.',
-          'exercise': 'Light exercise such as short walks. Stimulate muscles to strengthen but avoid overexertion.',
-          'additional': 'Observe eating behavior, defecation, and monitor weight continuously.',
-          'veterinary': 'Consult a veterinarian to find underlying causes such as gastrointestinal diseases or parasites.',
-        };
-      }
+      return [
+        {
+          'dog': 'Perform a basic health check. Adjust food formula to be higher in energy. Divide meals into 3-4 servings per day.',
+          'cat': 'Perform a health check and screen for chronic diseases. Adjust food formula to be higher in energy.',
+        },
+        {
+          'dog': 'Observe weight and appetite. Start light exercise such as short walks for 5-10 minutes.',
+          'cat': 'Evaluate eating and defecation habits. If weight still does not increase, adjust the food formula to be even higher in energy.',
+        },
+        {
+          'dog': 'Monitor weight, measure BCS again. Supplement with recommended supplements from the veterinarian.',
+          'cat': 'Encourage light play, such as with a fishing rod toy, without overdoing it.',
+        },
+        {
+          'dog': 'Evaluate the results of weight gain. Schedule a follow-up appointment with the veterinarian.',
+          'cat': 'Weigh, monitor BCS. Schedule a veterinarian visit to check the response to the care plan.',
+        },
+      ];
     }
     // BCS 4-5: Ideal
     else if (bcsScore >= 4 && bcsScore <= 5) {
-      if (species == 'cat') {
-        return {
-          'nutrition': 'Control portion size appropriately. Choose quality food suitable for age. Balance between dry and wet food to maintain body moisture.',
-          'care': 'Encourage movement with interactive toys. Vaccinate and deworm regularly.',
-          'exercise': 'Play to stimulate movement such as chasing toys or laser pointer games.',
-          'additional': 'Provide a safe and comfortable environment.',
-          'veterinary': 'Annual health checkup and dental cleaning.',
-        };
-      } else { // dog
-        return {
-          'nutrition': 'Provide balanced, quality food appropriate for age. Control portions to avoid overfeeding.',
-          'care': 'Vaccinate, deworm, and maintain dental health regularly.',
-          'exercise': 'Walk or play 30–60 minutes/day.',
-          'additional': 'Reinforce good behavior such as socialization.',
-          'veterinary': 'Annual health checkup.',
-        };
-      }
+      return [
+        {
+          'dog': 'Provide age-appropriate balanced food. Check vaccinations/deworming.',
+          'cat': 'Provide food according to body weight. Care for oral health. Check vaccinations/deworming.',
+        },
+        {
+          'dog': 'Schedule exercise activities 30-60 minutes/day.',
+          'cat': 'Stimulate play 10-15 minutes/day. Arrange climbing environment.',
+        },
+        {
+          'dog': 'Recheck weight and BCS. Enhance social activities.',
+          'cat': 'Check litter box hygiene and observe defecation behavior.',
+        },
+        {
+          'dog': 'General health check with veterinarian. Behavioral assessment and nutritional assessment.',
+          'cat': 'General health check with veterinarian. Behavioral assessment and nutritional assessment.',
+        },
+      ];
     }
     // BCS 6-9: Overweight
     else {
-      if (species == 'cat') {
-        return {
-          'nutrition': 'Gradually reduce food portions. Use weight control formula diet. Avoid high-calorie treats and snacks.',
-          'care': 'Avoid supplements/treats. Use interactive toys or laser pointer.',
-          'exercise': 'Play to stimulate movement such as interactive toys or laser pointer.',
-          'additional': 'Monitor weight loss progress at 1–2% of body weight per month.',
-          'veterinary': 'Consult veterinarian to check for metabolic diseases such as diabetes, high cholesterol, or liver disease.',
-        };
-      } else { // dog
-        return {
-          'nutrition': 'Limit energy intake. Use weight control diet formula. Reduce treats and snacks.',
-          'care': 'Weigh regularly. Avoid excessive supplements/treats.',
-          'exercise': 'Increase low-impact activities such as slow walking, swimming, or treadmill.',
-          'additional': 'Establish clear feeding schedule. Do not leave food available all the time. Gradually reduce weight.',
-          'veterinary': 'Monitor weight loss progress at 1–2% of body weight per month.',
-        };
-      }
+      return [
+        {
+          'dog': 'Health check to assess complications. Adjust to weight-loss diet.',
+          'cat': 'Health check. Screen for metabolic disease. Start weight-control diet.',
+        },
+        {
+          'dog': 'Start light exercise program, e.g., slow walking 10-15 minutes/day.',
+          'cat': 'Stimulate movement, e.g., laser play/interactive toys.',
+        },
+        {
+          'dog': 'Weigh to monitor progress. Reduce treats and off-meal feeding.',
+          'cat': 'Assess eating-defecation. Adjust amount if weight loss is too rapid.',
+        },
+        {
+          'dog': 'Follow-up with veterinarian for progress check. Continuous planning.',
+          'cat': 'Weigh and monitor BCS. Schedule recheck with veterinarian.',
+        },
+      ];
     }
   }
 
