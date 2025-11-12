@@ -4,6 +4,11 @@
 
 A Flutter mobile application for Body Condition Score (BCS) evaluation of pets using AI-powered image analysis.
 
+## 📋 Project Management
+
+- **Project Board 1**: [View on Monday.com](https://view.monday.com/1983570327-4e442dd1f95cfdb5c1361933c0513a23?r=apse2)
+- **Project Board 2 (Gantt Chart)**: [View on Monday.com](https://view.monday.com/1983570327-7a5049f2f7f0015651bd2549ebd8508f?r=apse2)
+
 ## 📱 Overview
 
 BCS Lens helps pet owners and experts evaluate their pets' body condition scores (1-9 scale) through:
