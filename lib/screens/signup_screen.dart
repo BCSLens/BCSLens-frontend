@@ -42,13 +42,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
       _isLoading = true;
     });
 
-    // Validate inputs
-    if (_emailController.text.isEmpty ||
-        _passwordController.text.isEmpty ||
-        _confirmPasswordController.text.isEmpty ||
-        _usernameController.text.isEmpty ||
-        _firstnameController.text.isEmpty ||
-        _lastnameController.text.isEmpty) {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+    final username = _usernameController.text.trim();
+    final firstname = _firstnameController.text.trim();
+    final lastname = _lastnameController.text.trim();
+    final phone = _phoneController.text.trim();
+
+    // Validate required fields
+    if (email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty ||
+        username.isEmpty ||
+        firstname.isEmpty ||
+        lastname.isEmpty) {
+      print('❌ Signup validation failed: Empty required fields');
       setState(() {
         _errorMessage = 'Please fill all required fields';
         _isLoading = false;
@@ -56,7 +65,49 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    if (_passwordController.text != _confirmPasswordController.text) {
+    // Validate email format
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(email)) {
+      print('❌ Signup validation failed: Invalid email format');
+      setState(() {
+        _errorMessage = 'Please enter a valid email address';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 8) {
+      print('❌ Signup validation failed: Password too short');
+      setState(() {
+        _errorMessage = 'Password must be at least 8 characters long';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Validate password contains letters and numbers
+    if (!password.contains(RegExp(r'[A-Za-z]'))) {
+      print('❌ Signup validation failed: Password must contain letters');
+      setState(() {
+        _errorMessage = 'Password must contain at least one letter';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      print('❌ Signup validation failed: Password must contain numbers');
+      setState(() {
+        _errorMessage = 'Password must contain at least one number';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Validate password match
+    if (password != confirmPassword) {
+      print('❌ Signup validation failed: Passwords do not match');
       setState(() {
         _errorMessage = 'Passwords do not match';
         _isLoading = false;
@@ -64,7 +115,53 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
+    // Validate username (alphanumeric, underscore, hyphen, 3-20 chars)
+    final usernameRegex = RegExp(r'^[a-zA-Z0-9_-]{3,20}$');
+    if (!usernameRegex.hasMatch(username)) {
+      print('❌ Signup validation failed: Invalid username format');
+      setState(() {
+        _errorMessage = 'Username must be 3-20 characters and contain only letters, numbers, underscore, or hyphen';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Validate name (letters and spaces only, 2-50 chars)
+    final nameRegex = RegExp(r'^[a-zA-Z\s]{2,50}$');
+    if (!nameRegex.hasMatch(firstname)) {
+      print('❌ Signup validation failed: Invalid first name format');
+      setState(() {
+        _errorMessage = 'First name must be 2-50 characters and contain only letters';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    if (!nameRegex.hasMatch(lastname)) {
+      print('❌ Signup validation failed: Invalid last name format');
+      setState(() {
+        _errorMessage = 'Last name must be 2-50 characters and contain only letters';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Validate phone (optional, but if provided, must be valid format)
+    if (phone.isNotEmpty) {
+      final phoneRegex = RegExp(r'^[0-9+\-\s()]{8,15}$');
+      if (!phoneRegex.hasMatch(phone)) {
+        print('❌ Signup validation failed: Invalid phone format');
+        setState(() {
+          _errorMessage = 'Please enter a valid phone number (8-15 digits)';
+          _isLoading = false;
+        });
+        return;
+      }
+    }
+
+    // Validate privacy consent
     if (!_privacyConsentAccepted) {
+      print('❌ Signup validation failed: Privacy consent not accepted');
       setState(() {
         _errorMessage = 'Please accept the Privacy Policy to continue';
         _isLoading = false;
@@ -73,35 +170,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     try {
+      print('🔐 Signup attempt: email=${email.substring(0, email.indexOf('@'))}@***, username=$username, role=$_selectedRole');
       // Sign up
       final authService = AuthService();
       final result = await authService.signUp(
-        _emailController.text,
-        _passwordController.text,
-        _confirmPasswordController.text,
-        _usernameController.text,
-        _firstnameController.text,
-        _lastnameController.text,
-        _phoneController.text,
+        email,
+        password,
+        confirmPassword,
+        username,
+        firstname,
+        lastname,
+        phone,
         _selectedRole,
         _privacyConsentAccepted,
       );
 
-      print('Signup result: $result');
+      print('📝 Signup result: success=${result['success']}');
       
       if (result['success'] == true) {
+        print('✅ Signup successful: userId=${authService.userId}');
         // Navigate to records screen
         Navigator.pushReplacementNamed(context, "/records");
       } else {
         final errorMsg = result['message'] ?? 'Failed to create account. Please try again.';
-        print('Setting error message: $errorMsg');
+        print('❌ Signup failed: $errorMsg');
         setState(() {
           _errorMessage = errorMsg;
         });
       }
     } catch (e, stackTrace) {
-      print('Signup exception: $e');
-      print('Stack trace: $stackTrace');
+      print('❌ Signup exception: ${e.toString()}');
+      print('   Stack trace: ${stackTrace.toString().substring(0, stackTrace.toString().length > 200 ? 200 : stackTrace.toString().length)}...');
       setState(() {
         _errorMessage = 'Error: $e';
       });

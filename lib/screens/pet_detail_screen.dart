@@ -620,23 +620,125 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
   Future<void> _submitRecord() async {
     // Validate weight for existing pets
     if (widget.petRecord.isNewRecordForExistingPet) {
+      // Validate weight
       if (_weightController.text.isEmpty) {
+        print('❌ Pet detail validation failed: Weight is required');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter current weight')),
         );
         return;
       }
+      
+      // Validate weight is a valid number
+      final weight = double.tryParse(_weightController.text.replaceAll(',', '.'));
+      if (weight == null || weight <= 0) {
+        print('❌ Pet detail validation failed: Invalid weight format');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid weight (e.g., 5.5)')),
+        );
+        return;
+      }
+      
+      // Validate weight is reasonable (0.1 kg to 200 kg)
+      if (weight < 0.1 || weight > 200) {
+        print('❌ Pet detail validation failed: Weight out of range');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Weight must be between 0.1 kg and 200 kg')),
+        );
+        return;
+      }
     } else {
       // Validate for new pets
-      if (_nameController.text.isEmpty) {
+      
+      // Validate name
+      final name = _nameController.text.trim();
+      if (name.isEmpty) {
+        print('❌ Pet detail validation failed: Name is required');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter a name for your pet')),
         );
         return;
       }
       
+      // Validate name length (1-50 characters)
+      if (name.length > 50) {
+        print('❌ Pet detail validation failed: Name too long');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pet name must be 50 characters or less')),
+        );
+        return;
+      }
+      
+      // Validate breed
+      final breed = _breedController.text.trim();
+      if (breed.isEmpty) {
+        print('❌ Pet detail validation failed: Breed is required');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter your pet\'s breed')),
+        );
+        return;
+      }
+      
+      // Validate age years (0-30)
+      final ageYears = int.tryParse(_ageYearsController.text) ?? 0;
+      if (ageYears < 0 || ageYears > 30) {
+        print('❌ Pet detail validation failed: Age years out of range (0-30)');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Age in years must be between 0 and 30')),
+        );
+        return;
+      }
+      
+      // Validate age months (0-11)
+      final ageMonths = int.tryParse(_ageMonthsController.text) ?? 0;
+      if (ageMonths < 0 || ageMonths > 11) {
+        print('❌ Pet detail validation failed: Age months out of range (0-11)');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Age in months must be between 0 and 11')),
+        );
+        return;
+      }
+      
+      // Validate that at least one age field has a value
+      if (ageYears == 0 && ageMonths == 0) {
+        print('❌ Pet detail validation failed: Age must be at least 1 month');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter your pet\'s age (at least 1 month)')),
+        );
+        return;
+      }
+      
+      // Validate weight
+      if (_weightController.text.isEmpty) {
+        print('❌ Pet detail validation failed: Weight is required');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter your pet\'s weight')),
+        );
+        return;
+      }
+      
+      // Validate weight is a valid number
+      final weight = double.tryParse(_weightController.text.replaceAll(',', '.'));
+      if (weight == null || weight <= 0) {
+        print('❌ Pet detail validation failed: Invalid weight format');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid weight (e.g., 5.5)')),
+        );
+        return;
+      }
+      
+      // Validate weight is reasonable (0.1 kg to 200 kg)
+      if (weight < 0.1 || weight > 200) {
+        print('❌ Pet detail validation failed: Weight out of range');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Weight must be between 0.1 kg and 200 kg')),
+        );
+        return;
+      }
+      
       // Validate group selection
       if (_selectedGroup.isEmpty) {
+        print('❌ Pet detail validation failed: Group is required');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Please select a group or create a new one'),
@@ -654,17 +756,21 @@ class _PetDetailsScreenState extends State<PetDetailsScreen> {
     if (widget.petRecord.isNewRecordForExistingPet) {
       // For existing pets, only update weight
       widget.petRecord.weight = _formatWeightForSubmission();
+      print('✅ Pet detail validated: Weight updated for existing pet');
     } else {
       // For new pets, update all data
-      widget.petRecord.name = _nameController.text;
+      widget.petRecord.name = _nameController.text.trim();
       widget.petRecord.age = _formatAgeForSubmission();
       widget.petRecord.weight = _formatWeightForSubmission();
-      widget.petRecord.breed = _breedController.text;
-      widget.petRecord.gender = _selectedGender;
+      widget.petRecord.breed = _breedController.text.trim();
+      // Convert gender to lowercase for backend (Male -> male, Female -> female)
+      widget.petRecord.gender = _selectedGender.toLowerCase();
       widget.petRecord.isSterilized = _isSterilized;
       widget.petRecord.groupId = _selectedGroup;
       widget.petRecord.category =
           widget.petRecord.predictedAnimal == 'cat' ? 'Cats' : 'Dogs';
+      
+      print('✅ Pet detail validated: name=${widget.petRecord.name}, breed=${widget.petRecord.breed}, gender=${widget.petRecord.gender}, age=${widget.petRecord.age}, weight=${widget.petRecord.weight}');
     }
 
     // Navigate to review screen

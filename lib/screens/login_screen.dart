@@ -30,8 +30,12 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
     
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    
     // Validate inputs
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
+      print('❌ Login validation failed: Empty fields');
       setState(() {
         _errorMessage = 'Please enter both email and password';
         _isLoading = false;
@@ -39,22 +43,44 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     
+    // Validate email format
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(email)) {
+      print('❌ Login validation failed: Invalid email format');
+      setState(() {
+        _errorMessage = 'Please enter a valid email address';
+        _isLoading = false;
+      });
+      return;
+    }
+    
+    // Validate password length
+    if (password.length < 8) {
+      print('❌ Login validation failed: Password too short');
+      setState(() {
+        _errorMessage = 'Password must be at least 8 characters';
+        _isLoading = false;
+      });
+      return;
+    }
+    
     try {
+      print('🔐 Login attempt: email=${email.substring(0, email.indexOf('@'))}@***');
       final authService = AuthService();
-      final success = await authService.signIn(
-        _emailController.text,
-        _passwordController.text
-      );
+      final success = await authService.signIn(email, password);
       
       if (success) {
+        print('✅ Login successful: userId=${authService.userId}');
         // Navigate to records screen
         Navigator.pushReplacementNamed(context, "/records");
       } else {
+        print('❌ Login failed: Invalid credentials');
         setState(() {
           _errorMessage = 'Invalid email or password';
         });
       }
     } catch (e) {
+      print('❌ Login error: ${e.toString()}');
       setState(() {
         _errorMessage = 'Error: $e';
       });
@@ -73,13 +99,16 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      print('🔐 Google login attempt');
       final authService = AuthService();
       final success = await authService.signInWithGoogle();
       
       if (success) {
+        print('✅ Google login successful: userId=${authService.userId}');
         // Navigate to records screen
         Navigator.pushReplacementNamed(context, "/records");
       } else {
+        print('❌ Google login failed: User cancelled or error');
         setState(() {
           _errorMessage = 'Google login failed. Please try again.';
         });
@@ -90,10 +119,15 @@ class _LoginScreenState extends State<LoginScreen> {
       // More user-friendly error messages
       if (e.toString().contains('12500')) {
         errorMsg = 'Sign-in was cancelled or failed. Please try again.';
+        print('❌ Google login error: User cancelled (12500)');
       } else if (e.toString().contains('DEVELOPER_ERROR') || e.toString().contains('10:')) {
         errorMsg = 'Configuration error. Please contact support.';
+        print('❌ Google login error: Configuration error (10)');
       } else if (e.toString().contains('network') || e.toString().contains('Network')) {
         errorMsg = 'Network error. Please check your internet connection.';
+        print('❌ Google login error: Network error');
+      } else {
+        print('❌ Google login error: ${e.toString()}');
       }
       
       setState(() {

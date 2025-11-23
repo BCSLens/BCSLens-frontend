@@ -250,23 +250,22 @@ class AuthService {
   // Sign in and set role
   Future<bool> signIn(String email, String password) async {
     try {
-      print('🔑 LOGIN ATTEMPT:');
-      print('📧 Email: $email');
-      print('🔐 Password: $password');
-      print('🌐 API URL: $apiBaseUrl/users/login');
-
-      final requestBody = {'email': email, 'password': password};
-      print('📤 Request body: ${jsonEncode(requestBody)}');
+      // Mask email for logging (only show part before @)
+      final emailMasked = email.contains('@') 
+          ? '${email.substring(0, email.indexOf('@'))}@***'
+          : '***';
+      print('🔑 Login attempt: email=$emailMasked');
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/users/login'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(requestBody),
+        body: jsonEncode({
+          'email': email,
+          'password': password, // Never log password
+        }),
       );
 
-      print('📱 Response status: ${response.statusCode}');
-      print('📱 Response headers: ${response.headers}');
-      print('📱 Response body: ${response.body}');
+      print('📱 Login response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -279,14 +278,13 @@ class AuthService {
           // Fallback for old API format
           _token = data['token'];
         } else {
-          print('❌ No token in response: $data');
+          print('❌ Login failed: No token in response');
           return false;
         }
         
         _userEmail = email;
 
-        print('✅ Login successful!');
-        print('🎫 Token received: ${_token?.substring(0, 20)}...');
+        print('✅ Login successful: userId=$_userId, email=$emailMasked');
 
         // Parse JWT token
         _parseJwtToken(_token!);
@@ -296,15 +294,17 @@ class AuthService {
 
         return true;
       } else {
-        final error = jsonDecode(response.body);
-        print('❌ Login failed with status: ${response.statusCode}');
-        print('❌ Error details: ${error['error'] ?? 'Unknown error'}');
-        print('❌ Full error response: $error');
+        try {
+          final error = jsonDecode(response.body);
+          final errorMsg = error['error'] ?? 'Unknown error';
+          print('❌ Login failed: $errorMsg');
+        } catch (e) {
+          print('❌ Login failed: Status ${response.statusCode}');
+        }
         return false;
       }
     } catch (e) {
-      print('💥 Sign in exception: $e');
-      print('💥 Exception type: ${e.runtimeType}');
+      print('❌ Login error: ${e.toString()}');
       return false;
     }
   }
@@ -342,13 +342,19 @@ class AuthService {
     bool privacyConsentAccepted,
   ) async {
     try {
+      // Mask email for logging
+      final emailMasked = email.contains('@') 
+          ? '${email.substring(0, email.indexOf('@'))}@***'
+          : '***';
+      print('🔐 Signup attempt: email=$emailMasked, username=$username, role=$role');
+
       final response = await http.post(
         Uri.parse('$apiBaseUrl/users/signup'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
-          'password': password,
-          'confirmPassword': confirmPassword,
+          'password': password, // Never log password
+          'confirmPassword': confirmPassword, // Never log password
           'username': username,
           'firstname': firstname,
           'lastname': lastname,
@@ -358,8 +364,7 @@ class AuthService {
         }),
       );
 
-      print('Signup response status: ${response.statusCode}');
-      print('Signup response body: ${response.body}');
+      print('📱 Signup response status: ${response.statusCode}');
       
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Parse response and set tokens directly (no need to call signIn)
@@ -377,7 +382,7 @@ class AuthService {
           // Save to storage
           await _saveAuthData();
           
-          print('✅ Signup and auto-login successful!');
+          print('✅ Signup successful: userId=$_userId, email=$emailMasked');
           return {'success': true, 'message': null};
         } else {
           // Fallback: try to sign in if tokens not in response
@@ -390,7 +395,6 @@ class AuthService {
         
         try {
           final errorData = jsonDecode(response.body);
-          print('Error data: $errorData');
           
           // Handle different error formats
           if (errorData.containsKey('error')) {
@@ -407,15 +411,15 @@ class AuthService {
             }
           }
         } catch (e) {
-          print('Error parsing response: $e');
+          print('❌ Error parsing signup response: $e');
           errorMessage = 'Failed to create account. Please try again.';
         }
         
-        print('Final error message: $errorMessage');
+        print('❌ Signup failed: $errorMessage');
         return {'success': false, 'message': errorMessage};
       }
     } catch (e) {
-      print('Sign up error: $e');
+      print('❌ Signup error: ${e.toString()}');
       return {
         'success': false,
         'message': 'Network error. Please check your connection and try again.'
@@ -426,7 +430,7 @@ class AuthService {
   // Refresh access token using refresh token
   Future<bool> refreshAccessToken({BuildContext? context}) async {
     if (_refreshToken == null) {
-      print('❌ No refresh token available');
+      print('❌ Token refresh failed: No refresh token available');
       return false;
     }
 
@@ -435,11 +439,10 @@ class AuthService {
       final response = await http.post(
         Uri.parse('$apiBaseUrl/users/refresh'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refreshToken': _refreshToken}),
+        body: jsonEncode({'refreshToken': _refreshToken}), // Never log refreshToken
       );
 
-      print('🔄 Refresh response status: ${response.statusCode}');
-      print('🔄 Refresh response body: ${response.body}');
+      print('📱 Token refresh response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -452,7 +455,7 @@ class AuthService {
         // Save to storage
         await _saveAuthData();
 
-        print('✅ Token refreshed successfully!');
+        print('✅ Token refreshed successfully');
         return true;
       } else {
         // Parse error message
@@ -463,16 +466,16 @@ class AuthService {
             errorMessage = errorData['error'].toString();
           }
         } catch (e) {
-          print('Error parsing refresh error response: $e');
+          print('❌ Error parsing refresh error response: $e');
         }
         
-        print('❌ Token refresh failed: ${response.statusCode} - $errorMessage');
+        print('❌ Token refresh failed: $errorMessage');
         
         // ถ้า refresh token หมดอายุแล้ว (7 วัน) หรือ invalid -> sign out และ redirect ไป login
         if (errorMessage.toLowerCase().contains('expired') || 
             errorMessage.toLowerCase().contains('invalid') ||
             response.statusCode == 403) {
-          print('🔄 Refresh token expired or invalid (7 days passed), signing out and redirecting to login...');
+          print('🔄 Refresh token expired or invalid, signing out...');
           await signOut();
           if (context != null) {
             Navigator.of(context).pushReplacementNamed('/login');
@@ -482,7 +485,7 @@ class AuthService {
         return false;
       }
     } catch (e) {
-      print('💥 Token refresh exception: $e');
+      print('❌ Token refresh error: ${e.toString()}');
       return false;
     }
   }
@@ -499,12 +502,15 @@ class AuthService {
       print('⚠️ Error signing out from Google: $e');
     }
 
+    final userId = _userId; // Save for logging before clearing
     _isExpert = false;
     _userId = null;
     _userEmail = null;
     _token = null;
     _refreshToken = null;
     _tokenExpirationDate = null;
+    
+    print('🔓 Logout: userId=$userId');
 
     // Clear storage
     final prefs = await SharedPreferences.getInstance();
