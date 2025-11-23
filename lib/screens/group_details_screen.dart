@@ -403,16 +403,24 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with TickerProv
           String filename = originalUrl.split('/').last;
           // เช็คว่า filename ไม่ว่างและมี extension
           if (filename.isNotEmpty && filename.contains('.')) {
-            imageUrl = '${PetService.uploadBaseUrl}/uploads/$filename';
+            imageUrl = '${PetService.uploadBaseUrl}/upload/$filename';
           } else {
             imageUrl = originalUrl;
           }
         } 
+        // ถ้าเป็น relative path ที่ขึ้นต้นด้วย /upload/ หรือ /uploads/
+        else if (originalUrl.startsWith('/upload/') || originalUrl.startsWith('/uploads/')) {
+          // แปลง /uploads/ เป็น /upload/ ถ้าจำเป็น
+          String correctedPath = originalUrl.startsWith('/uploads/') 
+              ? originalUrl.replaceFirst('/uploads/', '/upload/')
+              : originalUrl;
+          imageUrl = '${PetService.uploadBaseUrl}$correctedPath';
+        }
         // ถ้าเป็นแค่ filename → สร้าง URL เต็ม
         else {
           // เช็คว่าเป็น filename จริงๆ (มี extension)
           if (originalUrl.contains('.')) {
-            imageUrl = '${PetService.uploadBaseUrl}/uploads/$originalUrl';
+            imageUrl = '${PetService.uploadBaseUrl}/upload/$originalUrl';
         } else {
             // ถ้าไม่ใช่ filename อาจเป็น path อื่น
             imageUrl = originalUrl;

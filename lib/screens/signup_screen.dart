@@ -1,5 +1,6 @@
 // lib/screens/signup_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import '../services/auth_service.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -17,9 +18,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _usernameController = TextEditingController();
   final _firstnameController = TextEditingController();
   final _lastnameController = TextEditingController();
-  String _selectedRole = 'user';
+  String _selectedRole = 'pet-owner';
   bool _isLoading = false;
   String? _errorMessage;
+  bool _privacyConsentAccepted = false;
 
   @override
   void dispose() {
@@ -62,11 +64,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
+    if (!_privacyConsentAccepted) {
+      setState(() {
+        _errorMessage = 'Please accept the Privacy Policy to continue';
+        _isLoading = false;
+      });
+      return;
+    }
+
     try {
       // Sign up
-      // Sign up
       final authService = AuthService();
-      final success = await authService.signUp(
+      final result = await authService.signUp(
         _emailController.text,
         _passwordController.text,
         _confirmPasswordController.text,
@@ -75,17 +84,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _lastnameController.text,
         _phoneController.text,
         _selectedRole,
+        _privacyConsentAccepted,
       );
 
-      if (success) {
+      print('Signup result: $result');
+      
+      if (result['success'] == true) {
         // Navigate to records screen
         Navigator.pushReplacementNamed(context, "/records");
       } else {
+        final errorMsg = result['message'] ?? 'Failed to create account. Please try again.';
+        print('Setting error message: $errorMsg');
         setState(() {
-          _errorMessage = 'Failed to create account. Please try again.';
+          _errorMessage = errorMsg;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('Signup exception: $e');
+      print('Stack trace: $stackTrace');
       setState(() {
         _errorMessage = 'Error: $e';
       });
@@ -333,8 +349,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     items: [
                       DropdownMenuItem<String>(
-                        value: 'user',
-                        child: Text('Regular User'),
+                        value: 'pet-owner',
+                        child: Text('Pet Owner'),
                       ),
                       DropdownMenuItem<String>(
                         value: 'expert',
@@ -347,6 +363,73 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       });
                     },
                   ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Privacy Consent Checkbox
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Checkbox(
+                      value: _privacyConsentAccepted,
+                      onChanged: (value) {
+                        setState(() {
+                          _privacyConsentAccepted = value ?? false;
+                        });
+                      },
+                      activeColor: const Color(0xFF6B86C9),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: RichText(
+                          text: TextSpan(
+                            style: const TextStyle(
+                              color: Color(0xFF666666),
+                              fontSize: 14,
+                              height: 1.4,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: 'I agree to the ',
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    setState(() {
+                                      _privacyConsentAccepted = !_privacyConsentAccepted;
+                                    });
+                                  },
+                              ),
+                              TextSpan(
+                                text: 'Privacy Policy',
+                                style: const TextStyle(
+                                  color: Color(0xFF6B86C9),
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/privacy-policy',
+                                    );
+                                  },
+                              ),
+                              TextSpan(
+                                text: ' and consent to the collection and use of my personal data.',
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    setState(() {
+                                      _privacyConsentAccepted = !_privacyConsentAccepted;
+                                    });
+                                  },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 25),

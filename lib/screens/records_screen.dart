@@ -1249,12 +1249,20 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
   Widget _buildModernPetCard(Map<String, dynamic> pet, String groupName) {
     String imageUrl = '';
 
+    print('🔍 [Records Card] Pet: ${pet['name']}');
+    print('🔍 [Records Card] Has records: ${pet['records'] != null}');
+    
     if (pet['records'] != null && (pet['records'] as List).isNotEmpty) {
+      print('🔍 [Records Card] Records count: ${(pet['records'] as List).length}');
       final latestRecord = (pet['records'] as List).last;
+      print('🔍 [Records Card] Latest record keys: ${latestRecord.keys.toList()}');
+      print('🔍 [Records Card] Latest record: $latestRecord');
       final frontImageUrl = latestRecord['front_image_url'];
+      print('🔍 [Records Card] front_image_url value: $frontImageUrl');
 
       if (frontImageUrl != null && frontImageUrl.toString().isNotEmpty) {
         String originalUrl = frontImageUrl.toString().trim();
+        print('🖼️ [Records Card] Original image URL: $originalUrl');
         
         // ถ้าเป็น URL เต็มรูปแบบ และไม่ใช่ localhost/old IP → ใช้ตามเดิม
         if (originalUrl.startsWith('http') && 
@@ -1262,28 +1270,49 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
             !originalUrl.contains('localhost') && 
             !originalUrl.contains('127.0.0.1')) {
           imageUrl = originalUrl;
+          print('✅ [Records Card] Using full URL: $imageUrl');
         } 
         // ถ้าเป็น URL แบบเก่าหรือ localhost → แปลงเป็น URL ใหม่
         else if (originalUrl.startsWith('http')) {
           String filename = originalUrl.split('/').last;
           // เช็คว่า filename ไม่ว่างและมี extension
           if (filename.isNotEmpty && filename.contains('.')) {
-            imageUrl = '${PetService.uploadBaseUrl}/uploads/$filename';
-        } else {
+            imageUrl = '${PetService.uploadBaseUrl}/upload/$filename';
+            print('✅ [Records Card] Reconstructed from old URL: $imageUrl');
+          } else {
             imageUrl = originalUrl;
+            print('⚠️ [Records Card] Invalid filename, using original: $imageUrl');
           }
         } 
+        // ถ้าเป็น relative path ที่ขึ้นต้นด้วย /upload/ หรือ /uploads/
+        else if (originalUrl.startsWith('/upload/') || originalUrl.startsWith('/uploads/')) {
+          // แปลง /uploads/ เป็น /upload/ ถ้าจำเป็น
+          String correctedPath = originalUrl.startsWith('/uploads/') 
+              ? originalUrl.replaceFirst('/uploads/', '/upload/')
+              : originalUrl;
+          imageUrl = '${PetService.uploadBaseUrl}$correctedPath';
+          print('✅ [Records Card] Reconstructed from relative path: $imageUrl');
+        }
         // ถ้าเป็นแค่ filename → สร้าง URL เต็ม
         else {
           // เช็คว่าเป็น filename จริงๆ (มี extension)
           if (originalUrl.contains('.')) {
-            imageUrl = '${PetService.uploadBaseUrl}/uploads/$originalUrl';
+            imageUrl = '${PetService.uploadBaseUrl}/upload/$originalUrl';
+            print('✅ [Records Card] Reconstructed from filename: $imageUrl');
           } else {
             // ถ้าไม่ใช่ filename อาจเป็น path อื่น
             imageUrl = originalUrl;
+            print('⚠️ [Records Card] Unknown format, using as-is: $imageUrl');
           }
         }
+        print('📋 [Records Card] Final image URL: $imageUrl');
+        print('📋 [Records Card] Upload Base URL: ${PetService.uploadBaseUrl}');
+      } else {
+        print('❌ [Records Card] No front_image_url found or empty');
+        print('🔍 [Records Card] frontImageUrl is null or empty: ${frontImageUrl == null || frontImageUrl.toString().isEmpty}');
       }
+    } else {
+      print('❌ [Records Card] No records found for pet: ${pet['name']}');
     }
 
     // Get latest record data
@@ -1393,6 +1422,9 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
                   ? Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
+                      headers: {
+                        'Authorization': 'Bearer ${AuthService().token ?? ''}',
+                      },
                               errorBuilder: (context, error, stackTrace) {
                         return Container(
                                       decoration: BoxDecoration(

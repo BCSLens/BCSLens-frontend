@@ -65,6 +65,47 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _handleGoogleLogin() async {
+    // Clear previous errors
+    setState(() {
+      _errorMessage = null;
+      _isLoading = true;
+    });
+
+    try {
+      final authService = AuthService();
+      final success = await authService.signInWithGoogle();
+      
+      if (success) {
+        // Navigate to records screen
+        Navigator.pushReplacementNamed(context, "/records");
+      } else {
+        setState(() {
+          _errorMessage = 'Google login failed. Please try again.';
+        });
+      }
+    } catch (e) {
+      String errorMsg = 'Google login failed. Please try again.';
+      
+      // More user-friendly error messages
+      if (e.toString().contains('12500')) {
+        errorMsg = 'Sign-in was cancelled or failed. Please try again.';
+      } else if (e.toString().contains('DEVELOPER_ERROR') || e.toString().contains('10:')) {
+        errorMsg = 'Configuration error. Please contact support.';
+      } else if (e.toString().contains('network') || e.toString().contains('Network')) {
+        errorMsg = 'Network error. Please check your internet connection.';
+      }
+      
+      setState(() {
+        _errorMessage = errorMsg;
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -208,25 +249,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 20),
 
-                // Social buttons - exact layout from screenshot
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _socialLoginButton(
-                      icon: FontAwesomeIcons.facebookF,
-                      color: Colors.blue,
-                    ),
-                    const SizedBox(width: 20),
-                    _socialLoginButton(
-                      icon: FontAwesomeIcons.google,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(width: 20),
-                    _socialLoginButton(
-                      icon: FontAwesomeIcons.apple,
-                      color: Colors.black,
-                    ),
-                  ],
+                // Social buttons - Google login only
+                Center(
+                  child: _socialLoginButton(
+                    icon: FontAwesomeIcons.google,
+                    color: Colors.red,
+                    onTap: _handleGoogleLogin,
+                  ),
                 ),
 
                 const SizedBox(height: 30),
@@ -267,16 +296,23 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _socialLoginButton({required IconData icon, required Color color}) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+  Widget _socialLoginButton({
+    required IconData icon,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+        ),
+        child: Center(child: FaIcon(icon, color: color, size: 20)),
       ),
-      child: Center(child: FaIcon(icon, color: color, size: 20)),
     );
   }
 }

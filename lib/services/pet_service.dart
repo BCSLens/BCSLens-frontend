@@ -11,23 +11,21 @@ import '../models/pet_record_model.dart';
 class PetService {
   final AuthService _authService = AuthService();
 
-  // Use environment variable or fallback to production URL
+  // Use environment variable - required for security
   static String get baseUrl {
     final envUrl = dotenv.env['API_BASE_URL'];
-    if (envUrl != null && envUrl.isNotEmpty) {
-      return envUrl;
+    if (envUrl == null || envUrl.isEmpty) {
+      throw Exception('API_BASE_URL is not set in .env file');
     }
-    // Fallback to production URL
-    return 'http://35.240.210.10:3000/api';
+    return envUrl;
   }
 
   static String get uploadBaseUrl {
     final envUrl = dotenv.env['UPLOAD_BASE_URL'];
-    if (envUrl != null && envUrl.isNotEmpty) {
-      return envUrl;
+    if (envUrl == null || envUrl.isEmpty) {
+      throw Exception('UPLOAD_BASE_URL is not set in .env file');
     }
-    // Fallback to production URL
-    return 'http://34.142.243.161';
+    return envUrl;
   }
 
   // Create a new pet - FIXED VERSION
@@ -58,13 +56,19 @@ class PetService {
       // Map category/predictedAnimal to species
       String species = _mapToSpecies(pet.predictedAnimal);
 
+      // Convert gender to lowercase (backend expects "male" or "female")
+      String gender = (pet.gender ?? 'Male').toLowerCase();
+      if (gender != 'male' && gender != 'female') {
+        gender = 'male'; // Default to male if invalid
+      }
+
       final requestBody = {
         'name': pet.name!,
         'breed': pet.breed ?? 'Mixed',
         'age': totalMonths, // Total months for backward compatibility
         'age_years': ageYears, // ✅ เพิ่มใหม่
         'age_months': ageMonths, // ✅ เพิ่มใหม่
-        'gender': pet.gender ?? 'Male',
+        'gender': gender, // ✅ แปลงเป็น lowercase แล้ว
         'spay_neuter_status': spayNeuterStatus, // ✅ เป็น boolean แล้ว
         'group_id': pet.groupId!,
         'species': species,
@@ -330,6 +334,21 @@ class PetService {
         return '';
       }
 
+      // Check token expiration first
+      if (_authService.isTokenExpired()) {
+        if (_authService.token != null) {
+          // Try to refresh
+          final refreshed = await _authService.refreshAccessToken();
+          if (!refreshed) {
+            print('❌ Token expired and refresh failed for image upload');
+            return '';
+          }
+        } else {
+          print('❌ Not authenticated for image upload');
+          return '';
+        }
+      }
+      
       final token = _authService.token;
       if (token == null) {
         print('❌ Not authenticated for image upload');
@@ -338,7 +357,7 @@ class PetService {
 
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('$uploadBaseUrl/uploads/'),
+        Uri.parse('$uploadBaseUrl/upload/'),
       );
 
       request.headers['Authorization'] = 'Bearer $token';
@@ -372,7 +391,8 @@ class PetService {
           url = data['file_url'];
         } else if (data['filename'] != null) {
           // ✅ สร้าง URL จาก filename
-          url = '$uploadBaseUrl/uploads/${data['filename']}';
+          // Backend route: /api/upload/:filename (GET) สำหรับ download
+          url = '$uploadBaseUrl/upload/${data['filename']}';
         } else {
           print('❌ No URL found in response: $data');
           return '';

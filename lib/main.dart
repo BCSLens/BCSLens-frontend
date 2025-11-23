@@ -15,6 +15,7 @@ import 'services/auth_service.dart';
 import 'screens/history_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/group_details_screen.dart';
+import 'screens/privacy_policy_screen.dart';
 
 import 'models/pet_record_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -24,9 +25,11 @@ void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize auth service
-  final authService = AuthService();
+  // Load .env file BEFORE creating AuthService
   await dotenv.load(fileName: ".env");
+
+  // Initialize auth service AFTER dotenv is loaded
+  final authService = AuthService();
   await authService.initialize();
 
   // Lock app orientation to portrait only
@@ -130,6 +133,10 @@ class BCSLensApp extends StatelessWidget {
                 group: arguments['group'],
                 pets: arguments['pets'],
               ),
+            );
+          case '/privacy-policy':
+            return MaterialPageRoute(
+              builder: (context) => const PrivacyPolicyScreen(),
             );
           default:
             return null;

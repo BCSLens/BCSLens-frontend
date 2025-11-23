@@ -5,6 +5,7 @@ import '../widgets/frosted_glass_header.dart';
 import '../widgets/gradient_background.dart';
 import 'package:intl/intl.dart';
 import '../services/pet_service.dart';
+import '../services/auth_service.dart';
 
 class HistoryScreen extends StatefulWidget {
   final Map<String, dynamic> pet;
@@ -153,12 +154,20 @@ class _HistoryScreenState extends State<HistoryScreen>
   Widget _buildPetImageSection() {
     String imageUrl = '';
 
+    print('🔍 [History] Pet: ${widget.pet['name']}');
+    print('🔍 [History] Has records: ${widget.pet['records'] != null}');
+    
     if (widget.pet['records'] != null && (widget.pet['records'] as List).isNotEmpty) {
+      print('🔍 [History] Records count: ${(widget.pet['records'] as List).length}');
       final latestRecord = (widget.pet['records'] as List).last;
+      print('🔍 [History] Latest record keys: ${latestRecord.keys.toList()}');
+      print('🔍 [History] Latest record: $latestRecord');
       final frontImageUrl = latestRecord['front_image_url'];
+      print('🔍 [History] front_image_url value: $frontImageUrl');
 
       if (frontImageUrl != null && frontImageUrl.toString().isNotEmpty) {
         String originalUrl = frontImageUrl.toString().trim();
+        print('🖼️ [History] Original image URL: $originalUrl');
         
         // ถ้าเป็น URL เต็มรูปแบบ และไม่ใช่ localhost/old IP → ใช้ตามเดิม
         if (originalUrl.startsWith('http') && 
@@ -166,28 +175,49 @@ class _HistoryScreenState extends State<HistoryScreen>
             !originalUrl.contains('localhost') && 
             !originalUrl.contains('127.0.0.1')) {
           imageUrl = originalUrl;
+          print('✅ [History] Using full URL: $imageUrl');
         } 
         // ถ้าเป็น URL แบบเก่าหรือ localhost → แปลงเป็น URL ใหม่
         else if (originalUrl.startsWith('http')) {
-            String filename = originalUrl.split('/').last;
+          String filename = originalUrl.split('/').last;
           // เช็คว่า filename ไม่ว่างและมี extension
           if (filename.isNotEmpty && filename.contains('.')) {
-            imageUrl = '${PetService.uploadBaseUrl}/uploads/$filename';
-        } else {
+            imageUrl = '${PetService.uploadBaseUrl}/upload/$filename';
+            print('✅ [History] Reconstructed from old URL: $imageUrl');
+          } else {
             imageUrl = originalUrl;
-        }
+            print('⚠️ [History] Invalid filename, using original: $imageUrl');
+          }
         } 
+        // ถ้าเป็น relative path ที่ขึ้นต้นด้วย /upload/ หรือ /uploads/
+        else if (originalUrl.startsWith('/upload/') || originalUrl.startsWith('/uploads/')) {
+          // แปลง /uploads/ เป็น /upload/ ถ้าจำเป็น
+          String correctedPath = originalUrl.startsWith('/uploads/') 
+              ? originalUrl.replaceFirst('/uploads/', '/upload/')
+              : originalUrl;
+          imageUrl = '${PetService.uploadBaseUrl}$correctedPath';
+          print('✅ [History] Reconstructed from relative path: $imageUrl');
+        }
         // ถ้าเป็นแค่ filename → สร้าง URL เต็ม
         else {
           // เช็คว่าเป็น filename จริงๆ (มี extension)
           if (originalUrl.contains('.')) {
-          imageUrl = '${PetService.uploadBaseUrl}/uploads/$originalUrl';
+            imageUrl = '${PetService.uploadBaseUrl}/upload/$originalUrl';
+            print('✅ [History] Reconstructed from filename: $imageUrl');
           } else {
             // ถ้าไม่ใช่ filename อาจเป็น path อื่น
             imageUrl = originalUrl;
+            print('⚠️ [History] Unknown format, using as-is: $imageUrl');
           }
         }
+        print('📋 [History] Final image URL: $imageUrl');
+        print('📋 [History] Upload Base URL: ${PetService.uploadBaseUrl}');
+      } else {
+        print('❌ [History] No front_image_url found or empty');
+        print('🔍 [History] frontImageUrl is null or empty: ${frontImageUrl == null || frontImageUrl.toString().isEmpty}');
       }
+    } else {
+      print('❌ [History] No records found for pet: ${widget.pet['name']}');
     }
 
     return FadeTransition(
@@ -222,6 +252,9 @@ class _HistoryScreenState extends State<HistoryScreen>
                       ? Image.network(
                         imageUrl,
                         fit: BoxFit.cover,
+                        headers: {
+                          'Authorization': 'Bearer ${AuthService().token ?? ''}',
+                        },
                             errorBuilder: (context, error, stackTrace) {
                           return Container(
                                 decoration: BoxDecoration(

@@ -889,14 +889,22 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
     if (originalUrl.startsWith('http')) {
       final filename = originalUrl.split('/').last;
       if (filename.isNotEmpty && filename.contains('.')) {
-        return '${PetService.uploadBaseUrl}/uploads/$filename';
+        return '${PetService.uploadBaseUrl}/upload/$filename';
       }
       return originalUrl;
     }
 
+    // If relative path starting with /upload/ or /uploads/
+    if (originalUrl.startsWith('/upload/') || originalUrl.startsWith('/uploads/')) {
+      String correctedPath = originalUrl.startsWith('/uploads/') 
+          ? originalUrl.replaceFirst('/uploads/', '/upload/')
+          : originalUrl;
+      return '${PetService.uploadBaseUrl}$correctedPath';
+    }
+
     // If looks like a filename → build full URL
     if (originalUrl.contains('.')) {
-      return '${PetService.uploadBaseUrl}/uploads/$originalUrl';
+      return '${PetService.uploadBaseUrl}/upload/$originalUrl';
     }
 
     // Fallback to original

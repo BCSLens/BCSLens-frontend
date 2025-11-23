@@ -7,7 +7,13 @@ import 'package:mime/mime.dart';
 import 'dart:async';
 
 class AIService {
-  static String get baseUrl => dotenv.env['AI_SERVICE_BASE_URL'] ?? 'http://10.0.2.2:5000';
+  static String get baseUrl {
+    final url = dotenv.env['AI_SERVICE_BASE_URL'];
+    if (url == null || url.isEmpty) {
+      throw Exception('AI_SERVICE_BASE_URL is not set in .env file');
+    }
+    return url;
+  }
   
   /// Predict pet type (dog/cat)
   static Future<Map<String, dynamic>?> predictPetType(String imagePath) async {
