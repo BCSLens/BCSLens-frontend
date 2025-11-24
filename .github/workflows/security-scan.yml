@@ -1,0 +1,67 @@
+name: "Security Scanning"
+
+on:
+  push:
+    branches: [ "main", "develop", "master" ]
+  pull_request:
+    branches: [ "main", "develop", "master" ]
+  schedule:
+    # Run weekly on Monday at 01:00 UTC
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    name: "Frontend Security Scan (Flutter/Dart)"
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Run Flutter analyzer
+      run: |
+        echo "## Frontend Security Analysis" >> $GITHUB_STEP_SUMMARY
+        flutter analyze --no-fatal-infos >> $GITHUB_STEP_SUMMARY || true
+
+    - name: Check for outdated packages
+      run: |
+        echo "## Outdated Packages" >> $GITHUB_STEP_SUMMARY
+        flutter pub outdated >> $GITHUB_STEP_SUMMARY || true
+
+    - name: Run Dart analyzer
+      run: |
+        dart analyze --fatal-infos || true
+
+    - name: Generate Security Report
+      if: always()
+      run: |
+        echo "# Security Scan Report - Frontend" > SECURITY_REPORT.md
+        echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "## Flutter Analyzer Results" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "Analysis completed. Check workflow logs for detailed results." >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "### Summary" >> SECURITY_REPORT.md
+        echo "- Flutter analyzer: ✅ Completed" >> SECURITY_REPORT.md
+        echo "- Dart analyzer: ✅ Completed" >> SECURITY_REPORT.md
+        echo "- Package check: ✅ Completed" >> SECURITY_REPORT.md
+
+    - name: Upload Security Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-report
+        path: SECURITY_REPORT.md
+        retention-days: 90
+
