@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   // ใช้ .env แทน hardcode
   static String get apiBaseUrl {
@@ -75,18 +77,58 @@ class AuthService {
   Future<bool> initialize() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      _token = prefs.getString('token');
-      _refreshToken = prefs.getString('refreshToken');
       _userId = prefs.getString('userId');
       _userEmail = prefs.getString('userEmail');
       _isExpert = prefs.getBool('isExpert') ?? false;
 
-      // Get token expiration date from SharedPreferences
-      final expiryMillis = prefs.getInt('tokenExpiration');
-      if (expiryMillis != null) {
-        _tokenExpirationDate = DateTime.fromMillisecondsSinceEpoch(
-          expiryMillis,
-        );
+      // Load tokens from secure storage
+      _token = await _secureStorage.read(key: 'token');
+      _refreshToken = await _secureStorage.read(key: 'refreshToken');
+
+      final expiryString = await _secureStorage.read(key: 'tokenExpiration');
+      if (expiryString != null) {
+        final expiryMillis = int.tryParse(expiryString);
+        if (expiryMillis != null) {
+          _tokenExpirationDate = DateTime.fromMillisecondsSinceEpoch(
+            expiryMillis,
+          );
+        }
+      }
+
+      // Migrate legacy token data from SharedPreferences if it still exists
+      if (_token == null) {
+        final legacyToken = prefs.getString('token');
+        if (legacyToken != null) {
+          _token = legacyToken;
+          await _secureStorage.write(key: 'token', value: legacyToken);
+          await prefs.remove('token');
+        }
+      }
+
+      if (_refreshToken == null) {
+        final legacyRefreshToken = prefs.getString('refreshToken');
+        if (legacyRefreshToken != null) {
+          _refreshToken = legacyRefreshToken;
+          await _secureStorage.write(
+            key: 'refreshToken',
+            value: legacyRefreshToken,
+          );
+          await prefs.remove('refreshToken');
+        }
+      }
+
+      if (_tokenExpirationDate == null) {
+        final legacyExpiry = prefs.getInt('tokenExpiration');
+        if (legacyExpiry != null) {
+          _tokenExpirationDate = DateTime.fromMillisecondsSinceEpoch(
+            legacyExpiry,
+          );
+          await _secureStorage.write(
+            key: 'tokenExpiration',
+            value: legacyExpiry.toString(),
+          );
+          await prefs.remove('tokenExpiration');
+        }
       }
 
       // If token exists, validate it
@@ -312,20 +354,32 @@ class AuthService {
   // Save auth data to persistent storage
   Future<void> _saveAuthData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', _token!);
-    if (_refreshToken != null) {
-      await prefs.setString('refreshToken', _refreshToken!);
+
+    if (_token != null) {
+      await _secureStorage.write(key: 'token', value: _token);
     }
+
+    if (_refreshToken != null) {
+      await _secureStorage.write(
+        key: 'refreshToken',
+        value: _refreshToken,
+      );
+    } else {
+      await _secureStorage.delete(key: 'refreshToken');
+    }
+
     await prefs.setString('userId', _userId ?? '');
     await prefs.setString('userEmail', _userEmail ?? '');
     await prefs.setBool('isExpert', _isExpert);
 
     // Save token expiration date
     if (_tokenExpirationDate != null) {
-      await prefs.setInt(
-        'tokenExpiration',
-        _tokenExpirationDate!.millisecondsSinceEpoch,
+      await _secureStorage.write(
+        key: 'tokenExpiration',
+        value: _tokenExpirationDate!.millisecondsSinceEpoch.toString(),
       );
+    } else {
+      await _secureStorage.delete(key: 'tokenExpiration');
     }
   }
 
@@ -514,6 +568,9 @@ class AuthService {
 
     // Clear storage
     final prefs = await SharedPreferences.getInstance();
+    await _secureStorage.delete(key: 'token');
+    await _secureStorage.delete(key: 'refreshToken');
+    await _secureStorage.delete(key: 'tokenExpiration');
     await prefs.remove('token');
     await prefs.remove('refreshToken');
     await prefs.remove('userId');

@@ -38,6 +38,7 @@ dependencies:
   http_parser: ^4.0.2
   mime: ^1.0.4
   shared_preferences: ^2.0.15
+  flutter_secure_storage: ^9.2.2
   intl: ^0.17.0
   google_sign_in: ^6.2.1
 
