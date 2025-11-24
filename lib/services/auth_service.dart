@@ -6,10 +6,12 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../navigation/app_navigator.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+  static bool _forcedLogoutActive = false;
 
   // ใช้ .env แทน hardcode
   static String get apiBaseUrl {
@@ -276,6 +278,7 @@ class AuthService {
           
           // Save to storage
           await _saveAuthData();
+          _resetForcedLogoutState();
           
           return true;
         } else {
@@ -333,6 +336,7 @@ class AuthService {
 
         // Save to storage
         await _saveAuthData();
+        _resetForcedLogoutState();
 
         return true;
       } else {
@@ -435,6 +439,7 @@ class AuthService {
           
           // Save to storage
           await _saveAuthData();
+          _resetForcedLogoutState();
           
           print('✅ Signup successful: userId=$_userId, email=$emailMasked');
           return {'success': true, 'message': null};
@@ -531,9 +536,7 @@ class AuthService {
             response.statusCode == 403) {
           print('🔄 Refresh token expired or invalid, signing out...');
           await signOut();
-          if (context != null) {
-            Navigator.of(context).pushReplacementNamed('/login');
-          }
+          await _redirectToLogin(context, showSessionDialog: true);
         }
         
         return false;
@@ -577,6 +580,29 @@ class AuthService {
     await prefs.remove('userEmail');
     await prefs.remove('isExpert');
     await prefs.remove('tokenExpiration');
+  }
+
+  Future<void> _redirectToLogin(
+    BuildContext? context, {
+    bool showSessionDialog = false,
+  }) async {
+    if (showSessionDialog) {
+      if (_forcedLogoutActive) {
+        return;
+      }
+      _forcedLogoutActive = true;
+      await showSessionExpiredDialog(context: context);
+    }
+
+    if (context != null) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    } else {
+      redirectToLogin();
+    }
+  }
+
+  void _resetForcedLogoutState() {
+    _forcedLogoutActive = false;
   }
 
   // Helper function to parse error message from backend response
@@ -630,18 +656,14 @@ class AuthService {
           // Refresh failed (refresh token expired or invalid)
           print('❌ Token refresh failed, redirecting to login...');
           await signOut();
-          if (context != null) {
-            Navigator.of(context).pushReplacementNamed('/login');
-          }
+          await _redirectToLogin(context, showSessionDialog: true);
           throw Exception('Session expired. Please login again.');
         }
       } else {
         // No refresh token available
         print('❌ No refresh token available, redirecting to login...');
         await signOut();
-        if (context != null) {
-          Navigator.of(context).pushReplacementNamed('/login');
-        }
+        await _redirectToLogin(context, showSessionDialog: true);
         throw Exception('Session expired. Please login again.');
       }
     }
@@ -680,9 +702,7 @@ class AuthService {
         // Refresh failed or no refresh token - sign out
         print('❌ Token refresh failed, signing out...');
         await signOut();
-        if (context != null) {
-          Navigator.of(context).pushReplacementNamed('/login');
-        }
+        await _redirectToLogin(context, showSessionDialog: true);
 
         throw Exception('Authentication failed');
       } else {
@@ -719,18 +739,14 @@ class AuthService {
           // Refresh failed (refresh token expired or invalid)
           print('❌ Token refresh failed, redirecting to login...');
           await signOut();
-          if (context != null) {
-            Navigator.of(context).pushReplacementNamed('/login');
-          }
+          await _redirectToLogin(context, showSessionDialog: true);
           throw Exception('Session expired. Please login again.');
         }
       } else {
         // No refresh token available
         print('❌ No refresh token available, redirecting to login...');
         await signOut();
-        if (context != null) {
-          Navigator.of(context).pushReplacementNamed('/login');
-        }
+        await _redirectToLogin(context, showSessionDialog: true);
         throw Exception('Session expired. Please login again.');
       }
     }
@@ -762,7 +778,8 @@ class AuthService {
               body: jsonEncode(data),
             );
             
-            if (retryResponse.statusCode == 200 || retryResponse.statusCode == 201) {
+            if (retryResponse.statusCode == 200 ||
+                retryResponse.statusCode == 201) {
               return jsonDecode(retryResponse.body);
             }
           }
@@ -771,9 +788,7 @@ class AuthService {
         // Refresh failed or no refresh token - sign out
         print('❌ Token refresh failed, signing out...');
         await signOut();
-        if (context != null) {
-          Navigator.of(context).pushReplacementNamed('/login');
-        }
+        await _redirectToLogin(context, showSessionDialog: true);
 
         throw Exception('Authentication failed');
       } else {

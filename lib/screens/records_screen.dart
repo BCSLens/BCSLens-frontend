@@ -1279,7 +1279,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
           if (filename.isNotEmpty && filename.contains('.')) {
             imageUrl = '${PetService.uploadBaseUrl}/upload/$filename';
             print('✅ [Records Card] Reconstructed from old URL: $imageUrl');
-          } else {
+        } else {
             imageUrl = originalUrl;
             print('⚠️ [Records Card] Invalid filename, using original: $imageUrl');
           }
@@ -1292,7 +1292,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
               : originalUrl;
           imageUrl = '${PetService.uploadBaseUrl}$correctedPath';
           print('✅ [Records Card] Reconstructed from relative path: $imageUrl');
-        }
+        } 
         // ถ้าเป็นแค่ filename → สร้าง URL เต็ม
         else {
           // เช็คว่าเป็น filename จริงๆ (มี extension)

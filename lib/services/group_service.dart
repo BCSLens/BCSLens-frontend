@@ -132,13 +132,13 @@ class GroupService {
             throw Exception('Token expired and refresh failed');
           }
         } else {
-          throw Exception('Not authenticated');
-        }
+        throw Exception('Not authenticated');
+      }
       }
       
       // Use authenticated method with auto-refresh support
       final headers = _authService.getAuthHeaders();
-      
+
       // Make HTTP DELETE request
       var response = await http.delete(
         Uri.parse('${AuthService.apiBaseUrl}/groups/$groupId'),

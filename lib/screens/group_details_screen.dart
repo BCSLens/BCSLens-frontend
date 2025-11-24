@@ -415,7 +415,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with TickerProv
               ? originalUrl.replaceFirst('/uploads/', '/upload/')
               : originalUrl;
           imageUrl = '${PetService.uploadBaseUrl}$correctedPath';
-        }
+        } 
         // ถ้าเป็นแค่ filename → สร้าง URL เต็ม
         else {
           // เช็คว่าเป็น filename จริงๆ (มี extension)

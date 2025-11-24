@@ -286,10 +286,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Social buttons - Google login only
                 Center(
                   child: _socialLoginButton(
-                    icon: FontAwesomeIcons.google,
-                    color: Colors.red,
+                      icon: FontAwesomeIcons.google,
+                      color: Colors.red,
                     onTap: _handleGoogleLogin,
-                  ),
+                    ),
                 ),
 
                 const SizedBox(height: 30),
@@ -338,14 +338,14 @@ class _LoginScreenState extends State<LoginScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
-        ),
-        child: Center(child: FaIcon(icon, color: color, size: 20)),
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+      ),
+      child: Center(child: FaIcon(icon, color: color, size: 20)),
       ),
     );
   }

@@ -156,7 +156,7 @@ class _HistoryScreenState extends State<HistoryScreen>
 
     print('🔍 [History] Pet: ${widget.pet['name']}');
     print('🔍 [History] Has records: ${widget.pet['records'] != null}');
-    
+
     if (widget.pet['records'] != null && (widget.pet['records'] as List).isNotEmpty) {
       print('🔍 [History] Records count: ${(widget.pet['records'] as List).length}');
       final latestRecord = (widget.pet['records'] as List).last;
@@ -179,12 +179,12 @@ class _HistoryScreenState extends State<HistoryScreen>
         } 
         // ถ้าเป็น URL แบบเก่าหรือ localhost → แปลงเป็น URL ใหม่
         else if (originalUrl.startsWith('http')) {
-          String filename = originalUrl.split('/').last;
+            String filename = originalUrl.split('/').last;
           // เช็คว่า filename ไม่ว่างและมี extension
           if (filename.isNotEmpty && filename.contains('.')) {
             imageUrl = '${PetService.uploadBaseUrl}/upload/$filename';
             print('✅ [History] Reconstructed from old URL: $imageUrl');
-          } else {
+        } else {
             imageUrl = originalUrl;
             print('⚠️ [History] Invalid filename, using original: $imageUrl');
           }
@@ -197,7 +197,7 @@ class _HistoryScreenState extends State<HistoryScreen>
               : originalUrl;
           imageUrl = '${PetService.uploadBaseUrl}$correctedPath';
           print('✅ [History] Reconstructed from relative path: $imageUrl');
-        }
+        } 
         // ถ้าเป็นแค่ filename → สร้าง URL เต็ม
         else {
           // เช็คว่าเป็น filename จริงๆ (มี extension)

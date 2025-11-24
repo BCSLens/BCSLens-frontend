@@ -16,6 +16,7 @@ import 'screens/history_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/group_details_screen.dart';
 import 'screens/privacy_policy_screen.dart';
+import 'navigation/app_navigator.dart';
 
 import 'models/pet_record_model.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -46,6 +47,7 @@ class BCSLensApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: rootNavigatorKey,
       title: 'BCSLens',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

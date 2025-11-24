@@ -348,7 +348,7 @@ class PetService {
           return '';
         }
       }
-      
+
       final token = _authService.token;
       if (token == null) {
         print('❌ Not authenticated for image upload');
