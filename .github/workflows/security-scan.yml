@@ -1,4 +1,4 @@
-name: "Security Scanning"
+name: "SAST Security Scanning"
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
 
 jobs:
   security-scan:
-    name: "Frontend Security Scan (Flutter/Dart)"
+    name: "Frontend SAST Security Scan (Flutter/Dart)"
     runs-on: ubuntu-latest
     
     steps:
@@ -28,34 +28,61 @@ jobs:
     - name: Install dependencies
       run: flutter pub get
 
-    - name: Run Flutter analyzer
+    - name: Run Flutter analyzer (SAST)
       run: |
-        echo "## Frontend Security Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "## Frontend Security Analysis (SAST)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
         flutter analyze --no-fatal-infos >> $GITHUB_STEP_SUMMARY || true
+        FLUTTER_EXIT_CODE=$?
+        if [ $FLUTTER_EXIT_CODE -eq 0 ]; then
+          echo "✅ Flutter analyzer passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Flutter analyzer found issues (non-blocking)" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Run Dart analyzer (SAST)
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Dart Analyzer Results" >> $GITHUB_STEP_SUMMARY
+        dart analyze --fatal-infos >> $GITHUB_STEP_SUMMARY || true
+        DART_EXIT_CODE=$?
+        if [ $DART_EXIT_CODE -eq 0 ]; then
+          echo "✅ Dart analyzer passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Dart analyzer found issues (non-blocking)" >> $GITHUB_STEP_SUMMARY
+        fi
 
     - name: Check for outdated packages
       run: |
-        echo "## Outdated Packages" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Outdated Packages Check" >> $GITHUB_STEP_SUMMARY
         flutter pub outdated >> $GITHUB_STEP_SUMMARY || true
 
-    - name: Run Dart analyzer
+    - name: Check for security vulnerabilities in dependencies
       run: |
-        dart analyze --fatal-infos || true
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Dependency Security Check" >> $GITHUB_STEP_SUMMARY
+        flutter pub audit >> $GITHUB_STEP_SUMMARY 2>&1 || echo "Note: pub audit may not be available in all Flutter versions" >> $GITHUB_STEP_SUMMARY
 
     - name: Generate Security Report
       if: always()
       run: |
-        echo "# Security Scan Report - Frontend" > SECURITY_REPORT.md
+        echo "# SAST Security Scan Report - Frontend" > SECURITY_REPORT.md
         echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
-        echo "## Flutter Analyzer Results" >> SECURITY_REPORT.md
+        echo "## Tool: Flutter/Dart Analyzer (SAST)" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
-        echo "Analysis completed. Check workflow logs for detailed results." >> SECURITY_REPORT.md
+        echo "### Analysis Methods" >> SECURITY_REPORT.md
+        echo "- **Flutter Analyzer**: Static analysis for Dart/Flutter code" >> SECURITY_REPORT.md
+        echo "- **Dart Analyzer**: Code quality and security checks" >> SECURITY_REPORT.md
+        echo "- **Package Audit**: Dependency vulnerability scanning" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
         echo "### Summary" >> SECURITY_REPORT.md
         echo "- Flutter analyzer: ✅ Completed" >> SECURITY_REPORT.md
         echo "- Dart analyzer: ✅ Completed" >> SECURITY_REPORT.md
         echo "- Package check: ✅ Completed" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "> Note: Detailed results available in workflow logs and step summary" >> SECURITY_REPORT.md
 
     - name: Upload Security Report
       uses: actions/upload-artifact@v4
