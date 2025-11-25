@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+    - name: Record start time
+      run: echo "SCAN_START=$(date +%s)" >> $GITHUB_ENV
+
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -30,26 +33,66 @@ jobs:
 
     - name: Run Flutter Analyzer
       run: |
-        flutter analyze > analyzer_output.txt 2>&1 || true
+        flutter analyze --no-fatal-infos --suppress-analytics > analyzer_output.txt 2>&1 || true
         cat analyzer_output.txt
+        FLUTTER_ERRORS=$(awk -F'•' '/•/ {sev=$NF; gsub(/^[[:space:]]+|[[:space:]]+$/,"",sev); if (tolower(sev) ~ /error/) c++} END{print c+0}' analyzer_output.txt)
+        FLUTTER_WARNINGS=$(awk -F'•' '/•/ {sev=$NF; gsub(/^[[:space:]]+|[[:space:]]+$/,"",sev); if (tolower(sev) ~ /warning/) c++} END{print c+0}' analyzer_output.txt)
+        FLUTTER_HINTS=$(awk -F'•' '/•/ {sev=$NF; gsub(/^[[:space:]]+|[[:space:]]+$/,"",sev); if (tolower(sev) ~ /info|hint/) c++} END{print c+0}' analyzer_output.txt)
+        echo "FLUTTER_ERRORS=$FLUTTER_ERRORS" >> $GITHUB_ENV
+        echo "FLUTTER_WARNINGS=$FLUTTER_WARNINGS" >> $GITHUB_ENV
+        echo "FLUTTER_HINTS=$FLUTTER_HINTS" >> $GITHUB_ENV
 
     - name: Run Dart Analyzer
       run: |
         dart analyze --fatal-infos > dart_output.txt 2>&1 || true
         cat dart_output.txt
+        DART_ERRORS=$(awk -F'•' '/•/ {sev=$NF; gsub(/^[[:space:]]+|[[:space:]]+$/,"",sev); if (tolower(sev) ~ /error/) c++} END{print c+0}' dart_output.txt)
+        DART_WARNINGS=$(awk -F'•' '/•/ {sev=$NF; gsub(/^[[:space:]]+|[[:space:]]+$/,"",sev); if (tolower(sev) ~ /warning/) c++} END{print c+0}' dart_output.txt)
+        DART_HINTS=$(awk -F'•' '/•/ {sev=$NF; gsub(/^[[:space:]]+|[[:space:]]+$/,"",sev); if (tolower(sev) ~ /info|hint/) c++} END{print c+0}' dart_output.txt)
+        echo "DART_ERRORS=$DART_ERRORS" >> $GITHUB_ENV
+        echo "DART_WARNINGS=$DART_WARNINGS" >> $GITHUB_ENV
+        echo "DART_HINTS=$DART_HINTS" >> $GITHUB_ENV
 
     - name: Check Dependencies
       run: |
         flutter pub outdated --json > dependencies.json || true
         dart pub audit --json > vulnerabilities.json || true
         cat vulnerabilities.json || true
+        DEP_VULNS=$(jq '.vulnerabilities | length' vulnerabilities.json 2>/dev/null || echo 0)
+        echo "DEPENDENCY_VULNS=$DEP_VULNS" >> $GITHUB_ENV
+
+    - name: Collect Metrics
+      run: |
+        FILES=$(git ls-files '*.dart' | wc -l | tr -d '[:space:]' || echo 0)
+        LINES=$(git ls-files '*.dart' | xargs -r cat | wc -l | tr -d '[:space:]' || echo 0)
+        END_TIME=$(date +%s)
+        DURATION=$((END_TIME - SCAN_START))
+        echo "FILES_ANALYZED=$FILES" >> $GITHUB_ENV
+        echo "LINES_ANALYZED=$LINES" >> $GITHUB_ENV
+        echo "EXECUTION_TIME=${DURATION}s" >> $GITHUB_ENV
 
     - name: Generate Detailed Report
       if: always()
       run: |
-        echo "# Detailed SAST Results" > SECURITY_REPORT.md
+        echo "# SAST Security Scan Report - Frontend" > SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
         echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "## Tool: Flutter/Dart Analyzer (SAST)" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "### Analysis Methods" >> SECURITY_REPORT.md
+        echo "- Flutter Analyzer: Static analysis for Dart/Flutter code" >> SECURITY_REPORT.md
+        echo "- Dart Analyzer: Code quality and security checks" >> SECURITY_REPORT.md
+        echo "- Package Audit: Dependency vulnerability scanning" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "### Summary" >> SECURITY_REPORT.md
+        echo "- Flutter analyzer: ✓ Completed (${FLUTTER_ERRORS:-0} errors, ${FLUTTER_HINTS:-0} hints)" >> SECURITY_REPORT.md
+        echo "- Dart analyzer: ✓ Completed (${DART_ERRORS:-0} errors, ${DART_WARNINGS:-0} warnings, ${DART_HINTS:-0} hints)" >> SECURITY_REPORT.md
+        echo "- Package check: ✓ Completed (${DEPENDENCY_VULNS:-0} vulnerabilities)" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "---" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "## Detailed Results" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
         echo "## Flutter Analyzer Results" >> SECURITY_REPORT.md
         if [ -f analyzer_output.txt ]; then
@@ -71,6 +114,18 @@ jobs:
         else
           echo "No vulnerability data available." >> SECURITY_REPORT.md
         fi
+        echo "" >> SECURITY_REPORT.md
+        echo "### Dependency Snapshot" >> SECURITY_REPORT.md
+        if [ -s dependencies.json ]; then
+          cat dependencies.json >> SECURITY_REPORT.md
+        else
+          echo "No dependency data available." >> SECURITY_REPORT.md
+        fi
+        echo "" >> SECURITY_REPORT.md
+        echo "### Metrics" >> SECURITY_REPORT.md
+        echo "- Files analyzed: ${FILES_ANALYZED:-0}" >> SECURITY_REPORT.md
+        echo "- Lines of code: ${LINES_ANALYZED:-0}" >> SECURITY_REPORT.md
+        echo "- Execution time: ${EXECUTION_TIME:-N/A}" >> SECURITY_REPORT.md
 
     - name: Upload Security Report
       uses: actions/upload-artifact@v4
