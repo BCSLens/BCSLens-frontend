@@ -31,7 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   # font_awesome_flutter: ^10.1.0  # For social icons
-  flutter_dotenv: ^5.2.1
+  flutter_dotenv: ^6.0.0
   font_awesome_flutter: ^10.8.0
   image_picker: ^0.8.9
   path_provider: ^2.0.15
