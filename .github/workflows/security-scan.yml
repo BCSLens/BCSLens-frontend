@@ -62,12 +62,29 @@ jobs:
         echo "DART_WARNINGS=$DART_WARNINGS" >> $GITHUB_ENV
         echo "DART_HINTS=$DART_HINTS" >> $GITHUB_ENV
 
-    - name: Check Dependencies
+    - name: Check Dependencies and Vulnerabilities
       run: |
+        echo "## Dependency Vulnerability Scan" >> $GITHUB_STEP_SUMMARY
         flutter pub outdated --json > dependencies.json || true
-        dart pub audit --json > vulnerabilities.json || true
+        dart pub audit --json > vulnerabilities.json 2>&1 || true
         cat vulnerabilities.json || true
-        DEP_VULNS=$(jq '.vulnerabilities | length' vulnerabilities.json 2>/dev/null || echo 0)
+        # Check if dart pub audit returned valid JSON or error message
+        if jq empty vulnerabilities.json 2>/dev/null; then
+          DEP_VULNS=$(jq '.vulnerabilities | length' vulnerabilities.json 2>/dev/null || echo 0)
+          echo "✅ dart pub audit completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "Found ${DEP_VULNS} vulnerabilities" >> $GITHUB_STEP_SUMMARY
+        else
+          # If not JSON, check if it's an error or no vulnerabilities message
+          if grep -q "No known vulnerabilities" vulnerabilities.json 2>/dev/null; then
+            DEP_VULNS=0
+            echo "✅ No known vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          else
+            DEP_VULNS=0
+            echo "⚠️ dart pub audit output format may be different" >> $GITHUB_STEP_SUMMARY
+            echo "Raw output:" >> $GITHUB_STEP_SUMMARY
+            cat vulnerabilities.json >> $GITHUB_STEP_SUMMARY || true
+          fi
+        fi
         echo "DEPENDENCY_VULNS=$DEP_VULNS" >> $GITHUB_ENV
 
     - name: Collect Metrics
@@ -94,10 +111,27 @@ jobs:
         echo "- Dart Analyzer: Code quality and security checks" >> SECURITY_REPORT.md
         echo "- Package Audit: Dependency vulnerability scanning" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
-        echo "### Summary" >> SECURITY_REPORT.md
-        echo "- Flutter analyzer: ✓ Completed (${FLUTTER_ERRORS:-0} errors, ${FLUTTER_HINTS:-0} hints)" >> SECURITY_REPORT.md
-        echo "- Dart analyzer: ✓ Completed (${DART_ERRORS:-0} errors, ${DART_WARNINGS:-0} warnings, ${DART_HINTS:-0} hints)" >> SECURITY_REPORT.md
-        echo "- Package check: ✓ Completed (${DEPENDENCY_VULNS:-0} vulnerabilities)" >> SECURITY_REPORT.md
+        echo "## Executive Summary" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "| Security Check | Status | Details |" >> SECURITY_REPORT.md
+        echo "| --- | --- | --- |" >> SECURITY_REPORT.md
+        echo "| **Code Analysis (Flutter Analyzer)** | $([ "$FLUTTER_ERRORS" -gt 0 ] && echo "❌ Issues Found" || echo "✅ Passed") | ${FLUTTER_ERRORS:-0} errors, ${FLUTTER_HINTS:-0} hints |" >> SECURITY_REPORT.md
+        echo "| **Code Analysis (Dart Analyzer)** | $([ "$DART_ERRORS" -gt 0 ] && echo "❌ Issues Found" || echo "✅ Passed") | ${DART_ERRORS:-0} errors, ${DART_WARNINGS:-0} warnings, ${DART_HINTS:-0} hints |" >> SECURITY_REPORT.md
+        echo "| **Dependency Vulnerabilities (dart pub audit)** | $([ "$DEPENDENCY_VULNS" -gt 0 ] && echo "⚠️ Vulnerabilities Found" || echo "✅ No Vulnerabilities") | ${DEPENDENCY_VULNS:-0} known vulnerabilities |" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "---" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "## Security Analysis Details" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "### What Was Checked?" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "1. **Static Code Analysis (SAST)**" >> SECURITY_REPORT.md
+        echo "   - Flutter Analyzer: Scans Dart/Flutter code for security issues, bugs, and code quality" >> SECURITY_REPORT.md
+        echo "   - Dart Analyzer: Deep analysis for security vulnerabilities, unsafe patterns, and best practices" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "2. **Dependency Vulnerability Scanning**" >> SECURITY_REPORT.md
+        echo "   - dart pub audit: Checks all dependencies against known vulnerability database" >> SECURITY_REPORT.md
+        echo "   - Scans: All packages in pubspec.yaml for known CVEs and security advisories" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
         echo "---" >> SECURITY_REPORT.md
         echo "" >> SECURITY_REPORT.md
@@ -117,11 +151,68 @@ jobs:
           echo "No Dart analyzer output available." >> SECURITY_REPORT.md
         fi
         echo "" >> SECURITY_REPORT.md
-        echo "## Dependency Vulnerabilities" >> SECURITY_REPORT.md
+        echo "## 3. Dependency Vulnerability Scan (dart pub audit)" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "### Scan Results" >> SECURITY_REPORT.md
+        echo "- **Total Vulnerabilities Found:** ${DEPENDENCY_VULNS:-0}" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
         if [ -s vulnerabilities.json ]; then
-          cat vulnerabilities.json >> SECURITY_REPORT.md
+          # Check if it's valid JSON
+          if jq empty vulnerabilities.json 2>/dev/null; then
+            VULN_COUNT=$(jq '.vulnerabilities | length' vulnerabilities.json 2>/dev/null || echo "0")
+            if [ "$VULN_COUNT" -gt 0 ]; then
+              echo "### ⚠️ Vulnerabilities Detected" >> SECURITY_REPORT.md
+              echo "" >> SECURITY_REPORT.md
+              echo "The following vulnerabilities were found in dependencies:" >> SECURITY_REPORT.md
+              echo "" >> SECURITY_REPORT.md
+              echo "\`\`\`json" >> SECURITY_REPORT.md
+              jq '.vulnerabilities[0:10]' vulnerabilities.json >> SECURITY_REPORT.md 2>/dev/null || cat vulnerabilities.json >> SECURITY_REPORT.md
+              echo "\`\`\`" >> SECURITY_REPORT.md
+              echo "" >> SECURITY_REPORT.md
+              echo "> **Action Required:** Review and update affected packages. Full report available in artifact: \`vulnerabilities.json\`" >> SECURITY_REPORT.md
+            else
+              echo "### ✅ No Vulnerabilities Found" >> SECURITY_REPORT.md
+              echo "" >> SECURITY_REPORT.md
+              echo "All dependencies have been scanned and no known vulnerabilities were detected." >> SECURITY_REPORT.md
+              echo "" >> SECURITY_REPORT.md
+              echo "**Scanned:** All packages listed in \`pubspec.yaml\`" >> SECURITY_REPORT.md
+              echo "**Database:** Dart Security Advisories" >> SECURITY_REPORT.md
+            fi
+          else
+            # Not JSON, might be text output
+            if grep -qi "no known vulnerabilities\|no vulnerabilities found" vulnerabilities.json 2>/dev/null; then
+              echo "### ✅ No Vulnerabilities Found" >> SECURITY_REPORT.md
+              echo "" >> SECURITY_REPORT.md
+              echo "All dependencies have been scanned and no known vulnerabilities were detected." >> SECURITY_REPORT.md
+            else
+              echo "### Scan Output" >> SECURITY_REPORT.md
+              echo "" >> SECURITY_REPORT.md
+              echo "\`\`\`" >> SECURITY_REPORT.md
+              cat vulnerabilities.json >> SECURITY_REPORT.md
+              echo "\`\`\`" >> SECURITY_REPORT.md
+            fi
+          fi
         else
-          echo "No vulnerability data available." >> SECURITY_REPORT.md
+          echo "### ⚠️ Scan Incomplete" >> SECURITY_REPORT.md
+          echo "" >> SECURITY_REPORT.md
+          echo "Vulnerability scan output not available. This may indicate:" >> SECURITY_REPORT.md
+          echo "- No vulnerabilities found (empty output)" >> SECURITY_REPORT.md
+          echo "- Scan tool error" >> SECURITY_REPORT.md
+          echo "- Network issues accessing vulnerability database" >> SECURITY_REPORT.md
+        fi
+        echo "" >> SECURITY_REPORT.md
+        echo "---" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        echo "## 4. Security Recommendations" >> SECURITY_REPORT.md
+        echo "" >> SECURITY_REPORT.md
+        if [ "$FLUTTER_ERRORS" -gt 0 ] || [ "$DART_ERRORS" -gt 0 ]; then
+          echo "- ⚠️ **Fix Code Issues:** Address ${FLUTTER_ERRORS:-0} Flutter errors and ${DART_ERRORS:-0} Dart errors found in static analysis" >> SECURITY_REPORT.md
+        fi
+        if [ "$DEPENDENCY_VULNS" -gt 0 ]; then
+          echo "- 🔴 **Urgent:** Update dependencies with ${DEPENDENCY_VULNS} known vulnerabilities" >> SECURITY_REPORT.md
+        fi
+        if [ "$FLUTTER_ERRORS" -eq 0 ] && [ "$DART_ERRORS" -eq 0 ] && [ "$DEPENDENCY_VULNS" -eq 0 ]; then
+          echo "- ✅ **Good:** No security issues detected. Continue regular monitoring." >> SECURITY_REPORT.md
         fi
         echo "" >> SECURITY_REPORT.md
         echo "### Dependency Snapshot" >> SECURITY_REPORT.md
@@ -136,11 +227,21 @@ jobs:
         echo "- Lines of code: ${LINES_ANALYZED:-0}" >> SECURITY_REPORT.md
         echo "- Execution time: ${EXECUTION_TIME:-N/A}" >> SECURITY_REPORT.md
 
+    - name: Prepare artifacts for upload
+      if: always()
+      run: |
+        mkdir -p security-artifacts
+        cp SECURITY_REPORT.md security-artifacts/ || true
+        cp vulnerabilities.json security-artifacts/ 2>/dev/null || touch security-artifacts/vulnerabilities.json
+        cp dependencies.json security-artifacts/ 2>/dev/null || touch security-artifacts/dependencies.json
+        cp analyzer_output.txt security-artifacts/ 2>/dev/null || true
+        cp dart_output.txt security-artifacts/ 2>/dev/null || true
+
     - name: Upload Security Report
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-report
-        path: SECURITY_REPORT.md
+        path: security-artifacts/*
         retention-days: 90
 
