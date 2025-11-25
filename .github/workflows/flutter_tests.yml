@@ -15,6 +15,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
+      - name: Create CI .env file
+        run: |
+          cat <<'EOF' > .env
+          API_BASE_URL=https://dummy.api
+          GOOGLE_WEB_CLIENT_ID=dummy-web-client-id
+          GOOGLE_ANDROID_CLIENT_ID=dummy-android-client-id
+          GOOGLE_IOS_CLIENT_ID=dummy-ios-client-id
+          EOF
+      
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:

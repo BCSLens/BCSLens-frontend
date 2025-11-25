@@ -78,6 +78,7 @@ flutter:
     - assets/images/dog.jpg
     - assets/images/cat.jpg
     - .env
+    
 
 flutter_icons:
   android: true
