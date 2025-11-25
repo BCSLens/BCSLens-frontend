@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../services/group_service.dart';
 import '../services/pet_service.dart';
 import '../models/pet_record_model.dart';
+import '../utils/app_logger.dart';
 
 class RecordsScreen extends StatefulWidget {
   const RecordsScreen({Key? key}) : super(key: key);
@@ -1249,20 +1250,20 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
   Widget _buildModernPetCard(Map<String, dynamic> pet, String groupName) {
     String imageUrl = '';
 
-    print('🔍 [Records Card] Pet: ${pet['name']}');
-    print('🔍 [Records Card] Has records: ${pet['records'] != null}');
+    AppLogger.log('🔍 [Records Card] Pet: ${pet['name']}');
+    AppLogger.log('🔍 [Records Card] Has records: ${pet['records'] != null}');
     
     if (pet['records'] != null && (pet['records'] as List).isNotEmpty) {
-      print('🔍 [Records Card] Records count: ${(pet['records'] as List).length}');
+      AppLogger.log('🔍 [Records Card] Records count: ${(pet['records'] as List).length}');
       final latestRecord = (pet['records'] as List).last;
-      print('🔍 [Records Card] Latest record keys: ${latestRecord.keys.toList()}');
-      print('🔍 [Records Card] Latest record: $latestRecord');
+      AppLogger.log('🔍 [Records Card] Latest record keys: ${latestRecord.keys.toList()}');
+      AppLogger.log('🔍 [Records Card] Latest record: $latestRecord');
       final frontImageUrl = latestRecord['front_image_url'];
-      print('🔍 [Records Card] front_image_url value: $frontImageUrl');
+      AppLogger.log('🔍 [Records Card] front_image_url value: $frontImageUrl');
 
       if (frontImageUrl != null && frontImageUrl.toString().isNotEmpty) {
         String originalUrl = frontImageUrl.toString().trim();
-        print('🖼️ [Records Card] Original image URL: $originalUrl');
+        AppLogger.log('🖼️ [Records Card] Original image URL: $originalUrl');
         
         // ถ้าเป็น URL เต็มรูปแบบ และไม่ใช่ localhost/old IP → ใช้ตามเดิม
         if (originalUrl.startsWith('http') && 
@@ -1270,7 +1271,7 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
             !originalUrl.contains('localhost') && 
             !originalUrl.contains('127.0.0.1')) {
           imageUrl = originalUrl;
-          print('✅ [Records Card] Using full URL: $imageUrl');
+          AppLogger.log('✅ [Records Card] Using full URL: $imageUrl');
         } 
         // ถ้าเป็น URL แบบเก่าหรือ localhost → แปลงเป็น URL ใหม่
         else if (originalUrl.startsWith('http')) {
@@ -1278,10 +1279,10 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
           // เช็คว่า filename ไม่ว่างและมี extension
           if (filename.isNotEmpty && filename.contains('.')) {
             imageUrl = '${PetService.uploadBaseUrl}/upload/$filename';
-            print('✅ [Records Card] Reconstructed from old URL: $imageUrl');
+            AppLogger.log('✅ [Records Card] Reconstructed from old URL: $imageUrl');
         } else {
             imageUrl = originalUrl;
-            print('⚠️ [Records Card] Invalid filename, using original: $imageUrl');
+            AppLogger.log('⚠️ [Records Card] Invalid filename, using original: $imageUrl');
           }
         } 
         // ถ้าเป็น relative path ที่ขึ้นต้นด้วย /upload/ หรือ /uploads/
@@ -1291,28 +1292,28 @@ class _RecordsScreenState extends State<RecordsScreen> with TickerProviderStateM
               ? originalUrl.replaceFirst('/uploads/', '/upload/')
               : originalUrl;
           imageUrl = '${PetService.uploadBaseUrl}$correctedPath';
-          print('✅ [Records Card] Reconstructed from relative path: $imageUrl');
+          AppLogger.log('✅ [Records Card] Reconstructed from relative path: $imageUrl');
         } 
         // ถ้าเป็นแค่ filename → สร้าง URL เต็ม
         else {
           // เช็คว่าเป็น filename จริงๆ (มี extension)
           if (originalUrl.contains('.')) {
             imageUrl = '${PetService.uploadBaseUrl}/upload/$originalUrl';
-            print('✅ [Records Card] Reconstructed from filename: $imageUrl');
+            AppLogger.log('✅ [Records Card] Reconstructed from filename: $imageUrl');
           } else {
             // ถ้าไม่ใช่ filename อาจเป็น path อื่น
             imageUrl = originalUrl;
-            print('⚠️ [Records Card] Unknown format, using as-is: $imageUrl');
+            AppLogger.log('⚠️ [Records Card] Unknown format, using as-is: $imageUrl');
           }
         }
-        print('📋 [Records Card] Final image URL: $imageUrl');
-        print('📋 [Records Card] Upload Base URL: ${PetService.uploadBaseUrl}');
+        AppLogger.log('📋 [Records Card] Final image URL: $imageUrl');
+        AppLogger.log('📋 [Records Card] Upload Base URL: ${PetService.uploadBaseUrl}');
       } else {
-        print('❌ [Records Card] No front_image_url found or empty');
-        print('🔍 [Records Card] frontImageUrl is null or empty: ${frontImageUrl == null || frontImageUrl.toString().isEmpty}');
+        AppLogger.log('❌ [Records Card] No front_image_url found or empty');
+        AppLogger.log('🔍 [Records Card] frontImageUrl is null or empty: ${frontImageUrl == null || frontImageUrl.toString().isEmpty}');
       }
     } else {
-      print('❌ [Records Card] No records found for pet: ${pet['name']}');
+      AppLogger.log('❌ [Records Card] No records found for pet: ${pet['name']}');
     }
 
     // Get latest record data

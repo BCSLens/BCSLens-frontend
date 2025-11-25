@@ -8,6 +8,7 @@ import '../services/camera_service.dart';
 import '../services/pet_detection_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import '../utils/app_logger.dart';
 
 class AddRecordScreen extends StatefulWidget {
   final PetRecord?
@@ -67,9 +68,9 @@ class _AddRecordScreenState extends State<AddRecordScreen>
 
     _buttonAnimationController.forward();
 
-    print('🔍 AddRecordScreen initState');
-    print('🔍 existingPetRecord: ${widget.existingPetRecord}');
-    print(
+    AppLogger.log('🔍 AddRecordScreen initState');
+    AppLogger.log('🔍 existingPetRecord: ${widget.existingPetRecord}');
+    AppLogger.log(
       '🔍 isNewRecordForExistingPet: ${widget.existingPetRecord?.isNewRecordForExistingPet}',
     );
 
@@ -82,14 +83,14 @@ class _AddRecordScreenState extends State<AddRecordScreen>
       _predictedAnimal = _petRecord.category == 'Dogs' ? 'dog' : 'cat';
       _predictionHandled = true;
 
-      print('✅ Setting up for existing pet: ${_petRecord.name}');
-      print('✅ Pet ID: ${_petRecord.existingPetId}');
+      AppLogger.log('✅ Setting up for existing pet: ${_petRecord.name}');
+      AppLogger.log('✅ Pet ID: ${_petRecord.existingPetId}');
     } else {
       // กรณีเพิ่มสัตว์ใหม่
       _petRecord = PetRecord();
       _isExistingPet = false;
       _petRecord.reset();
-      print('✅ Setting up for new pet');
+      AppLogger.log('✅ Setting up for new pet');
     }
 
     // Reset image states
@@ -295,10 +296,10 @@ class _AddRecordScreenState extends State<AddRecordScreen>
     });
 
     try {
-      print("Starting pet prediction...");
+      AppLogger.log("Starting pet prediction...");
 
       var prediction = await AIService.predictPetType(imagePath);
-      print("Prediction result: $prediction");
+      AppLogger.log("Prediction result: $prediction");
 
       if (prediction != null) {
         setState(() {
@@ -322,7 +323,7 @@ class _AddRecordScreenState extends State<AddRecordScreen>
         );
       }
     } catch (e) {
-      print('Prediction error: $e');
+      AppLogger.log('Prediction error: $e');
       setState(() {
         _apiError = true;
         _predictionHandled = false;

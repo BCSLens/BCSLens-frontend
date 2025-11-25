@@ -7,6 +7,7 @@ import '../widgets/photo_capture_section.dart';
 import '../models/pet_record_model.dart';
 import '../services/camera_service.dart';
 import '../services/pet_detection_service.dart';
+import '../utils/app_logger.dart';
 
 class TopSideViewScreen extends StatefulWidget {
   final PetRecord petRecord;
@@ -187,15 +188,15 @@ class _TopSideViewScreenState extends State<TopSideViewScreen> {
     });
 
     try {
-      print("Starting view classification for $expectedView view...");
+      AppLogger.log("Starting view classification for $expectedView view...");
       
       // ใช้ AIService แทนการ hardcode API
       var classificationResult = await AIService.classifyImageView(imagePath);
-      print("Classification result: $classificationResult");
+      AppLogger.log("Classification result: $classificationResult");
 
       if (classificationResult != null && classificationResult.containsKey('group')) {
         String detectedView = classificationResult['group'];
-        print("Detected view: $detectedView");
+        AppLogger.log("Detected view: $detectedView");
 
         setState(() {
           _viewClassifications[imagePath] = detectedView;
@@ -204,7 +205,7 @@ class _TopSideViewScreenState extends State<TopSideViewScreen> {
         // Always show confirmation dialog for any view
         _showViewConfirmationDialog(imagePath, expectedView, detectedView);
       } else {
-        print("No view classification found in response");
+        AppLogger.log("No view classification found in response");
         setState(() {
           _classificationError = true;
         });
@@ -212,7 +213,7 @@ class _TopSideViewScreenState extends State<TopSideViewScreen> {
         _showViewConfirmationDialog(imagePath, expectedView, "unknown");
       }
     } catch (e) {
-      print('Classification error: $e');
+      AppLogger.log('Classification error: $e');
       setState(() {
         _classificationError = true;
       });
@@ -396,7 +397,7 @@ class _TopSideViewScreenState extends State<TopSideViewScreen> {
       // Classify just this image
       await _classifyImageView(tempFile.path, 'top');
     } catch (e) {
-      print('Error using test image: $e');
+      AppLogger.log('Error using test image: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error using test image: $e')));
@@ -433,7 +434,7 @@ class _TopSideViewScreenState extends State<TopSideViewScreen> {
       // Classify just this image
       await _classifyImageView(tempFile.path, 'left');
     } catch (e) {
-      print('Error using test image: $e');
+      AppLogger.log('Error using test image: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error using test image: $e')));
@@ -470,7 +471,7 @@ class _TopSideViewScreenState extends State<TopSideViewScreen> {
       // Classify just this image
       await _classifyImageView(tempFile.path, 'right');
     } catch (e) {
-      print('Error using test image: $e');
+      AppLogger.log('Error using test image: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error using test image: $e')));
@@ -507,7 +508,7 @@ class _TopSideViewScreenState extends State<TopSideViewScreen> {
       // Classify just this image
       await _classifyImageView(tempFile.path, 'back');
     } catch (e) {
-      print('Error using test image: $e');
+      AppLogger.log('Error using test image: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error using test image: $e')));

@@ -3,6 +3,7 @@ import 'dart:ui';
 import '../widgets/bottom_nav_bar.dart';
 import '../services/group_service.dart';
 import '../services/pet_service.dart';
+import '../utils/app_logger.dart';
 
 class SpecialCareScreen extends StatefulWidget {
   const SpecialCareScreen({Key? key}) : super(key: key);
@@ -58,7 +59,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
       final groupsData = await _groupService.getGroups();
       _allPets.clear();
 
-      print('🔍 Special Care API Response: $groupsData');
+      AppLogger.log('🔍 Special Care API Response: $groupsData');
 
       // Process groups and extract pets (exactly like records_screen)
       for (final group in groupsData) {
@@ -72,7 +73,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
         }
 
         for (final pet in pets) {
-          print('🐾 Processing pet: ${pet['name']} with records: ${pet['records']}');
+          AppLogger.log('🐾 Processing pet: ${pet['name']} with records: ${pet['records']}');
           
         // Get latest record for BCS score (require backend bcs_score)
         int? bcsScore; // only set if present
@@ -114,16 +115,16 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
             'records': pet['records'] ?? [],
           });
           
-          print('✅ Added pet: ${pet['name']} with BCS: $bcsScore');
+          AppLogger.log('✅ Added pet: ${pet['name']} with BCS: $bcsScore');
         }
       }
 
-      print('📊 Total pets loaded: ${_allPets.length}');
+      AppLogger.log('📊 Total pets loaded: ${_allPets.length}');
       
       // Filter pets that need special care (BCS <= 3 or BCS >= 8)
       _filterSpecialCarePets();
       
-      print('🚨 Special care pets found: ${_specialCarePets.length}');
+      AppLogger.log('🚨 Special care pets found: ${_specialCarePets.length}');
 
       setState(() {
         _isLoading = false;
@@ -131,7 +132,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
 
       _animationController.forward();
     } catch (e) {
-      print('Error loading special care pets: $e');
+      AppLogger.log('Error loading special care pets: $e');
       setState(() {
         _isLoading = false;
         _errorMessage = 'Failed to load pets data. Please try again.';
@@ -612,7 +613,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
     String species = pet['species'] ?? 'dog'; // ต้องตรงกับ default ใน _loadSpecialCarePets
     
     // Debug: ตรวจสอบ species
-    print('🐾 Special Care - Pet: ${pet['name']}, Species: $species, BCS: $bcs');
+    AppLogger.log('🐾 Special Care - Pet: ${pet['name']}, Species: $species, BCS: $bcs');
     
     Color statusColor = isUnderweight ? Color(0xFF3B82F6) : Color(0xFFF59E0B);
 
@@ -1031,7 +1032,7 @@ class _SpecialCareScreenState extends State<SpecialCareScreen> with TickerProvid
     // Normalize species to lowercase
     String normalizedSpecies = species.toLowerCase();
     
-    print('📋 Getting BCS recommendations for species: $species (normalized: $normalizedSpecies)');
+    AppLogger.log('📋 Getting BCS recommendations for species: $species (normalized: $normalizedSpecies)');
     
     if (normalizedSpecies == 'cat') {
       return [

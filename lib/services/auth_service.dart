@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../navigation/app_navigator.dart';
+import '../utils/app_logger.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -137,7 +138,7 @@ class AuthService {
       if (_token != null) {
         // Check if token is expired
         if (isTokenExpired()) {
-          print('Token is expired, trying to refresh...');
+          AppLogger.log('Token is expired, trying to refresh...');
           // Try to refresh token if refreshToken exists
           if (_refreshToken != null) {
             final refreshed = await refreshAccessToken();
@@ -145,7 +146,7 @@ class AuthService {
               return true;
             }
           }
-          print('Token refresh failed, clearing auth data');
+          AppLogger.log('Token refresh failed, clearing auth data');
           await signOut();
           return false;
         }
@@ -156,7 +157,7 @@ class AuthService {
 
       return false;
     } catch (e) {
-      print('Error initializing auth service: $e');
+      AppLogger.log('Error initializing auth service: $e');
       return false;
     }
   }
@@ -173,10 +174,10 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        print('Token is valid');
+        AppLogger.log('Token is valid');
         return true;
       } else {
-        print('Token validation failed: ${response.statusCode}');
+        AppLogger.log('Token validation failed: ${response.statusCode}');
         if (response.statusCode == 401 || response.statusCode == 403) {
           // Token is invalid, clear auth data
           await signOut();
@@ -184,7 +185,7 @@ class AuthService {
         return false;
       }
     } catch (e) {
-      print('Error validating token: $e');
+      AppLogger.log('Error validating token: $e');
       return false;
     }
   }
@@ -214,7 +215,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      print('Error parsing JWT token: $e');
+      AppLogger.log('Error parsing JWT token: $e');
     }
   }
 
@@ -299,7 +300,7 @@ class AuthService {
       final emailMasked = email.contains('@') 
           ? '${email.substring(0, email.indexOf('@'))}@***'
           : '***';
-      print('🔑 Login attempt: email=$emailMasked');
+      AppLogger.log('🔑 Login attempt: email=$emailMasked');
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/users/login'),
@@ -310,7 +311,7 @@ class AuthService {
         }),
       );
 
-      print('📱 Login response status: ${response.statusCode}');
+      AppLogger.log('📱 Login response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -323,13 +324,13 @@ class AuthService {
           // Fallback for old API format
           _token = data['token'];
         } else {
-          print('❌ Login failed: No token in response');
+          AppLogger.log('❌ Login failed: No token in response');
           return false;
         }
         
         _userEmail = email;
 
-        print('✅ Login successful: userId=$_userId, email=$emailMasked');
+        AppLogger.log('✅ Login successful: userId=$_userId, email=$emailMasked');
 
         // Parse JWT token
         _parseJwtToken(_token!);
@@ -343,14 +344,14 @@ class AuthService {
         try {
           final error = jsonDecode(response.body);
           final errorMsg = error['error'] ?? 'Unknown error';
-          print('❌ Login failed: $errorMsg');
+          AppLogger.log('❌ Login failed: $errorMsg');
         } catch (e) {
-          print('❌ Login failed: Status ${response.statusCode}');
+          AppLogger.log('❌ Login failed: Status ${response.statusCode}');
         }
         return false;
       }
     } catch (e) {
-      print('❌ Login error: ${e.toString()}');
+      AppLogger.log('❌ Login error: ${e.toString()}');
       return false;
     }
   }
@@ -404,7 +405,7 @@ class AuthService {
       final emailMasked = email.contains('@') 
           ? '${email.substring(0, email.indexOf('@'))}@***'
           : '***';
-      print('🔐 Signup attempt: email=$emailMasked, username=$username, role=$role');
+      AppLogger.log('🔐 Signup attempt: email=$emailMasked, username=$username, role=$role');
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/users/signup'),
@@ -422,7 +423,7 @@ class AuthService {
         }),
       );
 
-      print('📱 Signup response status: ${response.statusCode}');
+      AppLogger.log('📱 Signup response status: ${response.statusCode}');
       
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Parse response and set tokens directly (no need to call signIn)
@@ -441,11 +442,11 @@ class AuthService {
           await _saveAuthData();
           _resetForcedLogoutState();
           
-          print('✅ Signup successful: userId=$_userId, email=$emailMasked');
+          AppLogger.log('✅ Signup successful: userId=$_userId, email=$emailMasked');
           return {'success': true, 'message': null};
         } else {
           // Fallback: try to sign in if tokens not in response
-          print('⚠️ No tokens in signup response, trying signIn...');
+          AppLogger.log('⚠️ No tokens in signup response, trying signIn...');
           final signInSuccess = await signIn(email, password);
           return {'success': signInSuccess, 'message': signInSuccess ? null : 'Account created but login failed'};
         }
@@ -470,15 +471,15 @@ class AuthService {
             }
           }
         } catch (e) {
-          print('❌ Error parsing signup response: $e');
+          AppLogger.log('❌ Error parsing signup response: $e');
           errorMessage = 'Failed to create account. Please try again.';
         }
         
-        print('❌ Signup failed: $errorMessage');
+        AppLogger.log('❌ Signup failed: $errorMessage');
         return {'success': false, 'message': errorMessage};
       }
     } catch (e) {
-      print('❌ Signup error: ${e.toString()}');
+      AppLogger.log('❌ Signup error: ${e.toString()}');
       return {
         'success': false,
         'message': 'Network error. Please check your connection and try again.'
@@ -489,19 +490,19 @@ class AuthService {
   // Refresh access token using refresh token
   Future<bool> refreshAccessToken({BuildContext? context}) async {
     if (_refreshToken == null) {
-      print('❌ Token refresh failed: No refresh token available');
+      AppLogger.log('❌ Token refresh failed: No refresh token available');
       return false;
     }
 
     try {
-      print('🔄 Refreshing access token...');
+      AppLogger.log('🔄 Refreshing access token...');
       final response = await http.post(
         Uri.parse('$apiBaseUrl/users/refresh'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refreshToken': _refreshToken}), // Never log refreshToken
       );
 
-      print('📱 Token refresh response status: ${response.statusCode}');
+      AppLogger.log('📱 Token refresh response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -514,7 +515,7 @@ class AuthService {
         // Save to storage
         await _saveAuthData();
 
-        print('✅ Token refreshed successfully');
+        AppLogger.log('✅ Token refreshed successfully');
         return true;
       } else {
         // Parse error message
@@ -525,16 +526,16 @@ class AuthService {
             errorMessage = errorData['error'].toString();
           }
         } catch (e) {
-          print('❌ Error parsing refresh error response: $e');
+          AppLogger.log('❌ Error parsing refresh error response: $e');
         }
         
-        print('❌ Token refresh failed: $errorMessage');
+        AppLogger.log('❌ Token refresh failed: $errorMessage');
         
         // ถ้า refresh token หมดอายุแล้ว (7 วัน) หรือ invalid -> sign out และ redirect ไป login
         if (errorMessage.toLowerCase().contains('expired') || 
             errorMessage.toLowerCase().contains('invalid') ||
             response.statusCode == 403) {
-          print('🔄 Refresh token expired or invalid, signing out...');
+          AppLogger.log('🔄 Refresh token expired or invalid, signing out...');
           await signOut();
           await _redirectToLogin(context, showSessionDialog: true);
         }
@@ -542,7 +543,7 @@ class AuthService {
         return false;
       }
     } catch (e) {
-      print('❌ Token refresh error: ${e.toString()}');
+      AppLogger.log('❌ Token refresh error: ${e.toString()}');
       return false;
     }
   }
@@ -553,10 +554,10 @@ class AuthService {
     try {
       if (await _googleSignIn.isSignedIn()) {
         await _googleSignIn.signOut();
-        print('✅ Signed out from Google');
+        AppLogger.log('✅ Signed out from Google');
       }
     } catch (e) {
-      print('⚠️ Error signing out from Google: $e');
+      AppLogger.log('⚠️ Error signing out from Google: $e');
     }
 
     final userId = _userId; // Save for logging before clearing
@@ -567,7 +568,7 @@ class AuthService {
     _refreshToken = null;
     _tokenExpirationDate = null;
     
-    print('🔓 Logout: userId=$userId');
+    AppLogger.log('🔓 Logout: userId=$userId');
 
     // Clear storage
     final prefs = await SharedPreferences.getInstance();
@@ -610,7 +611,7 @@ class AuthService {
     String errorMessage = 'Request failed with status: $statusCode';
     try {
       final errorData = jsonDecode(responseBody);
-      print('Error response: $errorData');
+      AppLogger.log('Error response: $errorData');
       
       // Handle validation errors format: { errors: [...] }
       if (errorData.containsKey('errors') && errorData['errors'] is List) {
@@ -629,7 +630,7 @@ class AuthService {
         errorMessage = errorData['error'].toString();
       }
     } catch (e) {
-      print('Error parsing error response: $e');
+      AppLogger.log('Error parsing error response: $e');
     }
     return errorMessage;
   }
@@ -645,23 +646,23 @@ class AuthService {
 
     // ถ้า token expired → ลอง refresh ก่อน (ถ้ามี refresh token)
     if (isTokenExpired()) {
-      print('⚠️ Access token expired, attempting to refresh...');
+      AppLogger.log('⚠️ Access token expired, attempting to refresh...');
       
       if (_refreshToken != null) {
         final refreshed = await refreshAccessToken(context: context);
         if (refreshed) {
-          print('✅ Token refreshed, proceeding with request...');
+          AppLogger.log('✅ Token refreshed, proceeding with request...');
           // Token refreshed successfully, continue with request
         } else {
           // Refresh failed (refresh token expired or invalid)
-          print('❌ Token refresh failed, redirecting to login...');
+          AppLogger.log('❌ Token refresh failed, redirecting to login...');
           await signOut();
           await _redirectToLogin(context, showSessionDialog: true);
           throw Exception('Session expired. Please login again.');
         }
       } else {
         // No refresh token available
-        print('❌ No refresh token available, redirecting to login...');
+        AppLogger.log('❌ No refresh token available, redirecting to login...');
         await signOut();
         await _redirectToLogin(context, showSessionDialog: true);
         throw Exception('Session expired. Please login again.');
@@ -674,20 +675,20 @@ class AuthService {
         headers: getAuthHeaders(),
       );
 
-      print('GET $endpoint status: ${response.statusCode}');
+      AppLogger.log('GET $endpoint status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         // Success
         return jsonDecode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         // Auth error - try to refresh token first
-        print('Authentication error: ${response.statusCode}, attempting token refresh...');
+        AppLogger.log('Authentication error: ${response.statusCode}, attempting token refresh...');
         
         if (_refreshToken != null) {
           final refreshed = await refreshAccessToken(context: context);
           if (refreshed) {
             // Retry the original request with new token
-            print('🔄 Retrying request after token refresh...');
+            AppLogger.log('🔄 Retrying request after token refresh...');
             final retryResponse = await http.get(
               Uri.parse('$apiBaseUrl$endpoint'),
               headers: getAuthHeaders(),
@@ -700,18 +701,18 @@ class AuthService {
         }
         
         // Refresh failed or no refresh token - sign out
-        print('❌ Token refresh failed, signing out...');
+        AppLogger.log('❌ Token refresh failed, signing out...');
         await signOut();
         await _redirectToLogin(context, showSessionDialog: true);
 
         throw Exception('Authentication failed');
       } else {
-        print('Response body: ${response.body}');
+        AppLogger.log('Response body: ${response.body}');
         final errorMessage = _parseErrorMessage(response.body, response.statusCode);
         throw Exception(errorMessage);
       }
     } catch (e) {
-      print('Error in authenticatedGet: $e');
+      AppLogger.log('Error in authenticatedGet: $e');
       rethrow;
     }
   }
@@ -728,23 +729,23 @@ class AuthService {
 
     // ถ้า token expired → ลอง refresh ก่อน (ถ้ามี refresh token)
     if (isTokenExpired()) {
-      print('⚠️ Access token expired, attempting to refresh...');
+      AppLogger.log('⚠️ Access token expired, attempting to refresh...');
       
       if (_refreshToken != null) {
         final refreshed = await refreshAccessToken(context: context);
         if (refreshed) {
-          print('✅ Token refreshed, proceeding with request...');
+          AppLogger.log('✅ Token refreshed, proceeding with request...');
           // Token refreshed successfully, continue with request
         } else {
           // Refresh failed (refresh token expired or invalid)
-          print('❌ Token refresh failed, redirecting to login...');
+          AppLogger.log('❌ Token refresh failed, redirecting to login...');
           await signOut();
           await _redirectToLogin(context, showSessionDialog: true);
           throw Exception('Session expired. Please login again.');
         }
       } else {
         // No refresh token available
-        print('❌ No refresh token available, redirecting to login...');
+        AppLogger.log('❌ No refresh token available, redirecting to login...');
         await signOut();
         await _redirectToLogin(context, showSessionDialog: true);
         throw Exception('Session expired. Please login again.');
@@ -758,20 +759,20 @@ class AuthService {
         body: jsonEncode(data),
       );
 
-      print('POST $endpoint status: ${response.statusCode}');
+      AppLogger.log('POST $endpoint status: ${response.statusCode}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         // Success
         return jsonDecode(response.body);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         // Auth error - try to refresh token first
-        print('Authentication error: ${response.statusCode}, attempting token refresh...');
+        AppLogger.log('Authentication error: ${response.statusCode}, attempting token refresh...');
         
         if (_refreshToken != null) {
           final refreshed = await refreshAccessToken(context: context);
           if (refreshed) {
             // Retry the original request with new token
-            print('🔄 Retrying request after token refresh...');
+            AppLogger.log('🔄 Retrying request after token refresh...');
             final retryResponse = await http.post(
               Uri.parse('$apiBaseUrl$endpoint'),
               headers: getAuthHeaders(),
@@ -786,18 +787,18 @@ class AuthService {
         }
         
         // Refresh failed or no refresh token - sign out
-        print('❌ Token refresh failed, signing out...');
+        AppLogger.log('❌ Token refresh failed, signing out...');
         await signOut();
         await _redirectToLogin(context, showSessionDialog: true);
 
         throw Exception('Authentication failed');
       } else {
-        print('Response body: ${response.body}');
+        AppLogger.log('Response body: ${response.body}');
         final errorMessage = _parseErrorMessage(response.body, response.statusCode);
         throw Exception(errorMessage);
       }
     } catch (e) {
-      print('Error in authenticatedPost: $e');
+      AppLogger.log('Error in authenticatedPost: $e');
       rethrow;
     }
   }

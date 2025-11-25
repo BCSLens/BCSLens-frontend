@@ -5,6 +5,7 @@ import '../widgets/bottom_nav_bar.dart';
 import '../widgets/frosted_glass_header.dart';
 import '../models/pet_record_model.dart';
 import '../services/pet_service.dart';
+import '../utils/app_logger.dart';
 
 class BcsReviewScreen extends StatefulWidget {
   final PetRecord petRecord;
@@ -819,10 +820,10 @@ class _BcsReviewScreenState extends State<BcsReviewScreen>
     final Map<String, List<String>> suggestions = _bcsSuggestions[animalType]?[bcsScore] ?? {};
     
     // Debug print
-    print('🔍 Debug - BCS Score: $bcsScore');
-    print('🔍 Debug - Animal Type: $animalType');
-    print('🔍 Debug - Category: ${widget.petRecord.category}');
-    print('🔍 Debug - Suggestions: $suggestions');
+    AppLogger.log('🔍 Debug - BCS Score: $bcsScore');
+    AppLogger.log('🔍 Debug - Animal Type: $animalType');
+    AppLogger.log('🔍 Debug - Category: ${widget.petRecord.category}');
+    AppLogger.log('🔍 Debug - Suggestions: $suggestions');
 
     return PopScope(
       canPop: false,

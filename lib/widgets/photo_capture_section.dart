@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import '../utils/app_logger.dart';
 
 class PhotoCaptureSection extends StatelessWidget {
   final String label;
@@ -162,7 +163,7 @@ class PhotoCaptureSection extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         errorBuilder: (context, error, stackTrace) {
-          print('Error loading image: $error');
+          AppLogger.log('Error loading image: $error');
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,

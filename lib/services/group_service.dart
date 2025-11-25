@@ -2,6 +2,7 @@
 import 'dart:convert';
 import '../services/auth_service.dart';
 import 'package:http/http.dart' as http;
+import '../utils/app_logger.dart';
 
 class GroupService {
   final AuthService _authService = AuthService();
@@ -9,13 +10,13 @@ class GroupService {
   // Get all groups - CORRECTED VERSION
   Future<List<Map<String, dynamic>>> getGroups() async {
     try {
-      print('🔍 Getting groups...');
+      AppLogger.log('🔍 Getting groups...');
       
       // AuthService.authenticatedGet now returns parsed JSON directly, not Response
       final data = await _authService.authenticatedGet('/groups');
 
-      print('📥 Groups response type: ${data.runtimeType}');
-      print('📥 Groups response data: $data');
+      AppLogger.log('📥 Groups response type: ${data.runtimeType}');
+      AppLogger.log('📥 Groups response data: $data');
 
       // Handle different possible response formats
       if (data is Map<String, dynamic>) {
@@ -23,30 +24,30 @@ class GroupService {
           // Response format: {"groups": [...]}
           final groups = data['groups'] as List;
           final result = groups.map((group) => group as Map<String, dynamic>).toList();
-          print('✅ Found ${result.length} groups (nested format)');
+          AppLogger.log('✅ Found ${result.length} groups (nested format)');
           return result;
         } else if (data.containsKey('data')) {
           // Response format: {"data": [...]}
           final groups = data['data'] as List;
           final result = groups.map((group) => group as Map<String, dynamic>).toList();
-          print('✅ Found ${result.length} groups (data format)');
+          AppLogger.log('✅ Found ${result.length} groups (data format)');
           return result;
         } else {
           // Response is a single group object, wrap in array
-          print('✅ Found 1 group (single object)');
+          AppLogger.log('✅ Found 1 group (single object)');
           return [data];
         }
       } else if (data is List) {
         // Response is directly an array of groups
         final result = data.map((group) => group as Map<String, dynamic>).toList();
-        print('✅ Found ${result.length} groups (direct array)');
+        AppLogger.log('✅ Found ${result.length} groups (direct array)');
         return result;
       } else {
-        print('❌ Unrecognized response format: $data');
+        AppLogger.log('❌ Unrecognized response format: $data');
         throw Exception('Unexpected response format: ${data.runtimeType}');
       }
     } catch (e) {
-      print('❌ Error getting groups: $e');
+      AppLogger.log('❌ Error getting groups: $e');
       
       // Handle authentication errors specifically
       if (e.toString().contains('Authentication failed')) {
@@ -60,33 +61,33 @@ class GroupService {
   // Create a new group - CORRECTED VERSION
   Future<Map<String, dynamic>> createGroup(String groupName) async {
     try {
-      print('🆕 Creating group: $groupName');
+      AppLogger.log('🆕 Creating group: $groupName');
       
       // AuthService.authenticatedPost returns parsed JSON directly
       final data = await _authService.authenticatedPost('/groups', {
         'group_name': groupName,
       });
 
-      print('📥 Create group response type: ${data.runtimeType}');
-      print('📥 Create group response data: $data');
+      AppLogger.log('📥 Create group response type: ${data.runtimeType}');
+      AppLogger.log('📥 Create group response data: $data');
 
       if (data is Map<String, dynamic>) {
         if (data.containsKey('group')) {
           // Response format: {"group": {...}}
           final groupData = data['group'] as Map<String, dynamic>;
-          print('✅ Group created successfully (nested format)');
+          AppLogger.log('✅ Group created successfully (nested format)');
           return groupData;
         } else {
           // Response is the group data directly
-          print('✅ Group created successfully (direct format)');
+          AppLogger.log('✅ Group created successfully (direct format)');
           return data;
         }
       } else {
-        print('❌ Unrecognized create group response format: $data');
+        AppLogger.log('❌ Unrecognized create group response format: $data');
         throw Exception('Unexpected response format: ${data.runtimeType}');
       }
     } catch (e) {
-      print('❌ Error creating group: $e');
+      AppLogger.log('❌ Error creating group: $e');
       
       // Handle authentication errors specifically
       if (e.toString().contains('Authentication failed')) {
@@ -100,20 +101,20 @@ class GroupService {
   // Update group
   Future<Map<String, dynamic>> updateGroup(String groupId, String groupName) async {
     try {
-      print('📝 Updating group: $groupId with name: $groupName');
+      AppLogger.log('📝 Updating group: $groupId with name: $groupName');
       
       final data = await _authService.authenticatedPost('/groups/$groupId', {
         'group_name': groupName,
       });
 
       if (data is Map<String, dynamic>) {
-        print('✅ Group updated successfully');
+        AppLogger.log('✅ Group updated successfully');
         return data;
       } else {
         throw Exception('Unexpected response format: ${data.runtimeType}');
       }
     } catch (e) {
-      print('❌ Error updating group: $e');
+      AppLogger.log('❌ Error updating group: $e');
       rethrow;
     }
   }
@@ -121,7 +122,7 @@ class GroupService {
   // Delete group
   Future<void> deleteGroup(String groupId) async {
     try {
-      print('🗑️ Deleting group: $groupId');
+      AppLogger.log('🗑️ Deleting group: $groupId');
       
       // Check token expiration first
       if (_authService.isTokenExpired()) {
@@ -147,7 +148,7 @@ class GroupService {
 
       // Handle 401/403 with auto-refresh
       if (response.statusCode == 401 || response.statusCode == 403) {
-        print('🔄 Authentication error, attempting token refresh...');
+        AppLogger.log('🔄 Authentication error, attempting token refresh...');
         // Note: We can't use authenticatedDelete here, so we handle refresh manually
         // This is a limitation - ideally we'd have authenticatedDelete method
         // For now, just throw the error and let the caller handle it
@@ -156,13 +157,13 @@ class GroupService {
       }
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        print('✅ Group deleted successfully');
+        AppLogger.log('✅ Group deleted successfully');
       } else {
         final errorData = jsonDecode(response.body);
         throw Exception('Failed to delete group: ${errorData['error'] ?? 'Unknown error'}');
       }
     } catch (e) {
-      print('❌ Error deleting group: $e');
+      AppLogger.log('❌ Error deleting group: $e');
       rethrow;
     }
   }

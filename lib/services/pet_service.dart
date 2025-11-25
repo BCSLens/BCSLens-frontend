@@ -7,6 +7,7 @@ import 'package:mime/mime.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../services/auth_service.dart';
 import '../models/pet_record_model.dart';
+import '../utils/app_logger.dart';
 
 class PetService {
   final AuthService _authService = AuthService();
@@ -31,7 +32,7 @@ class PetService {
   // Create a new pet - FIXED VERSION
   Future<Map<String, dynamic>> createPet(PetRecord pet) async {
     try {
-      print('🐕 Creating pet with data...');
+      AppLogger.log('🐕 Creating pet with data...');
 
       // Validate required fields
       if (pet.name == null || pet.name!.isEmpty) {
@@ -74,8 +75,8 @@ class PetService {
         'species': species,
       };
 
-      print('📤 Request body: $requestBody');
-      print('🔗 URL: $baseUrl/pets');
+      AppLogger.log('📤 Request body: $requestBody');
+      AppLogger.log('🔗 URL: $baseUrl/pets');
 
       // Create pet in database
       final responseData = await _authService.authenticatedPost(
@@ -83,11 +84,11 @@ class PetService {
         requestBody,
       );
 
-      print('📥 Response data: $responseData');
+      AppLogger.log('📥 Response data: $responseData');
 
       if (responseData != null) {
         if (responseData is Map<String, dynamic>) {
-          print('✅ Pet created successfully');
+          AppLogger.log('✅ Pet created successfully');
 
           // Extract pet ID for creating initial record
           String? petId;
@@ -98,7 +99,7 @@ class PetService {
           }
 
           if (petId != null) {
-            print('✅ Pet created with ID: $petId');
+            AppLogger.log('✅ Pet created with ID: $petId');
 
             // ✅ สร้าง record แรกพร้อมรูป (แทนที่การอัพโหลดรูปใน Pet)
             await _createInitialRecord(petId, pet);
@@ -112,7 +113,7 @@ class PetService {
         throw Exception('No response data received');
       }
     } catch (e) {
-      print('❌ Error creating pet: $e');
+      AppLogger.log('❌ Error creating pet: $e');
       if (e.toString().contains('Authentication failed')) {
         throw Exception('Please log in again to create a pet');
       }
@@ -123,19 +124,19 @@ class PetService {
   // ✅ ฟังก์ชันใหม่: สร้าง record แรกพร้อมรูป
   Future<void> _createInitialRecord(String petId, PetRecord pet) async {
     try {
-      print('📸 Creating initial record with images for pet: $petId');
+      AppLogger.log('📸 Creating initial record with images for pet: $petId');
 
       // ✅ เพิ่ม debug ตรวจสอบ paths
-      print('🔍 Debug image paths:');
-      print('  Front: ${pet.frontViewImagePath}');
-      print('  Back: ${pet.backViewImagePath}');
-      print('  Left: ${pet.leftViewImagePath}');
-      print('  Right: ${pet.rightViewImagePath}');
-      print('  Top: ${pet.topViewImagePath}');
+      AppLogger.log('🔍 Debug image paths:');
+      AppLogger.log('  Front: ${pet.frontViewImagePath}');
+      AppLogger.log('  Back: ${pet.backViewImagePath}');
+      AppLogger.log('  Left: ${pet.leftViewImagePath}');
+      AppLogger.log('  Right: ${pet.rightViewImagePath}');
+      AppLogger.log('  Top: ${pet.topViewImagePath}');
 
       // ตรวจสอบไฟล์มีอยู่จริงไหม
       if (pet.frontViewImagePath != null) {
-        print(
+        AppLogger.log(
           '  Front file exists: ${File(pet.frontViewImagePath!).existsSync()}',
         );
       }
@@ -143,8 +144,8 @@ class PetService {
       // อัพโหลดรูปทั้งหมด
       final imageUrls = await _uploadPetImages(pet);
 
-      print('🔍 Upload results: $imageUrls');
-      print('🔍 Number of uploaded images: ${imageUrls.length}');
+      AppLogger.log('🔍 Upload results: $imageUrls');
+      AppLogger.log('🔍 Number of uploaded images: ${imageUrls.length}');
 
       // สร้าง record data
       final recordData = {
@@ -155,7 +156,7 @@ class PetService {
         'notes': pet.additionalNotes ?? '',
       };
 
-      print('🔍 Record data to send: $recordData');
+      AppLogger.log('🔍 Record data to send: $recordData');
 
       // สร้าง record แรกพร้อมรูป
       final recordResponse = await _authService.authenticatedPost(
@@ -163,17 +164,17 @@ class PetService {
         recordData,
       );
 
-      print('✅ Initial record created successfully');
-      print('📥 Record response: $recordResponse');
+      AppLogger.log('✅ Initial record created successfully');
+      AppLogger.log('📥 Record response: $recordResponse');
 
       if (imageUrls.isNotEmpty) {
-        print('✅ Images included: ${imageUrls.keys.join(', ')}');
+        AppLogger.log('✅ Images included: ${imageUrls.keys.join(', ')}');
       } else {
-        print('⚠️ No images were uploaded');
+        AppLogger.log('⚠️ No images were uploaded');
       }
     } catch (e) {
-      print('❌ Error creating initial record: $e');
-      print('❌ Error details: ${e.toString()}');
+      AppLogger.log('❌ Error creating initial record: $e');
+      AppLogger.log('❌ Error details: ${e.toString()}');
       // ไม่ throw error - pet ถูกสร้างแล้ว
     }
   }
@@ -181,32 +182,32 @@ class PetService {
   // ✅ Helper functions สำหรับ parse age - FIXED VERSION
   int _parseAgeYears(String ageString) {
     try {
-      print('🔍 Parsing age years from: "$ageString"');
+      AppLogger.log('🔍 Parsing age years from: "$ageString"');
 
       if (ageString.contains('years') && ageString.contains('months')) {
         // Format: "2 years 6 months"
         final yearsPart = ageString.split(' years')[0];
         final result = int.tryParse(yearsPart) ?? 0;
-        print('✅ Parsed years: $result');
+        AppLogger.log('✅ Parsed years: $result');
         return result;
       } else if (ageString.contains('year')) {
         // Format: "2 years" or "1 year"
         final yearsPart = ageString.split(' ')[0];
         final result = int.tryParse(yearsPart) ?? 0;
-        print('✅ Parsed years: $result');
+        AppLogger.log('✅ Parsed years: $result');
         return result;
       }
-      print('⚠️ No years found in age string');
+      AppLogger.log('⚠️ No years found in age string');
       return 0;
     } catch (e) {
-      print('❌ Error parsing years: $e');
+      AppLogger.log('❌ Error parsing years: $e');
       return 0;
     }
   }
 
   int _parseAgeMonths(String ageString) {
     try {
-      print('🔍 Parsing age months from: "$ageString"');
+      AppLogger.log('🔍 Parsing age months from: "$ageString"');
 
       if (ageString.contains('months')) {
         if (ageString.contains('years') || ageString.contains('year')) {
@@ -215,21 +216,21 @@ class PetService {
           if (parts.length > 1) {
             final monthsPart = parts[1].split(' months')[0];
             final result = int.tryParse(monthsPart) ?? 0;
-            print('✅ Parsed months: $result');
+            AppLogger.log('✅ Parsed months: $result');
             return result;
           }
         } else {
           // Format: "6 months"
           final monthsPart = ageString.split(' ')[0];
           final result = int.tryParse(monthsPart) ?? 0;
-          print('✅ Parsed months: $result');
+          AppLogger.log('✅ Parsed months: $result');
           return result;
         }
       }
-      print('⚠️ No months found in age string');
+      AppLogger.log('⚠️ No months found in age string');
       return 0;
     } catch (e) {
-      print('❌ Error parsing months: $e');
+      AppLogger.log('❌ Error parsing months: $e');
       return 0;
     }
   }
@@ -266,61 +267,61 @@ class PetService {
     Map<String, String> imageUrls = {};
 
     try {
-      print('🔍 Starting image upload process...');
+      AppLogger.log('🔍 Starting image upload process...');
 
       if (pet.frontViewImagePath != null) {
-        print('📤 Uploading front image: ${pet.frontViewImagePath}');
+        AppLogger.log('📤 Uploading front image: ${pet.frontViewImagePath}');
         final url = await _uploadImage(pet.frontViewImagePath!);
         if (url.isNotEmpty) {
           imageUrls['front_image_url'] = url;
-          print('✅ Front image uploaded: $url');
+          AppLogger.log('✅ Front image uploaded: $url');
         } else {
-          print('❌ Front image upload failed');
+          AppLogger.log('❌ Front image upload failed');
         }
       } else {
-        print('⚠️ No front image path provided');
+        AppLogger.log('⚠️ No front image path provided');
       }
 
       if (pet.backViewImagePath != null) {
-        print('📤 Uploading back image: ${pet.backViewImagePath}');
+        AppLogger.log('📤 Uploading back image: ${pet.backViewImagePath}');
         final url = await _uploadImage(pet.backViewImagePath!);
         if (url.isNotEmpty) {
           imageUrls['back_image_url'] = url;
-          print('✅ Back image uploaded: $url');
+          AppLogger.log('✅ Back image uploaded: $url');
         }
       }
 
       if (pet.leftViewImagePath != null) {
-        print('📤 Uploading left image: ${pet.leftViewImagePath}');
+        AppLogger.log('📤 Uploading left image: ${pet.leftViewImagePath}');
         final url = await _uploadImage(pet.leftViewImagePath!);
         if (url.isNotEmpty) {
           imageUrls['left_image_url'] = url;
-          print('✅ Left image uploaded: $url');
+          AppLogger.log('✅ Left image uploaded: $url');
         }
       }
 
       if (pet.rightViewImagePath != null) {
-        print('📤 Uploading right image: ${pet.rightViewImagePath}');
+        AppLogger.log('📤 Uploading right image: ${pet.rightViewImagePath}');
         final url = await _uploadImage(pet.rightViewImagePath!);
         if (url.isNotEmpty) {
           imageUrls['right_image_url'] = url;
-          print('✅ Right image uploaded: $url');
+          AppLogger.log('✅ Right image uploaded: $url');
         }
       }
 
       if (pet.topViewImagePath != null) {
-        print('📤 Uploading top image: ${pet.topViewImagePath}');
+        AppLogger.log('📤 Uploading top image: ${pet.topViewImagePath}');
         final url = await _uploadImage(pet.topViewImagePath!);
         if (url.isNotEmpty) {
           imageUrls['top_image_url'] = url;
-          print('✅ Top image uploaded: $url');
+          AppLogger.log('✅ Top image uploaded: $url');
         }
       }
 
-      print('🔍 Final image URLs: $imageUrls');
+      AppLogger.log('🔍 Final image URLs: $imageUrls');
       return imageUrls;
     } catch (e) {
-      print('❌ Error uploading images: $e');
+      AppLogger.log('❌ Error uploading images: $e');
       return {};
     }
   }
@@ -330,7 +331,7 @@ class PetService {
     try {
       final File file = File(imagePath);
       if (!file.existsSync()) {
-        print('❌ File not found: $imagePath');
+        AppLogger.log('❌ File not found: $imagePath');
         return '';
       }
 
@@ -340,18 +341,18 @@ class PetService {
           // Try to refresh
           final refreshed = await _authService.refreshAccessToken();
           if (!refreshed) {
-            print('❌ Token expired and refresh failed for image upload');
+            AppLogger.log('❌ Token expired and refresh failed for image upload');
             return '';
           }
         } else {
-          print('❌ Not authenticated for image upload');
+          AppLogger.log('❌ Not authenticated for image upload');
           return '';
         }
       }
 
       final token = _authService.token;
       if (token == null) {
-        print('❌ Not authenticated for image upload');
+        AppLogger.log('❌ Not authenticated for image upload');
         return '';
       }
 
@@ -372,12 +373,12 @@ class PetService {
         ),
       );
 
-      print('📤 Uploading image: $imagePath');
+      AppLogger.log('📤 Uploading image: $imagePath');
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      print('📥 Upload response: ${response.statusCode}');
-      print('📥 Upload body: ${response.body}');
+      AppLogger.log('📥 Upload response: ${response.statusCode}');
+      AppLogger.log('📥 Upload body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -394,18 +395,18 @@ class PetService {
           // Backend route: /api/upload/:filename (GET) สำหรับ download
           url = '$uploadBaseUrl/upload/${data['filename']}';
         } else {
-          print('❌ No URL found in response: $data');
+          AppLogger.log('❌ No URL found in response: $data');
           return '';
         }
 
-        print('✅ Image uploaded successfully: $url');
+        AppLogger.log('✅ Image uploaded successfully: $url');
         return url;
       } else {
-        print('❌ Upload failed: ${response.statusCode} - ${response.body}');
+        AppLogger.log('❌ Upload failed: ${response.statusCode} - ${response.body}');
         return '';
       }
     } catch (e) {
-      print('❌ Error uploading image: $e');
+      AppLogger.log('❌ Error uploading image: $e');
       return '';
     }
   }
@@ -416,8 +417,8 @@ class PetService {
       // AuthService returns parsed JSON directly
       final data = await _authService.authenticatedGet('/groups');
 
-      print('📥 Groups data type: ${data.runtimeType}');
-      print('📥 Groups data: $data');
+      AppLogger.log('📥 Groups data type: ${data.runtimeType}');
+      AppLogger.log('📥 Groups data: $data');
 
       List<Map<String, dynamic>> allPets = [];
 
@@ -448,10 +449,10 @@ class PetService {
         }
       }
 
-      print('✅ Found ${allPets.length} pets');
+      AppLogger.log('✅ Found ${allPets.length} pets');
       return allPets;
     } catch (e) {
-      print('❌ Error getting pets: $e');
+      AppLogger.log('❌ Error getting pets: $e');
       rethrow;
     }
   }
@@ -478,7 +479,7 @@ class PetService {
         throw Exception('Unexpected response format');
       }
     } catch (e) {
-      print('❌ Error adding BCS record: $e');
+      AppLogger.log('❌ Error adding BCS record: $e');
       rethrow;
     }
   }
@@ -490,7 +491,7 @@ class PetService {
     PetRecord petRecord,
   ) async {
     try {
-      print('Adding record to existing pet: $petId');
+      AppLogger.log('Adding record to existing pet: $petId');
 
       // อัพโหลดรูปทั้งหมด
       final imageUrls = await _uploadPetImages(petRecord);
@@ -504,7 +505,7 @@ class PetService {
         'notes': petRecord.additionalNotes ?? '',
       };
 
-      print('Sending record data: $recordData');
+      AppLogger.log('Sending record data: $recordData');
 
       // ส่งข้อมูลไปยัง API
       final responseData = await _authService.authenticatedPost(
@@ -513,13 +514,13 @@ class PetService {
       );
 
       if (responseData != null && responseData is Map<String, dynamic>) {
-        print('Record added successfully to pet: $petId');
+        AppLogger.log('Record added successfully to pet: $petId');
         return responseData;
       } else {
         throw Exception('Unexpected response format');
       }
     } catch (e) {
-      print('Error adding record to existing pet: $e');
+      AppLogger.log('Error adding record to existing pet: $e');
       rethrow;
     }
   }

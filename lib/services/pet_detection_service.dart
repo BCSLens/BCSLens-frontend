@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
 import 'dart:async';
+import '../utils/app_logger.dart';
 
 class AIService {
   static String get baseUrl {
@@ -85,7 +86,7 @@ class AIService {
       
       return null;
     } catch (e) {
-      print('Prediction error: $e');
+      AppLogger.log('Prediction error: $e');
       rethrow;
     }
   }
@@ -146,7 +147,7 @@ class AIService {
       
       return null;
     } catch (e) {
-      print('Classification error: $e');
+      AppLogger.log('Classification error: $e');
       rethrow;
     }
   }
@@ -227,7 +228,7 @@ class AIService {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> bcsData = jsonDecode(response.body);
-        print('📥 Raw BCS response: $bcsData');
+        AppLogger.log('📥 Raw BCS response: $bcsData');
 
         // Model sends only: {"bcs_score": <int>, "bcs_category": <str>}
         if (!bcsData.containsKey('bcs_score') || !bcsData.containsKey('bcs_category')) {
@@ -245,7 +246,7 @@ class AIService {
         throw Exception('BCS prediction failed: ${response.statusCode}');
       }
     } catch (e) {
-      print('BCS prediction error: $e');
+      AppLogger.log('BCS prediction error: $e');
       rethrow;
     }
   }

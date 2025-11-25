@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import '../services/auth_service.dart';
+import '../utils/app_logger.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -57,7 +58,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         username.isEmpty ||
         firstname.isEmpty ||
         lastname.isEmpty) {
-      print('❌ Signup validation failed: Empty required fields');
+      AppLogger.log('❌ Signup validation failed: Empty required fields');
       setState(() {
         _errorMessage = 'Please fill all required fields';
         _isLoading = false;
@@ -68,7 +69,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // Validate email format
     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
     if (!emailRegex.hasMatch(email)) {
-      print('❌ Signup validation failed: Invalid email format');
+      AppLogger.log('❌ Signup validation failed: Invalid email format');
       setState(() {
         _errorMessage = 'Please enter a valid email address';
         _isLoading = false;
@@ -78,7 +79,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     // Validate password length
     if (password.length < 8) {
-      print('❌ Signup validation failed: Password too short');
+      AppLogger.log('❌ Signup validation failed: Password too short');
       setState(() {
         _errorMessage = 'Password must be at least 8 characters long';
         _isLoading = false;
@@ -88,7 +89,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     // Validate password contains letters and numbers
     if (!password.contains(RegExp(r'[A-Za-z]'))) {
-      print('❌ Signup validation failed: Password must contain letters');
+      AppLogger.log('❌ Signup validation failed: Password must contain letters');
       setState(() {
         _errorMessage = 'Password must contain at least one letter';
         _isLoading = false;
@@ -97,7 +98,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     if (!password.contains(RegExp(r'[0-9]'))) {
-      print('❌ Signup validation failed: Password must contain numbers');
+      AppLogger.log('❌ Signup validation failed: Password must contain numbers');
       setState(() {
         _errorMessage = 'Password must contain at least one number';
         _isLoading = false;
@@ -107,7 +108,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     // Validate password match
     if (password != confirmPassword) {
-      print('❌ Signup validation failed: Passwords do not match');
+      AppLogger.log('❌ Signup validation failed: Passwords do not match');
       setState(() {
         _errorMessage = 'Passwords do not match';
         _isLoading = false;
@@ -118,7 +119,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // Validate username (alphanumeric, underscore, hyphen, 3-20 chars)
     final usernameRegex = RegExp(r'^[a-zA-Z0-9_-]{3,20}$');
     if (!usernameRegex.hasMatch(username)) {
-      print('❌ Signup validation failed: Invalid username format');
+      AppLogger.log('❌ Signup validation failed: Invalid username format');
       setState(() {
         _errorMessage = 'Username must be 3-20 characters and contain only letters, numbers, underscore, or hyphen';
         _isLoading = false;
@@ -129,7 +130,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     // Validate name (letters and spaces only, 2-50 chars)
     final nameRegex = RegExp(r'^[a-zA-Z\s]{2,50}$');
     if (!nameRegex.hasMatch(firstname)) {
-      print('❌ Signup validation failed: Invalid first name format');
+      AppLogger.log('❌ Signup validation failed: Invalid first name format');
       setState(() {
         _errorMessage = 'First name must be 2-50 characters and contain only letters';
         _isLoading = false;
@@ -138,7 +139,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     if (!nameRegex.hasMatch(lastname)) {
-      print('❌ Signup validation failed: Invalid last name format');
+      AppLogger.log('❌ Signup validation failed: Invalid last name format');
       setState(() {
         _errorMessage = 'Last name must be 2-50 characters and contain only letters';
         _isLoading = false;
@@ -150,7 +151,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (phone.isNotEmpty) {
       final phoneRegex = RegExp(r'^[0-9+\-\s()]{8,15}$');
       if (!phoneRegex.hasMatch(phone)) {
-        print('❌ Signup validation failed: Invalid phone format');
+        AppLogger.log('❌ Signup validation failed: Invalid phone format');
         setState(() {
           _errorMessage = 'Please enter a valid phone number (8-15 digits)';
           _isLoading = false;
@@ -161,7 +162,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     // Validate privacy consent
     if (!_privacyConsentAccepted) {
-      print('❌ Signup validation failed: Privacy consent not accepted');
+      AppLogger.log('❌ Signup validation failed: Privacy consent not accepted');
       setState(() {
         _errorMessage = 'Please accept the Privacy Policy to continue';
         _isLoading = false;
@@ -170,7 +171,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     try {
-      print('🔐 Signup attempt: email=${email.substring(0, email.indexOf('@'))}@***, username=$username, role=$_selectedRole');
+      AppLogger.log('🔐 Signup attempt: email=${email.substring(0, email.indexOf('@'))}@***, username=$username, role=$_selectedRole');
       // Sign up
       final authService = AuthService();
       final result = await authService.signUp(
@@ -185,22 +186,22 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _privacyConsentAccepted,
       );
 
-      print('📝 Signup result: success=${result['success']}');
+      AppLogger.log('📝 Signup result: success=${result['success']}');
       
       if (result['success'] == true) {
-        print('✅ Signup successful: userId=${authService.userId}');
+        AppLogger.log('✅ Signup successful: userId=${authService.userId}');
         // Navigate to records screen
         Navigator.pushReplacementNamed(context, "/records");
       } else {
         final errorMsg = result['message'] ?? 'Failed to create account. Please try again.';
-        print('❌ Signup failed: $errorMsg');
+        AppLogger.log('❌ Signup failed: $errorMsg');
         setState(() {
           _errorMessage = errorMsg;
         });
       }
     } catch (e, stackTrace) {
-      print('❌ Signup exception: ${e.toString()}');
-      print('   Stack trace: ${stackTrace.toString().substring(0, stackTrace.toString().length > 200 ? 200 : stackTrace.toString().length)}...');
+      AppLogger.log('❌ Signup exception: ${e.toString()}');
+      AppLogger.log('   Stack trace: ${stackTrace.toString().substring(0, stackTrace.toString().length > 200 ? 200 : stackTrace.toString().length)}...');
       setState(() {
         _errorMessage = 'Error: $e';
       });

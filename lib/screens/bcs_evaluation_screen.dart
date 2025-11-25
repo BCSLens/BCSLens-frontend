@@ -7,6 +7,7 @@ import '../widgets/gradient_background.dart';
 import '../models/pet_record_model.dart';
 import '../services/auth_service.dart';
 import '../services/pet_detection_service.dart';
+import '../utils/app_logger.dart';
 
 class BcsEvaluationScreen extends StatefulWidget {
   final PetRecord petRecord;
@@ -125,7 +126,7 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
     });
 
     try {
-      print('🔍 Starting BCS prediction with AI...');
+      AppLogger.log('🔍 Starting BCS prediction with AI...');
       
       // Get image paths from pet record
       final leftImage = widget.petRecord.leftViewImagePath;
@@ -139,11 +140,11 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
         throw Exception('Missing required images. Please capture all 4 views (left, right, back, top)');
       }
 
-      print('📸 Image paths:');
-      print('  Left: $leftImage');
-      print('  Right: $rightImage');
-      print('  Back: $backImage');
-      print('  Top: $topImage');
+      AppLogger.log('📸 Image paths:');
+      AppLogger.log('  Left: $leftImage');
+      AppLogger.log('  Right: $rightImage');
+      AppLogger.log('  Back: $backImage');
+      AppLogger.log('  Top: $topImage');
 
       // Call AI service for BCS prediction
       final bcsResult = await AIService.predictBCS(
@@ -158,10 +159,10 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
         final bcsRange = bcsResult['bcs_range'] as String?; // may be null
         final bcsScore = bcsResult['bcs_score'] as int? ?? 5; // for internal use
         
-        print('✅ BCS prediction successful!');
-        print('📊 BCS Category: $bcsCategory');
-        print('📊 BCS Range: ${bcsRange ?? '(derived)'}');
-        print('📊 Mapped Score: $bcsScore (internal)');
+        AppLogger.log('✅ BCS prediction successful!');
+        AppLogger.log('📊 BCS Category: $bcsCategory');
+        AppLogger.log('📊 BCS Range: ${bcsRange ?? '(derived)'}');
+        AppLogger.log('📊 Mapped Score: $bcsScore (internal)');
 
       setState(() {
           _bcsScore = bcsScore;
@@ -190,7 +191,7 @@ class _BcsEvaluationScreenState extends State<BcsEvaluationScreen> with TickerPr
         throw Exception('Failed to get BCS prediction from AI');
       }
     } catch (e) {
-      print('❌ AI analysis error: $e');
+      AppLogger.log('❌ AI analysis error: $e');
       setState(() {
         _isAnalyzing = false;
       });
