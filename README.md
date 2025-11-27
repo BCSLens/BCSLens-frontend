@@ -136,11 +136,4 @@ fvm dart run build_runner    # (If using code generation)
 
 ---
 
-## 📄 License & Authors
 
-- License: _Add your license text or link here_
-- Maintainers: _Add team/contact information here_
-
----
-
-Need help? Check the issues tab or contact the mobile team on your project board. Happy coding! 🐾
