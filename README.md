@@ -1,127 +1,146 @@
-# BCS Lens - Frontend Application
+# BCS Lens – Flutter Frontend
 
-[![Flutter Tests](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/flutter_tests.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/flutter_tests.yml)
+[Security Report (Google Doc)](https://docs.google.com/document/d/1RtrmbFcaiZi72WzOgnSiMr-Jw3lnkgoW9ZzoYCQyq9g/edit?usp=sharing)
 
-A Flutter mobile application for Body Condition Score (BCS) evaluation of pets using AI-powered image analysis.
+BCS Lens is a portrait-only Flutter app that helps pet owners and veterinary experts capture multi-angle photos, run AI-powered body condition scoring (BCS 1‑9), and manage health records.
 
-## 📋 Project Management
+---
 
-- **Project Board 1**: [View on Monday.com](https://view.monday.com/1983570327-4e442dd1f95cfdb5c1361933c0513a23?r=apse2)
-- **Project Board 2 (Gantt Chart)**: [View on Monday.com](https://view.monday.com/1983570327-7a5049f2f7f0015651bd2549ebd8508f?r=apse2)
+## 📋 At a Glance
 
-## 📱 Overview
+| Topic | Details |
+| --- | --- |
+| **Target platforms** | Android, iOS, Web (Flutter stable 3.35.0) |
+| **Primary stack** | Flutter, Riverpod/Provider (state), REST APIs, Google Sign-In |
+| **Security** | Tokens stored via `flutter_secure_storage`, session auto-logout, dotenv-managed secrets |
+| **CI/CD** | GitHub Actions (`flutter_tests.yml`, `security-scan.yml`) run analyzer, tests, and dependency audits on each push/PR |
 
-BCS Lens helps pet owners and experts evaluate their pets' body condition scores (1-9 scale) through:
-- **AI-Powered Detection**: Automatic species and view classification
-- **BCS Evaluation**: AI-based body condition score prediction
-- **Health Tracking**: Record and track pet health history over time
-- **Care Recommendations**: Species-specific health recommendations based on BCS
+---
 
-## 🚀 Getting Started
+## 🗂 Project Structure
 
-### Prerequisites
-
-- Flutter SDK (3.32.5 or higher)
-- Dart SDK
-- iOS Simulator / Android Emulator or physical device
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd BCS-L/BCSLens-frontend
+```
+BCSLens-frontend/
+├── lib/
+│   ├── config/         Theme + localization
+│   ├── models/         DTOs & parsing helpers
+│   ├── navigation/     Global navigator & dialogs
+│   ├── screens/        Feature screens (records, history, etc.)
+│   ├── services/       API, auth, secure storage, AI calls
+│   └── widgets/        Reusable UI components
+├── test/               Widget/unit tests
+├── test_logs/          CI + local analyzer/test logs
+├── .github/workflows/  Flutter tests & security scans
+└── README.md
 ```
 
-2. Install dependencies:
-```bash
-flutter pub get
-```
+---
 
-3. Configure environment variables:
-   - Create a `.env` file in the root directory
-   - Add your API base URL:
+## ✅ Prerequisites
+
+- macOS/Linux/Windows with Flutter **3.35.0** (includes Dart ≥ 3.7.2)
+- Android Studio or Xcode command-line tools
+- `fvm` (optional but recommended) to lock Flutter version
+- Access to backend API + AI service endpoints
+
+---
+
+## ⚙️ Setup & Run
+
+1. **Clone the repo**
+   ```bash
+   git clone <repo-url>
+   cd BCS-L/BCSLens-frontend
    ```
-   API_BASE_URL=http://your-api-url/api
-   UPLOAD_BASE_URL=http://your-upload-url
+
+2. **Install Flutter dependencies**
+   ```bash
+   fvm flutter pub get
    ```
 
-4. Run the application:
+3. **Configure environment variables**  
+   Create a file named `.env` in the project root (same level as `pubspec.yaml`).  
+   Use the table below to fill in the required values:
+
+   | Key | Description |
+   | --- | --- |
+   | `API_BASE_URL` | Base REST URL for authenticated API calls (`https://<backend-host>/api`) |
+   | `UPLOAD_BASE_URL` | Direct file-serving URL for pet images (`https://<backend-host>/api/upload`) |
+   | `AI_SERVICE_BASE_URL` | Endpoint for the AI detection/BCS microservice |
+   | `GOOGLE_CLIENT_ID` | Google OAuth **Web** client ID used by `google_sign_in` |
+
+   > **Important:** `.env` is ignored by Git. Add a `.env.example` for teammates if needed.
+
+4. **Run (device or emulator)**
+   ```bash
+   fvm flutter run
+   ```
+
+5. **Run on Web (optional)**
+   ```bash
+   fvm flutter run -d chrome --web-port 8080
+   ```
+
+---
+
+## 🔐 Security Considerations
+
+- Access/refresh tokens are stored in `flutter_secure_storage`; legacy `SharedPreferences` data migrates on first launch.
+- When the backend reports “expired or invalid refresh token,” the app forces logout and shows a themed modal.
+- Environment secrets (`.env`) are never committed; CI creates a dummy `.env` for analyzer/tests.
+- GitHub Actions `security-scan.yml` runs `flutter analyze`, `dart analyze`, `dart pub audit`, and publishes a consolidated report artifact.
+
+---
+
+## 🧪 Testing & QA
+
+| Command | Purpose |
+| --- | --- |
+| `fvm flutter analyze` | Static analysis & linting |
+| `fvm dart analyze` | Additional analyzer checks (fatal infos enabled in CI) |
+| `fvm flutter test --coverage` | Run widget + unit tests |
+| `./test_runner.sh` | Convenience wrapper (filters + logging) |
+
+Automated coverage: 54 test cases covering login, record flows, history, special care, profile, and widgets. See [HOW_TO_RUN_TESTS.md](HOW_TO_RUN_TESTS.md) for scenario mapping and [CI_CD_GUIDE.md](CI_CD_GUIDE.md) for workflow details.
+
+---
+
+## ✨ Key Features
+
+- Multi-angle capture workflow (front/back/left/right/top)
+- AI-assisted species/view detection + BCS score prediction
+- Record history with charts + care recommendations
+- Google Sign-In + traditional auth with auto token refresh
+- Secure image delivery with authenticated `Image.network`
+- Session-expiry modal + root navigator for global routing
+
+---
+
+## 🧰 Useful Scripts
+
 ```bash
-flutter run
+fvm flutter pub get          # Install deps with version pin
+fvm flutter analyze          # Analyzer with fvm
+fvm dart run build_runner    # (If using code generation)
+./scripts/clean.sh           # Example cleanup script (if present)
 ```
 
-## 🧪 Testing
-
-This project includes comprehensive automated tests covering 54 test cases.
-
-**CI/CD Status**: Tests run automatically on every push and pull request via GitHub Actions. Check the [Actions tab](https://github.com/YOUR_USERNAME/YOUR_REPO/actions) to see test results.
-
-### Run All Tests
-
-```bash
-# Using the test runner script (recommended)
-./test_runner.sh
-
-# Or manually
-flutter test --coverage
-```
-
-### Test Coverage
-
-- **Login Tests**: 3 test cases
-- **Records Dashboard Tests**: 9 test cases
-- **Add Record Flow Tests**: 12 test cases
-- **Review & Confirm Tests**: 3 test cases
-- **History Screen Tests**: 6 test cases
-- **Special Care Screen Tests**: 6 test cases
-- **Profile Screen Tests**: 5 test cases
-- **General System Tests**: 4 test cases
-- **Widget Tests**: 1 test case
-
-**Total: 54 automated test cases**
-
-For detailed testing instructions, see [HOW_TO_RUN_TESTS.md](HOW_TO_RUN_TESTS.md).
-
-## 📁 Project Structure
-
-```
-lib/
-├── config/          # App configuration and themes
-├── models/          # Data models
-├── screens/         # UI screens
-├── services/        # API and business logic services
-└── widgets/         # Reusable UI components
-
-test/                # Automated test files
-test_logs/           # Test execution logs
-```
-
-## 🔧 Key Features
-
-- **Portrait-Only Orientation**: Locked to portrait mode for consistent UX
-- **AI Integration**: YOLO-based pet detection and BCS evaluation
-- **Real-time Health Tracking**: Monitor pet health trends over time
-- **User Authentication**: Secure login and profile management
-- **Group Management**: Organize pets into groups
-
-## 📝 Documentation
-
-- [HOW_TO_RUN_TESTS.md](HOW_TO_RUN_TESTS.md) - Testing guide and instructions
-- [CI_CD_GUIDE.md](CI_CD_GUIDE.md) - GitHub Actions CI/CD setup and usage
+---
 
 ## 🤝 Contributing
 
-1. Create a feature branch
-2. Make your changes
-3. Run tests: `./test_runner.sh`
-4. Commit and push your changes
-5. Create a pull request
+1. Fork / create feature branch
+2. Keep `.env` local; never commit secrets
+3. Run `fvm flutter analyze` + `fvm flutter test`
+4. Open a PR with screenshots/logs if the feature touches UI or auth flows
 
-## 📄 License
+---
 
-[Add your license information here]
+## 📄 License & Authors
 
-## 👥 Authors
+- License: _Add your license text or link here_
+- Maintainers: _Add team/contact information here_
 
-[Add author information here]
+---
+
+Need help? Check the issues tab or contact the mobile team on your project board. Happy coding! 🐾
